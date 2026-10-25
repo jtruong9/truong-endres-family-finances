@@ -97,3 +97,9 @@ Public file: no amounts, account details or other personal financial data.
 - **Why:** The owners wanted the whole app to look as modern and sleek as the menu, and not like a template.
 - **Rejected:** A full redesign that also muted the month colors (the owners chose to keep them). A dark theme throughout (the owners rejected a dark dashboard earlier).
 - **Not touched:** the left menu itself, layout, and all behavior.
+
+## 2026-10 — Money flow page (diagram of where the money goes)
+- **Decided (owners' choices):** a "Money flow" page in the menu under Overview. Four rows top to bottom: who earned it → the Joint Hub → the accounts it's split to (joint savings, joint bills, each person) → where it leaves them (bills paid, spending, saved). **Two views:** *Plan* (one paycheck each, prefilled from the last logged paycheck, split by Settings › Paycheck split) and *Actual month* (real transfers and spending that month). **Arrow width shows the amount** (square-root scale so small flows stay visible), with dots moving along each arrow; hovering a box highlights its arrows. Plain SVG drawn by `js/flow.js`, no library.
+- **Why:** the owners wanted to see the whole paycheck → Hub → accounts flow at a glance, with motion.
+- **Rejected:** same-width arrows with labels (have to read numbers to compare), stopping at the accounts row (the owners asked for the outflow row), plan-only or actual-only.
+- **Rules:** whose income = a person's name in the description ("Paycheck – Kelly"), else the account owner. Income that lands outside the Hub is noted under the diagram. The accounts row always shows the usual accounts (joint savings, other joint, each person); other accounts only when money moved. Reduced-motion settings hide the dots.

@@ -152,7 +152,7 @@ function updateMenuBadge() {
 function render() {
   if (!CFG || $("#app").hidden) return;
   updateMenuBadge();
-  ({ dashboard: renderDashboard, transactions: renderTransactions, summary: renderSummary, checkin: renderCheckin,
+  ({ dashboard: renderDashboard, transactions: renderTransactions, summary: renderSummary, flow: renderFlow, checkin: renderCheckin,
      goals: renderGoals, bills: renderBills, rental: renderRental, import: renderImport, settings: renderSettings, help: renderHelp })[ui.tab]();
 }
 function renderGoals() {

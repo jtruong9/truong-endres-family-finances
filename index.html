@@ -7,8 +7,8 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#FFFFFF">
-  <link rel="stylesheet" href="css/app.css?v=31">
-  <link rel="stylesheet" href="css/summary.css?v=31">
+  <link rel="stylesheet" href="css/app.css?v=35">
+  <link rel="stylesheet" href="css/summary.css?v=35">
 </head>
 <body>
   <!-- Shown until a data folder is connected -->
@@ -34,6 +34,7 @@
         <button data-tab="dashboard" class="active" title="Dashboard"><span class="sb-ico" data-icon="dashboard"></span><span class="sb-label">Dashboard</span></button>
         <button data-tab="transactions" title="Transactions"><span class="sb-ico" data-icon="list"></span><span class="sb-label">Transactions</span><span class="sb-badge" id="sb-review-count" hidden></span></button>
         <button data-tab="summary" title="Summary"><span class="sb-ico" data-icon="chart"></span><span class="sb-label">Summary</span></button>
+        <button data-tab="flow" title="Money flow"><span class="sb-ico" data-icon="flow"></span><span class="sb-label">Money flow</span></button>
         <button data-tab="checkin" title="Check-in"><span class="sb-ico" data-icon="checkCircle"></span><span class="sb-label">Check-in</span></button>
         <div class="sb-section sb-label">Plan</div>
         <button data-tab="goals" title="Goals"><span class="sb-ico" data-icon="target"></span><span class="sb-label">Goals</span></button>
@@ -64,6 +65,7 @@
       <section id="tab-dashboard" class="tab"></section>
       <section id="tab-transactions" class="tab" hidden></section>
       <section id="tab-summary" class="tab" hidden></section>
+      <section id="tab-flow" class="tab" hidden></section>
       <section id="tab-checkin" class="tab" hidden></section>
       <section id="tab-goals" class="tab" hidden></section>
       <section id="tab-bills" class="tab" hidden></section>
@@ -138,19 +140,20 @@
 
   <script src="vendor/chart.umd.min.js"></script>
   <script src="vendor/xlsx.full.min.js"></script>
-  <script src="js/icons.js?v=31"></script>
-  <script src="js/store.js?v=31"></script>
-  <script src="js/model.js?v=31"></script>
-  <script src="js/importers.js?v=31"></script>
-  <script src="js/app.js?v=31"></script>
-  <script src="js/help.js?v=31"></script>
-  <script src="js/review.js?v=31"></script>
-  <script src="js/attention.js?v=31"></script>
-  <script src="js/reorg.js?v=31"></script>
-  <script src="js/reorg-ui.js?v=31"></script>
-  <script src="js/features.js?v=31"></script>
-  <script src="js/summary.js?v=31"></script>
-  <script src="js/app2.js?v=31"></script>
-  <script src="js/offline.js?v=31"></script>
+  <script src="js/icons.js?v=35"></script>
+  <script src="js/store.js?v=35"></script>
+  <script src="js/model.js?v=35"></script>
+  <script src="js/importers.js?v=35"></script>
+  <script src="js/app.js?v=35"></script>
+  <script src="js/help.js?v=35"></script>
+  <script src="js/review.js?v=35"></script>
+  <script src="js/attention.js?v=35"></script>
+  <script src="js/reorg.js?v=35"></script>
+  <script src="js/reorg-ui.js?v=35"></script>
+  <script src="js/features.js?v=35"></script>
+  <script src="js/summary.js?v=35"></script>
+  <script src="js/flow.js?v=35"></script>
+  <script src="js/app2.js?v=35"></script>
+  <script src="js/offline.js?v=35"></script>
 </body>
 </html>

@@ -232,4 +232,39 @@ t("budget status flags overspending", () => {
   assert.strictEqual(J([b[0].spent, b[0].over]), J([120, true]));
 });
 
+t("money flow plan splits each paycheck through the hub", () => {
+  const c = Model.config((k, d) => (k === "split" ? [{ toAccount: "Joint Savings", mode: "fixed", value: 500 }, { toAccount: "Joint Bills", mode: "percent", value: 50 },
+    { toAccount: "Justin Personal", mode: "rest" }, { toAccount: "Kelly Personal", mode: "rest" }] : d));
+  const f = Model.planFlow(c, [{ who: "p1", amount: 4000 }, { who: "p2", amount: 3000 }]);
+  const amt = (id) => f.nodes.find((x) => x.id === id).amount;
+  assert.strictEqual(J([amt("acct:Joint Hub"), amt("acct:Joint Savings"), amt("acct:Joint Bills"), amt("acct:Justin Personal"), amt("acct:Kelly Personal")]),
+    J([7000, 1000, 3500, 1250, 1250]));
+  assert.strictEqual(f.leftover, 0);
+  assert.strictEqual(J(f.nodes.filter((x) => x.level === 2).map((x) => x.label)), J(["Joint Savings", "Joint Bills", "Justin Personal", "Kelly Personal"]));
+  assert.strictEqual(f.links.find((l) => l.to === "out:Joint Savings").kind, "saved");
+});
+
+t("money flow plan keeps unsplit money in the hub", () => {
+  const c = Model.config((k, d) => (k === "split" ? [{ toAccount: "Joint Bills", mode: "fixed", value: 1000 }] : d));
+  const f = Model.planFlow(c, [{ who: "p1", amount: 2500 }]);
+  assert.strictEqual(J([f.leftover, f.nodes.find((x) => x.id === "left:hub").amount]), J([1500, 1500]));
+});
+
+t("money flow actual follows one month's transfers and spending", () => {
+  const f = Model.actualFlow(CFG, ledger, 2026, 10);
+  const node = (id) => f.nodes.find((x) => x.id === id);
+  const link = (from, to) => f.links.filter((l) => l.from === from && l.to === to).reduce((s, l) => s + l.amount, 0);
+  assert.strictEqual(J([node("acct:Joint Hub").amount, link("acct:Joint Hub", "acct:Joint Bills"), link("acct:Joint Hub", "acct:Kelly Personal")]), J([4000, 2500, 600]));
+  assert.strictEqual(J([node("out:Joint Bills").amount, node("out:Justin Personal").amount, node("out:hub").amount]), J([1500, 35.25, 300]));
+  assert.strictEqual(J(node("acct:Justin Personal").lines), J([["Left", 564.75]]));
+  assert.strictEqual(node("left:hub"), undefined);   // 4000 in, 3700 sent out, 300 saved: nothing left
+});
+
+t("money flow knows whose paycheck it is from the description", () => {
+  const p = Model.incomeOwner(CFG, { desc: "Paycheck – Kelly", account: "Joint Hub", category: "Paychecks" });
+  const last = Model.lastPaycheck(CFG, [{ date: "2026-10-01", desc: "Paycheck – Justin", amount: 3900, category: "Paychecks", account: "Joint Hub" },
+    { date: "2026-10-15", desc: "Paycheck – Justin", amount: 4100, category: "Paychecks", account: "Joint Hub" }], "p1");
+  assert.strictEqual(J([p, last, Model.lastPaycheck(CFG, [], "p2")]), J(["p2", 4100, null]));
+});
+
 console.log(`\n${n} tests passed`);

@@ -59,6 +59,7 @@ Paychecks → Joint Hub → Joint Bills (all recurring bills)
 | `js/attention.js` | "Needs attention" panel on the Transactions tab: saved rows with problems, grouped, with bulk fixes and "Leave as is" (`ackIssues`). Problem rules live in `Model.issueList`. |
 | `js/features.js` | Balances + bank check, Goals, Check-in, Rental, Compare years, one-click bill logging. |
 | `js/summary.js` + `css/summary.css` | Summary page: year table (fits the window, month colors) and Compare years. Hovering a group or total number shows what it adds up: every row has `data-key`, and `ui._sums` lists the parts of each sum row. |
+| `js/flow.js` | "Money flow" page: top-down SVG diagram (paychecks → Hub → accounts → where it leaves them), arrow width = amount, moving dots. Numbers from `Model.planFlow` (Settings › Paycheck split) and `Model.actualFlow` (one month of transactions). |
 | `js/app2.js` | Paycheck distribution, Bills, Import tab, Settings. Calls `start()`. |
 | `css/app.css` | The design system: neutral minimal (white, hairline borders, no shadows, one blue accent, Inter). Tokens are CSS variables at the top; see DECISIONS. |
 | `vendor/` | Chart.js 4.4.7, SheetJS 0.18.5, Inter font (OFL). Barlow is still in `vendor/fonts` but no longer loaded. Vendored on purpose: no CDN at runtime. |

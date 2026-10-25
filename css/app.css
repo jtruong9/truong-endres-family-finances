@@ -239,3 +239,28 @@ tr.dup-row td { background: var(--warn-bg); }
 .flow-box.hub { background: var(--ink); color: #fff; border-color: var(--ink); }
 .flow-box.hub span { color: #D1D5DB; }
 .flow-arrow { color: var(--faint); }
+
+/* ---- Money flow page ---- */
+.fl-controls { margin-bottom: 12px; gap: 12px; }
+.fl-pay { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); font-weight: 500; }
+.fl-pay input { width: 130px; text-align: right; }
+.fl-key { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+.fl-key i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; margin-right: 6px; vertical-align: 2px; }
+.fl-card { padding: 20px 12px; overflow: hidden; }
+.fl-svg { display: block; height: auto; font-family: inherit; }
+.fl-node rect { fill: var(--bg); stroke: var(--line); stroke-width: 1; }
+.fl-node.hub rect { fill: var(--ink); stroke: var(--ink); }
+.fl-node.out rect { fill: var(--subtle); }
+.fl-node text { text-anchor: middle; }
+.fl-name { font-size: 12.5px; font-weight: 500; fill: var(--muted); }
+.fl-amt { font-size: 17px; font-weight: 600; fill: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.fl-sub { font-size: 11px; fill: var(--faint); font-variant-numeric: tabular-nums; }
+.fl-node.hub .fl-name { fill: #D1D5DB; } .fl-node.hub .fl-amt { fill: #fff; } .fl-node.hub .fl-sub { fill: #9CA3AF; }
+.fl-node { cursor: default; }
+.fl-node:hover rect { stroke: var(--accent); stroke-width: 1.5; }
+.fl-link path:first-of-type { transition: stroke-opacity .15s; }
+.fl-link:hover path:first-of-type { stroke-opacity: .55; }
+.fl-svg.focus .fl-link { opacity: .25; transition: opacity .15s; }
+.fl-svg.focus .fl-link.lit { opacity: 1; }
+.fl-svg.focus .fl-link.lit path:first-of-type { stroke-opacity: .55; }
+@media (prefers-reduced-motion: reduce) { .fl-dot { display: none; } }

@@ -34,6 +34,7 @@ If Chrome asks again after a restart, click **Reconnect**. That's Chrome confirm
 | Log a purchase | **Add** (or press **N**). Typing a description you've used before fills in its last category and account. |
 | Log a refund | Add it with a **negative** amount in the original category. |
 | Log and split a paycheck | **Paycheck** → enter net pay. It logs the paycheck in the Hub plus one transfer per account, using Settings → Paycheck split. |
+| See where the money goes | **Money flow** in the menu: boxes and moving arrows from paychecks → Joint Hub → accounts → spending/savings. *Plan* uses Settings → Paycheck split; *Actual month* shows what really moved. |
 | Move money yourself | Add a transaction with Category **Transfer**, the *from* account and a **To account**. |
 | Import from your bank | Bank website → download the statement as **CSV** → Import tab → choose the account → pick the file → Preview → **Send to review**. Then sort every row on **Transactions › To review**; nothing counts until you confirm it. |
 | Monthly money date | **Check-in** tab: sort transactions, check balances against the bank, bills, budgets, goals, mark done. |

@@ -15,7 +15,7 @@ function renderHelp() {
       <div class="help-toc">
         <a href="#h-flow">How our money flows</a><a href="#h-first">First-time setup</a><a href="#h-daily">Everyday logging</a>
         <a href="#h-paycheck">Paychecks</a><a href="#h-import">Bank statements &amp; review</a><a href="#h-checkin">Monthly check-in</a>
-        <a href="#h-read">Reading the numbers</a><a href="#h-goals">Goals</a><a href="#h-bills">Bills</a><a href="#h-rental">Rental</a>
+        <a href="#h-read">Reading the numbers</a><a href="#h-moneyflow">Money flow</a><a href="#h-goals">Goals</a><a href="#h-bills">Bills</a><a href="#h-rental">Rental</a>
         <a href="#h-rules">Good habits</a><a href="#h-trouble">If something looks wrong</a>
       </div>
     </div>
@@ -90,6 +90,15 @@ function renderHelp() {
         <li><b>Remaining</b> at the bottom is green when you came out ahead and red when you spent more than came in.</li>
         <li><b>Account flows</b> shows money in and out of each account for one month. The Joint Hub should end near <b>$0</b> after a paycheck is split.</li>
         <li>Click <b>Compare years</b> at the top of the Summary to see every category year by year, with the % change from last year. Tick <i>average per month</i> so this year (not finished yet) compares fairly.</li>
+      </ul>
+    </div>
+
+    <div class="card" id="h-moneyflow">
+      <h2 class="cat-bar">Money flow</h2>
+      <p>The <b>Money flow</b> page draws our money as boxes from top to bottom: paychecks &rarr; the <b>Joint Hub</b> &rarr; savings, bills and each personal account &rarr; where it leaves them. A <b>thicker arrow means more money</b>, and the moving dots show which way it goes. Hover a box to light up its arrows; hover an arrow for the exact amount.</p>
+      <ul>
+        <li><b>Plan</b>: type one paycheck each (it starts with your last logged paycheck) to see how it splits, using <b>Settings &rsaquo; Paycheck split</b>. Anything the split doesn't send out shows as "Stays in Joint Hub".</li>
+        <li><b>Actual month</b>: what really moved that month, from saved transactions. Each account shows what came in and what's <b>left</b>, and the bottom row shows what was spent, saved or paid as bills. It fills in once paychecks are logged with the <b>Paycheck</b> button.</li>
       </ul>
     </div>
 

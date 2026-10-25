@@ -401,8 +401,124 @@ const Model = (() => {
       .map((b) => ({ ...b, over: b.kind === "Expense" && b.spent > b.budget }));
   }
 
+  // ---- Money flow page: four rows, where money comes from → Joint Hub → the accounts it's split to
+  // → where it leaves them. Both functions return { hub, nodes: [{ id, level, label, amount, lines }],
+  // links: [{ from, to, amount, kind: "income"|"move"|"spent"|"saved" }] }. A link of 0 is a placeholder.
+  const hubName = (cfg) => (cfg.accounts.find((a) => /hub/i.test(a.name)) || cfg.accounts[0] || {}).name;
+  // Order of the accounts row: joint savings, other joint (bills), then each person, then anything else
+  const acctRank = (a) => (a.owner === "joint" ? (a.type === "Savings" ? 0 : 1) : a.owner === "p1" ? 2 : a.owner === "p2" ? 3 : 4);
+  const flowAccounts = (cfg, hub) => cfg.accounts.map((a, i) => ({ a, i })).filter(({ a }) => a.name !== hub)
+    .sort((x, y) => acctRank(x.a) - acctRank(y.a) || x.i - y.i).map(({ a }) => a);
+  const outLabel = (cfg, a, role) => (role === "save" ? "Savings" : role === "bills" ? "Recurring bills" : a.owner === "p1" || a.owner === "p2" ? `${cfg.people[a.owner]}'s spending` : "Spending");
+  const acctRole = (cfg, a) => (a.type === "Savings" ? "save" : cfg.recurring.some((b) => b.account === a.name) || /bill/i.test(a.name) ? "bills" : "spend");
+  // Whose income: a name in the description ("Paycheck – Kelly"), else the account's owner
+  function incomeOwner(cfg, t) {
+    const d = String(t.desc || "").toLowerCase();
+    for (const p of ["p1", "p2"]) if (cfg.people[p] && new RegExp(`\\b${cfg.people[p].toLowerCase()}\\b`).test(d)) return p;
+    const o = ownerOf(cfg, t);
+    return o === "p1" || o === "p2" ? o : "other";
+  }
+  // Most recent paycheck amount for a person (prefills the plan), or null
+  function lastPaycheck(cfg, txs, who) {
+    let best = null;
+    for (const t of txs) {
+      if (!isPosted(t) || kindOf(cfg, t) !== "Income" || !(t.category === "Paychecks" || /paycheck/i.test(t.desc || ""))) continue;
+      if (incomeOwner(cfg, t) === who && (!best || t.date > best.date)) best = t;
+    }
+    return best ? r2(best.amount) : null;
+  }
+
+  // Plan: one paycheck each, split by Settings › Paycheck split. pays = [{ who: "p1", amount }]
+  function planFlow(cfg, pays) {
+    const hub = hubName(cfg), nodes = [], links = [], into = new Map();
+    let hubIn = 0, leftover = 0;
+    for (const p of pays) {
+      const amt = r2(+p.amount || 0);
+      nodes.push({ id: `pay:${p.who}`, level: 0, label: `${cfg.people[p.who]}'s paycheck`, amount: amt, lines: [] });
+      links.push({ from: `pay:${p.who}`, to: `acct:${hub}`, amount: amt, kind: "income" });
+      hubIn += amt;
+      const d = distribute(cfg.split, amt);
+      leftover += d.leftover;
+      for (const t of d.transfers) {
+        if (t.toAccount === hub) leftover += t.amount;
+        else into.set(t.toAccount, (into.get(t.toAccount) || 0) + t.amount);
+      }
+    }
+    nodes.push({ id: `acct:${hub}`, level: 1, label: hub, amount: r2(hubIn), lines: [], hub: true });
+    const accts = flowAccounts(cfg, hub).filter((a) => acctRank(a) < 4 || into.has(a.name));
+    for (const name of into.keys()) if (!accts.some((a) => a.name === name)) accts.push({ name, owner: "", type: "" });
+    for (const a of accts) {
+      const amt = r2(into.get(a.name) || 0), role = acctRole(cfg, a);
+      nodes.push({ id: `acct:${a.name}`, level: 2, label: a.name, amount: amt, lines: [] });
+      links.push({ from: `acct:${hub}`, to: `acct:${a.name}`, amount: amt, kind: "move" });
+      const billsListed = r2(cfg.recurring.filter((b) => b.account === a.name).reduce((s, b) => s + (+b.amount || 0), 0));
+      nodes.push({ id: `out:${a.name}`, level: 3, label: outLabel(cfg, a, role), amount: amt, lines: billsListed ? [["Bills listed", billsListed]] : [] });
+      links.push({ from: `acct:${a.name}`, to: `out:${a.name}`, amount: amt, kind: role === "save" ? "saved" : "spent" });
+    }
+    leftover = r2(leftover);
+    if (leftover > 0.005) {
+      nodes.push({ id: "left:hub", level: 2, label: `Stays in ${hub}`, amount: leftover, lines: [] });
+      links.push({ from: `acct:${hub}`, to: "left:hub", amount: leftover, kind: "move" });
+    }
+    return { hub, nodes, links, leftover };
+  }
+
+  // Actual: what really moved in one month, from saved transactions (all owners)
+  function actualFlow(cfg, txs, year, month) {
+    const hub = hubName(cfg), nodes = [], links = [];
+    const flows = new Map(accountFlows(cfg, txs, year, month).map((f) => [f.account, f]));
+    const income = new Map(), hubTo = new Map(), moved = new Map();
+    const add = (m, k, v) => m.set(k, (m.get(k) || 0) + v);
+    for (const t of txs) {
+      if (!isPosted(t) || !inYear(t, year) || monthIdx(t) !== month) continue;
+      const k = kindOf(cfg, t);
+      if (k === "Income") add(income, `${incomeOwner(cfg, t)}|${t.account}`, t.amount);
+      else if (k === "Transfer" && t.toAccount) (t.account === hub ? add(hubTo, t.toAccount, t.amount) : add(moved, t.account, t.amount));
+    }
+    // Row 0: whose income, and the account it landed in
+    const who = [...new Set([...income.keys()].map((k) => k.split("|")[0]))].sort();
+    for (const w of who) {
+      nodes.push({ id: `src:${w}`, level: 0, label: w === "other" ? "Other income" : `${cfg.people[w]}'s income`, amount: r2([...income].filter(([k]) => k.startsWith(`${w}|`)).reduce((s, [, v]) => s + v, 0)), lines: [] });
+    }
+    let notHub = 0;
+    for (const [k, v] of income) {
+      const [w, acct] = k.split("|");
+      links.push({ from: `src:${w}`, to: `acct:${acct}`, amount: r2(v), kind: "income" });
+      if (acct !== hub) notHub += v;
+    }
+    // Row 1: the hub, plus what it paid or saved itself and what's left in it
+    const h = flows.get(hub) || { income: 0, transfersIn: 0, spent: 0, saved: 0, transfersOut: 0, net: 0 };
+    nodes.push({ id: `acct:${hub}`, level: 1, label: hub, amount: r2(h.income + h.transfersIn), lines: [], hub: true });
+    if (h.spent || h.saved) {
+      nodes.push({ id: "out:hub", level: 2, label: `Paid from ${hub}`, amount: r2(h.spent + h.saved), lines: [["Spent", h.spent], ["Saved", h.saved]].filter((l) => l[1]) });
+      if (h.spent) links.push({ from: `acct:${hub}`, to: "out:hub", amount: h.spent, kind: "spent" });
+      if (h.saved) links.push({ from: `acct:${hub}`, to: "out:hub", amount: h.saved, kind: "saved" });
+    }
+    // Row 2: every other account (the usual ones always; others only if something moved)
+    for (const a of flowAccounts(cfg, hub)) {
+      const f = flows.get(a.name);
+      const active = f && (f.income || f.transfersIn || f.spent || f.saved || f.transfersOut);
+      if (acctRank(a) >= 4 && !active) continue;
+      const z = f || { income: 0, transfersIn: 0, spent: 0, saved: 0, transfersOut: 0, net: 0 };
+      nodes.push({ id: `acct:${a.name}`, level: 2, label: a.name, amount: r2(z.income + z.transfersIn), lines: [["Left", z.net]] });
+      links.push({ from: `acct:${hub}`, to: `acct:${a.name}`, amount: r2(hubTo.get(a.name) || 0), kind: "move" });
+      // Row 3: where it left this account
+      const mv = r2(moved.get(a.name) || 0);
+      const parts = [[acctRole(cfg, a) === "bills" ? "Bills paid" : "Spent", z.spent, "spent"], ["Saved", z.saved, "saved"], ["Moved to other accounts", mv, "move"]].filter((p) => p[1]);
+      if (!parts.length) continue;
+      nodes.push({ id: `out:${a.name}`, level: 3, label: outLabel(cfg, a, acctRole(cfg, a)), amount: r2(parts.reduce((s, p) => s + p[1], 0)), lines: parts.length > 1 ? parts.map((p) => [p[0], p[1]]) : [] });
+      for (const [, v, kind] of parts) links.push({ from: `acct:${a.name}`, to: `out:${a.name}`, amount: r2(v), kind });
+    }
+    if (h.net > 0.005) {
+      nodes.push({ id: "left:hub", level: 2, label: `Left in ${hub}`, amount: h.net, lines: [] });
+      links.push({ from: `acct:${hub}`, to: "left:hub", amount: h.net, kind: "move" });
+    }
+    return { hub, nodes, links, notHub: r2(notHub) };
+  }
+
   return {
     DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2,
+    hubName, incomeOwner, lastPaycheck, planFlow, actualFlow,
     config, ownerLabel, kindOf, ownerOf, matchesOwner, isPosted, tagList,
     yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, issueList, openIssues, issueGroups, autoCategory,
     resolveReview, merchantKey, buildGuessIndex, guessCategory, buildMatchIndex, findMatches,

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Truong Finance</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231f3864'/><text x='16' y='23' font-size='19' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>$</text></svg>">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <!-- Shown until a data folder is connected -->
+  <section id="setup" class="setup" hidden>
+    <div class="setup-card">
+      <h1>Truong Finance</h1>
+      <p id="setup-msg">Choose the shared Google Drive folder that holds your finance data.</p>
+      <button id="btn-pick" class="primary">Choose data folder</button>
+      <button id="btn-regrant" class="primary" hidden>Reconnect to "<span id="regrant-name"></span>"</button>
+      <p class="hint">First time? Create an empty folder such as <b>My Drive &rsaquo; Truong Finance Data</b> in Google Drive for desktop, share it with each other, then pick it here. Your data never leaves that folder.</p>
+      <p id="unsupported" class="error" hidden>This browser can't open folders. Please use Google Chrome on a Windows computer.</p>
+    </div>
+  </section>
+
+  <div id="app" hidden>
+    <header class="topbar">
+      <div class="brand">Truong Finance</div>
+      <nav id="tabs">
+        <button data-tab="dashboard" class="active">Dashboard</button>
+        <button data-tab="transactions">Transactions</button>
+        <button data-tab="summary">Summary</button>
+        <button data-tab="bills">Bills</button>
+        <button data-tab="import">Import</button>
+        <button data-tab="settings">Settings</button>
+      </nav>
+      <div class="topbar-right">
+        <button id="btn-add" class="primary">+ Add</button>
+        <button id="btn-paycheck">Distribute paycheck</button>
+        <button id="btn-refresh" title="Load changes saved from the other computer">&#x21bb;</button>
+      </div>
+    </header>
+
+    <main>
+      <section id="tab-dashboard" class="tab"></section>
+      <section id="tab-transactions" class="tab" hidden></section>
+      <section id="tab-summary" class="tab" hidden></section>
+      <section id="tab-bills" class="tab" hidden></section>
+      <section id="tab-import" class="tab" hidden></section>
+      <section id="tab-settings" class="tab" hidden></section>
+    </main>
+    <footer class="status" id="status"></footer>
+  </div>
+
+  <!-- Add / edit transaction -->
+  <dialog id="dlg-tx">
+    <form method="dialog" id="form-tx">
+      <h2 id="tx-title">Add transaction</h2>
+      <div class="grid2">
+        <label>Date <input type="date" name="date" required></label>
+        <label>Amount <input type="number" name="amount" step="0.01" required placeholder="45.00 (refund: -45.00)"></label>
+        <label class="span2">Description <input name="desc" list="desc-list" autocomplete="off" required></label>
+        <label>Category <select name="category" required></select></label>
+        <label>Account <select name="account" required></select></label>
+        <label class="to-acct" hidden>To account <select name="toAccount"></select></label>
+        <label class="span2">Notes <input name="notes"></label>
+        <label class="span2">Tags <input name="tags" placeholder="e.g. wedding, honeymoon (comma separated)"></label>
+      </div>
+      <datalist id="desc-list"></datalist>
+      <p class="error" id="tx-error"></p>
+      <div class="actions">
+        <button type="button" id="tx-delete" class="danger" hidden>Delete</button>
+        <span class="spacer"></span>
+        <button type="button" id="tx-cancel">Cancel</button>
+        <button type="submit" class="primary" id="tx-save">Save</button>
+        <button type="button" id="tx-save-another" title="Save and keep the form open">Save &amp; add another</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Distribute paycheck -->
+  <dialog id="dlg-pay">
+    <form method="dialog" id="form-pay">
+      <h2>Log &amp; distribute a paycheck</h2>
+      <div class="grid2">
+        <label>Date <input type="date" name="date" required></label>
+        <label>Net pay <input type="number" step="0.01" name="amount" required></label>
+        <label>Whose paycheck <select name="who"></select></label>
+        <label>Lands in <select name="account"></select></label>
+      </div>
+      <h3>Transfers out of the hub</h3>
+      <div id="pay-preview"></div>
+      <p class="hint">Change the default split under Settings &rsaquo; Paycheck split.</p>
+      <p class="error" id="pay-error"></p>
+      <div class="actions">
+        <span class="spacer"></span>
+        <button type="button" id="pay-cancel">Cancel</button>
+        <button type="submit" class="primary">Save paycheck + transfers</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="vendor/chart.umd.min.js"></script>
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/importers.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/app2.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Never commit personal finance data
+*.json
+!package.json
+*.xlsx
+*.xlsm
+*.csv

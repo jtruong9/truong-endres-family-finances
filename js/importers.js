@@ -77,33 +77,34 @@ const Importers = (() => {
     };
   }
 
-  // Turn mapped CSV rows into transactions. Purchases become positive Expense amounts;
-  // money coming in (refunds/deposits) becomes negative unless it looks like income.
-  function fromCsv(parsed, map, account, rules) {
+  // Turn mapped CSV rows into review-queue rows. Each keeps the bank's direction: amount is always
+  // positive and dir is "out" (money left the account) or "in" (money arrived). Categories are
+  // filled later by guessing and confirmed by a person (Model.resolveReview).
+  function fromCsv(parsed, map, account) {
     const out = [];
     for (const r of parsed.rows) {
       const date = parseDate(r[map.date]) || toIso(r[map.date]);
-      let amt;
+      let out$;   // positive = money out
       if (map.amount >= 0) {
-        amt = toNum(r[map.amount]);
-        if (map.purchasesAreNegative) amt = -amt;   // bank shows -45.00 for a purchase -> we store 45.00
+        out$ = toNum(r[map.amount]);
+        if (map.purchasesAreNegative) out$ = -out$;   // bank shows -45.00 for a purchase
       } else {
         const d = toNum(r[map.debit]) || 0, c = toNum(r[map.credit]) || 0;
-        amt = Math.abs(d) - Math.abs(c);
+        out$ = Math.abs(d) - Math.abs(c);
       }
-      if (!date || isNaN(amt)) continue;
-      const desc = String(r[map.desc] ?? "").trim();
-      out.push({ date, desc, amount: Math.round(amt * 100) / 100, category: Model.autoCategory(rules, desc),
-                 account, toAccount: "", notes: "", tags: "" });
+      if (!date || isNaN(out$) || out$ === 0) continue;
+      out.push({ date, desc: String(r[map.desc] ?? "").trim(), amount: Math.round(Math.abs(out$) * 100) / 100,
+                 dir: out$ > 0 ? "out" : "in", account, toAccount: "", category: "", notes: "", tags: "", review: true });
     }
     return out;
   }
 
-  // Same date + amount + account + description = probably already imported
-  const dupKey = (t) => `${t.date}|${(+t.amount).toFixed(2)}|${t.account}|${(t.desc || "").toLowerCase().replace(/\s+/g, " ")}`;
+  // Same bank row imported before (in the queue or already confirmed) = skip it.
+  // Keyed on what the bank file says: date, amount, account and description.
+  const bankKey = (t) => `${t.date}|${Math.abs(+t.amount).toFixed(2)}|${t.account}|${(t.bankDesc || t.desc || "").toLowerCase().replace(/\s+/g, " ")}`;
   function markDuplicates(incoming, existing) {
-    const have = new Set(existing.map(dupKey));
-    return incoming.map((t) => ({ ...t, _dup: have.has(dupKey(t)) }));
+    const have = new Set(existing.map(bankKey));
+    return incoming.map((t) => ({ ...t, _dup: have.has(bankKey(t)) }));
   }
 
   // ---- Export ----

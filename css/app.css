@@ -166,3 +166,40 @@ dialog::backdrop { background: rgba(30, 28, 28, .45); }
 .summary td.num { color: #1A1A1A; }
 .summary tr.group td.mh { font-size: 11px; opacity: .92; }
 .summary tr.grand td:not(.sticky):not(.rem-pos):not(.rem-neg) { background: #F7F6F6; }
+
+/* ---- Review queue ---- */
+.review-card { border: 2px solid var(--accent); }
+.review-title { margin: 0; }
+.review-title .count { display: inline-block; background: var(--accent); color: #fff; border-radius: 999px; padding: 0 10px; font-size: 15px; margin-left: 4px; }
+.review-table td { vertical-align: middle; }
+.review-table select, .review-table input:not([type=checkbox]) { width: 100%; min-width: 150px; padding: 4px 6px; }
+.review-table select.guess { font-style: italic; color: #6B6767; background: #FFFBEA; }
+.review-table td.in { color: var(--good); font-weight: 600; } .review-table td.out { color: var(--ink); font-weight: 600; }
+b.in { color: var(--good); } b.out { color: var(--ink); }
+.guess-key { font-style: italic; background: #FFFBEA; padding: 0 4px; border-radius: 3px; }
+.pill.dup { background: #FFE2C2; color: #8A4B00; }
+tr.dup-row td { background: #FFF6EC; }
+.banner { border-left: 6px solid var(--accent); }
+
+/* ---- Goals ---- */
+.goal { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 10px 0; }
+.goal .bar { margin: 8px 0 6px; height: 12px; }
+.bar { height: 10px; background: #EFEDED; border-radius: 99px; overflow: hidden; min-width: 80px; }
+.bar > span { display: block; height: 100%; background: var(--c-income); }
+.bar.over > span { background: var(--bad); }
+.goal-form { border: 2px solid var(--charcoal); }
+
+/* ---- Check-in ---- */
+.ci-step { display: grid; grid-template-columns: 38px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.ci-step:last-child { border-bottom: none; }
+.ci-num { width: 32px; height: 32px; border-radius: 50%; background: #EFEDED; color: var(--charcoal); display: grid; place-items: center; font-weight: 700; }
+.ci-step.ok .ci-num { background: var(--c-income); color: #fff; }
+.ci-body h3 { margin: 4px 0 6px; }
+.ci-body table { width: auto; min-width: 320px; }
+
+/* ---- Summary view toggle ---- */
+.seg { display: flex; align-items: center; gap: 0; margin-bottom: 10px; }
+.seg button { border-radius: 0; border-right-width: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:nth-child(2) { border-radius: 0 7px 7px 0; border-right-width: 1px; }
+.seg button.on { background: var(--charcoal); color: #fff; border-color: var(--charcoal); }

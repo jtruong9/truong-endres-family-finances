@@ -14,8 +14,9 @@ function renderHelp() {
       <p>A guide for ${p1} and ${p2}. Everything you enter is saved automatically to your shared Google Drive folder, and it shows up on the other person's computer too.</p>
       <div class="help-toc">
         <a href="#h-flow">How our money flows</a><a href="#h-first">First-time setup</a><a href="#h-daily">Everyday logging</a>
-        <a href="#h-paycheck">Paychecks</a><a href="#h-read">Reading the numbers</a><a href="#h-bills">Bills</a>
-        <a href="#h-import">Importing</a><a href="#h-rules">Good habits</a><a href="#h-trouble">If something looks wrong</a>
+        <a href="#h-paycheck">Paychecks</a><a href="#h-import">Bank statements &amp; review</a><a href="#h-checkin">Monthly check-in</a>
+        <a href="#h-read">Reading the numbers</a><a href="#h-goals">Goals</a><a href="#h-bills">Bills</a><a href="#h-rental">Rental</a>
+        <a href="#h-rules">Good habits</a><a href="#h-trouble">If something looks wrong</a>
       </div>
     </div>
 
@@ -83,28 +84,66 @@ function renderHelp() {
         <li><b>Avg/mo</b> divides by the months that have actually passed this year, not always 12.</li>
         <li><b>Remaining</b> at the bottom is green when you came out ahead and red when you spent more than came in.</li>
         <li><b>Account flows</b> shows money in and out of each account for one month. The Joint Hub should end near <b>$0</b> after a paycheck is split.</li>
+        <li>Click <b>Compare years</b> at the top of the Summary to see every category year by year, with ▲▼ change from last year. Tick <i>average per month</i> so this year (not finished yet) compares fairly.</li>
+      </ul>
+    </div>
+
+    <div class="card" id="h-import">
+      <h2 class="cat-bar">Bank statements &amp; the review list</h2>
+      <p>This is how we make sure we look at <b>every</b> transaction. Statement rows don't count anywhere until one of us sorts them.</p>
+      ${step(1, "Download the statement as a CSV", `<p>On the bank's website, find <i>Download transactions</i> / <i>Export</i> and choose <b>CSV</b> for the month.</p>`)}
+      ${step(2, "Import it", `<p><b>Import</b> tab &rsaquo; <b>Bank statement (CSV)</b> &rsaquo; pick which account the statement is for &rsaquo; <b>Choose File</b> &rsaquo; <b>Preview</b>. Check the line that says how many rows are "money out" (purchases) vs "money in". If that looks backwards, flip the checkbox and preview again. Then <b>Send to review</b>.</p>`)}
+      ${step(3, "Sort every row", `<p>Go to <b>Transactions</b>. The <b>To review</b> list is at the top. For each row:</p>
+        <ul><li>Check the <b>category</b>. <span class="guess-key">Italic</span> means the app guessed from past transactions; change it if it's wrong.</li>
+        <li>Money moved between our own accounts: choose <b>Transfer</b>, then pick the other account.</li>
+        <li>Add a <b>tag</b> if it belongs to a goal or project (e.g. <i>honeymoon</i>).</li>
+        <li>Click <b>✓</b> to confirm. It moves into the real list and starts counting.</li></ul>`)}
+      ${step("!", "Watch for possible duplicates", `<p>Rows marked <span class="pill dup">possible duplicate</span> look like something already saved: for example a paycheck you logged with <b>Distribute paycheck</b>, or the other half of a transfer from another account's statement. If it's the same money, remove it with <b>✕</b> so it isn't counted twice.</p>`)}
+      <p class="hint">Shortcuts: tick several rows and use <b>Set category on selected</b> / <b>Confirm selected</b>. Importing the same file twice is safe, since rows already imported are skipped. <b>Settings &rsaquo; CSV rules</b> makes the guesses better (e.g. anything containing "SAFEWAY" = Groceries).</p>
+    </div>
+
+    <div class="card" id="h-checkin">
+      <h2 class="cat-bar">Monthly check-in (our money date)</h2>
+      <p>Once a month, ideally together, open the <b>Check-in</b> tab and work top to bottom (10–15 minutes):</p>
+      <ol>
+        <li><b>Sort every transaction</b>: import the month's statements and clear the review list.</li>
+        <li><b>Check balances</b>: type each account's balance from the bank for the last day of the month. ✓ means the app matches. If it's off, something is missing or entered twice.</li>
+        <li><b>Bills</b>: anything not paid?</li>
+        <li><b>Budgets</b>: which categories went over?</li>
+        <li><b>Goals</b>: are we on track?</li>
+        <li><b>Mark the month done</b>, with a note if you like.</li>
+      </ol>
+      <p class="hint">Balance checks need each account's <b>starting balance</b> once: Settings &rsaquo; Accounts &rsaquo; <i>Starting balance</i> and <i>as of date</i> (e.g. the day the joint accounts opened). Old history from before that date isn't used for balances.</p>
+    </div>
+
+    <div class="card" id="h-goals">
+      <h2 class="cat-bar">Goals</h2>
+      <p>On the <b>Goals</b> tab, click <b>+ New goal</b>. Every goal follows a <b>tag</b>: put the tag on any transaction that belongs to it.</p>
+      <ul>
+        <li><b>Savings goal</b> (emergency fund, car, house, yearly car tabs): money you save or transfer with the tag adds up, and tagged spending takes away. With a "reach it by" date it tells you how much to save each month.</li>
+        <li><b>Project budget</b> (a trip, a wedding, a remodel): adds up tagged spending against the budget and turns red if you go over.</li>
       </ul>
     </div>
 
     <div class="card" id="h-bills">
       <h2 class="cat-bar">Bills</h2>
       <p>On the <b>Bills</b> tab, list each recurring bill: name, category, which account pays it (normally <b>Joint Bills</b>), the amount and the day it's due. Click <b>Save bills</b>.</p>
-      <p>Each month a bill shows <span class="pill Paid">Paid</span> once a matching transaction is logged, <span class="pill Due">Due soon</span> in the 5 days before it's due, or <span class="pill Overdue">Overdue</span> after the due day. Unpaid bills also show on the Dashboard.</p>
+      <p>Each month, click <b>Log … bills</b> to enter all of that month's bills in one step. Fixed amounts are filled in; type the amount for ones that vary.</p>
+      <p>A bill shows <span class="pill Paid">Paid</span> once it's logged, <span class="pill Due">Due soon</span> in the 5 days before it's due, or <span class="pill Overdue">Overdue</span> after the due day. Unpaid bills also show on the Dashboard and in the Check-in.</p>
+      <p class="hint">If you import the bank statement too, the bill will show as a <i>possible duplicate</i> in the review list. Remove it there.</p>
     </div>
 
-    <div class="card" id="h-import">
-      <h2 class="cat-bar">Importing from the bank</h2>
-      ${step(1, "Download a CSV from your bank", `<p>On your bank's website, find <i>Download transactions</i> or <i>Export</i> and choose <b>CSV</b>.</p>`)}
-      ${step(2, "Import it", `<p>Go to the <b>Import</b> tab &rsaquo; <b>Bank CSV</b> &rsaquo; pick the account it's from &rsaquo; <b>Choose File</b>. Check that the columns are matched right, then click <b>Preview</b>.</p>`)}
-      ${step(3, "Review and import", `<p>Fix any categories in the preview, then click <b>Import</b>. Anything you've already entered is skipped automatically, so importing the same file twice is safe.</p>`)}
-      <p class="hint">Tip: <b>Settings &rsaquo; CSV rules</b> can fill in categories for you (e.g. anything containing "SAFEWAY" = Groceries). Click <b>Suggest rules from my history</b> to get started.</p>
+    <div class="card" id="h-rental">
+      <h2 class="cat-bar">Rental property</h2>
+      <p>The <b>Rental</b> tab adds up everything for the rental: income, mortgage, repairs, utilities, and the net for each month and year. Set it up once by typing text that appears in its transactions (for example the street number) and Save. Anything that doesn't mention the property, like a repair paid by Venmo, can be tagged <b>${esc(CFG.rental.tag || "rental")}</b> instead.</p>
+      <p class="hint">Useful at tax time, but ask your tax preparer what they need. This is a running total, not tax advice.</p>
     </div>
 
     <div class="card" id="h-rules">
       <h2 class="cat-bar">Good habits</h2>
       <ul>
-        <li>Log purchases at least <b>once a week</b>, or import the bank CSV.</li>
-        <li>Once a month, compare each account's balance to the bank. It takes five minutes and catches mistakes.</li>
+        <li>Pick one way per account and stick to it: <b>import the statement</b> (and sort it), <b>or</b> type purchases in by hand. Doing both for the same account makes duplicates.</li>
+        <li>Do the <b>Check-in</b> every month. The balance check is what catches mistakes.</li>
         <li>Always pick the account that <b>actually paid</b>. That's what keeps the his, hers and ours totals right.</li>
         <li>Don't open, rename or delete the <b>ledger-…json</b> files in the Drive folder. They are the app's data.</li>
         <li>Every few months: <b>Settings &rsaquo; Download backup</b>.</li>

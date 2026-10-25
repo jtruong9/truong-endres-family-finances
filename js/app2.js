@@ -45,6 +45,27 @@ formPay.onsubmit = async (e) => {
 
 // --------------------------------------------------------------------------------- summary
 function renderSummary() {
+  if (ui.summaryView === "compare") {
+    $("#tab-summary").innerHTML = `${summaryToggle()}${compareYearsHtml()}`;
+    wireSummaryToggle();
+    const pm = $("#cmp-pm");   // not shown when there's only one year of data
+    if (pm) pm.onchange = (e) => { ui.cmpPerMonth = e.target.checked; renderSummary(); };
+    $("#sm-owner").onchange = (e) => { ui.owner = e.target.value; renderSummary(); };
+    return;
+  }
+  renderYearSummary();
+  $("#tab-summary").insertAdjacentHTML("afterbegin", summaryToggle());
+  wireSummaryToggle();
+}
+function summaryToggle() {
+  const v = ui.summaryView || "year";
+  return `<div class="seg"><button data-view="year" class="${v === "year" ? "on" : ""}">Year report</button><button data-view="compare" class="${v === "compare" ? "on" : ""}">Compare years</button>
+    ${v === "compare" ? `<label style="margin-left:12px">Owner <select id="sm-owner">${opts(ownerChoices(), ui.owner)}</select></label>` : ""}</div>`;
+}
+function wireSummaryToggle() {
+  $$("#tab-summary .seg button").forEach((b) => (b.onclick = () => { ui.summaryView = b.dataset.view; renderSummary(); }));
+}
+function renderYearSummary() {
   const txs = Store.transactions();
   const grid = Model.yearGrid(CFG, txs, ui.year, ui.owner);
   const tot = Model.monthlyTotals(CFG, txs, ui.year, ui.owner);
@@ -132,8 +153,9 @@ function renderBills() {
   $("#tab-bills").innerHTML = `
     <div class="card"><div class="row"><h2>Recurring bills</h2>
       <label>Month <select id="bl-month">${opts(Model.MONTHS.map((m, i) => [String(i), `${m} ${y}`]), String(ui.billMonth))}</select></label>
-      <span class="muted">Fixed bills total ${money(fixed, false)}/month.</span></div>
-      <p class="hint">"Paid" means a transaction that month with the bill's category, paid from the bill's account (and containing the match text, if set).</p>
+      <span class="muted">Fixed bills total ${money(fixed, false)}/month.</span>
+      <span class="spacer"></span>${rec.length ? `<button id="bl-log" class="primary">Log ${Model.MONTHS[ui.billMonth]}'s bills…</button>` : ""}</div>
+      <p class="hint"><b>Log … bills</b> enters every unpaid bill for the month in one step. "Paid" means a transaction that month with the bill's category, paid from the bill's account (and containing the match text, if set).</p>
       <div class="table-wrap"><table class="edit-table"><thead><tr><th>Bill</th><th>Category</th><th>Paid from</th><th class="num">Amount</th><th>Due day</th><th>Match text (optional)</th><th>Status</th><th></th></tr></thead><tbody>
         ${st.map((b, i) => `<tr data-i="${i}">
           <td><input data-k="name" value="${esc(b.name)}"></td>
@@ -153,6 +175,8 @@ function renderBills() {
     const g = (k) => tr.querySelector(`[data-k="${k}"]`).value;
     return { name: g("name").trim(), category: g("category"), account: g("account"), amount: g("amount") === "" ? null : +g("amount"), day: Math.min(31, Math.max(1, +g("day") || 1)), match: g("match").trim() };
   });
+  const lg = $("#bl-log");
+  if (lg) lg.onclick = () => openLogBills(y, ui.billMonth);
   $("#bl-add").onclick = () => Store.setCfg("recurring", [...collect(), { name: "New bill", category: "", account: "Joint Bills", amount: null, day: 1, match: "" }]);
   $("#bl-save").onclick = async () => { await Store.setCfg("recurring", collect().filter((b) => b.name)); toast("Bills saved."); };
   $("#tab-bills tbody").onclick = (e) => { const i = e.target.dataset.del; if (i !== undefined) Store.setCfg("recurring", collect().filter((_, k) => k !== +i)); };
@@ -170,8 +194,8 @@ function renderImport() {
   const accts = opts(CFG.accounts.map((a) => a.name), "", "Choose account…");
   $("#tab-import").innerHTML = `
     <div class="two">
-      <div class="card"><h2>Bank CSV</h2>
-        <p class="hint">Download a CSV of transactions from your bank's website, then pick it here. Rows that match something already saved are skipped.</p>
+      <div class="card"><h2>Bank statement (CSV)</h2>
+        <p class="hint">Download your statement as a <b>CSV</b> from the bank's website, then pick it here. Every row goes to <b>Transactions &rsaquo; To review</b>, where you sort each one into a category. Nothing counts until you do. Rows already imported before are skipped.</p>
         <div class="row"><select id="im-csv-acct">${accts}</select><input type="file" id="im-csv" accept=".csv,text/csv"></div>
         <div id="im-map"></div></div>
       <div class="card"><h2>Old Database (.xlsm)</h2>
@@ -200,7 +224,30 @@ function renderImport() {
     $("#mp-go").onclick = () => {
       const n = (id) => ($(id).value === "" ? -1 : +$(id).value);
       const m = { date: n("#mp-date"), desc: n("#mp-desc"), amount: n("#mp-amount"), debit: n("#mp-debit"), credit: n("#mp-credit"), purchasesAreNegative: $("#mp-neg").checked };
-      preview(Importers.fromCsv(parsed, m, acct, CFG.rules), e.target.files[0].name);
+      const rows = Importers.fromCsv(parsed, m, acct);
+      if (!rows.length) { toast("No rows with a date and amount were found. Check the column choices.", 6000); return; }
+      const fresh = Importers.markDuplicates(rows, Store.transactions());
+      const newCount = fresh.filter((r) => !r._dup).length;
+      const ins = rows.filter((r) => r.dir === "in").length;
+      $("#im-map").insertAdjacentHTML("beforeend", `<div class="card" style="margin-top:10px" id="mp-sum">
+        <p><b>${rows.length}</b> rows read: ${rows.length - ins} money out, ${ins} money in. <b>${newCount} new</b>, ${rows.length - newCount} already imported before (skipped).</p>
+        <p class="hint">Sanity check: purchases should be "money out". If it's backwards, flip the checkbox above and click Preview again.</p>
+        <button id="mp-send" class="primary" ${newCount ? "" : "disabled"}>Send ${newCount} rows to review</button></div>`);
+      $("#mp-go").disabled = true;
+      $("#mp-send").onclick = async () => {
+        $("#mp-send").disabled = true;
+        const idx = Model.buildGuessIndex(CFG, Store.transactions());
+        const save = fresh.filter((r) => !r._dup).map(({ _dup, ...r }) => {
+          const g = Model.guessCategory(CFG, idx, r);
+          return { ...r, bankDesc: r.desc, category: g, guess: !!g };
+        });
+        await Store.saveTxs(save);
+        toast(`${save.length} rows are waiting in Transactions › To review.`, 4000);
+        $('#tabs [data-tab="transactions"]').click();
+      };
+    };
+    $("#im-map").onchange = (ev) => {   // changing a mapping choice invalidates the summary
+      if (ev.target.closest(".grid2")) { const s = $("#mp-sum"); if (s) s.remove(); $("#mp-go").disabled = false; }
     };
   };
   if (pending) drawPreview();
@@ -252,11 +299,18 @@ function renderSettings() {
       <button id="st-people" class="primary">Save names</button></div>
       <p class="hint">The short name is used in menus and on the Summary (e.g. "Kelly's allowance left").</p></div>
 
+    <div class="card"><h2>Account balances today</h2>${balancesTable(todayIso(), false)}
+      <p class="hint">Compare these to the bank in the monthly <b>Check-in</b>.</p></div>
+
     <div class="card"><h2>Accounts</h2>
-      <p class="hint">Renaming an account here also updates every transaction that uses it.</p>
-      <table class="edit-table" id="st-accts"><thead><tr><th>Name</th><th>Owner</th><th>Type</th><th>Note</th><th></th></tr></thead><tbody>
+      <p class="hint">Renaming an account here also updates every transaction that uses it.
+        <b>Starting balance</b>: the bank balance at the start of the date you pick (e.g. the day the joint accounts open). Balances are counted from that date forward.
+        For a credit card, enter what you owe as a <b>negative</b> number.</p>
+      <table class="edit-table" id="st-accts"><thead><tr><th>Name</th><th>Owner</th><th>Type</th><th>Starting balance</th><th>…as of date</th><th>Note</th><th></th></tr></thead><tbody>
       ${CFG.accounts.map((a) => `<tr data-orig="${esc(a.name)}"><td><input data-k="name" value="${esc(a.name)}"></td><td><select data-k="owner">${ownerOpts(a.owner)}</select></td>
-        <td><select data-k="type">${opts(["Checking", "Savings", "Credit Card", "Investment", "Cash"], a.type)}</select></td><td><input data-k="note" value="${esc(a.note || "")}"></td>${del}</tr>`).join("")}
+        <td><select data-k="type">${opts(["Checking", "Savings", "Credit Card", "Investment", "Cash"], a.type)}</select></td>
+        <td><input data-k="openingBalance" type="number" step="0.01" value="${a.openingBalance ?? ""}" placeholder="balance" style="width:110px"></td>
+        <td><input data-k="openingDate" type="date" value="${esc(a.openingDate || "")}"></td><td><input data-k="note" value="${esc(a.note || "")}"></td>${del}</tr>`).join("")}
       </tbody></table><div class="row" style="margin-top:8px"><button data-add="st-accts">+ Add account</button><button id="st-accts-save" class="primary">Save accounts</button></div></div>
 
     <div class="card"><h2>Paycheck split</h2>
@@ -291,7 +345,7 @@ function renderSettings() {
     return o;
   });
   const templates = {
-    "st-accts": `<tr><td><input data-k="name" value=""></td><td><select data-k="owner">${ownerOpts("joint")}</select></td><td><select data-k="type">${opts(["Checking", "Savings", "Credit Card", "Investment", "Cash"], "Checking")}</select></td><td><input data-k="note"></td>${del}</tr>`,
+    "st-accts": `<tr><td><input data-k="name" value=""></td><td><select data-k="owner">${ownerOpts("joint")}</select></td><td><select data-k="type">${opts(["Checking", "Savings", "Credit Card", "Investment", "Cash"], "Checking")}</select></td><td><input data-k="openingBalance" type="number" step="0.01" style="width:110px"></td><td><input data-k="openingDate" type="date"></td><td><input data-k="note"></td>${del}</tr>`,
     "st-split": `<tr><td><select data-k="toAccount">${acctOpts("")}</select></td><td><select data-k="mode">${opts([["fixed", "Fixed $"], ["percent", "Percent %"], ["rest", "Rest"]], "fixed")}</select></td><td><input data-k="value" type="number" step="0.01"></td>${del}</tr>`,
     "st-cats": `<tr><td><input data-k="name"></td><td><input data-k="group" list="group-list"></td><td><select data-k="kind">${opts(["Income", "Savings", "Expense", "Transfer"], "Expense")}</select></td><td><input data-k="budget" type="number" step="0.01"></td>${del}</tr>`,
     "st-rules": `<tr><td><input data-k="match"></td><td><select data-k="category">${catOpts("")}</select></td>${del}</tr>`,
@@ -319,7 +373,8 @@ function renderSettings() {
     await Store.setCfg(key, list);
     toast("Saved.");
   }
-  $("#st-accts-save").onclick = () => saveRenamable("accounts", rowsOf("st-accts"), (r) => ({ name: r.name.trim(), owner: r.owner, type: r.type, note: r.note.trim() }), ["account", "toAccount"]);
+  $("#st-accts-save").onclick = () => saveRenamable("accounts", rowsOf("st-accts"), (r) => ({ name: r.name.trim(), owner: r.owner, type: r.type, note: r.note.trim(),
+    openingBalance: r.openingBalance === "" ? null : Model.r2(+r.openingBalance), openingDate: r.openingDate || "" }), ["account", "toAccount"]);
   $("#st-cats-save").onclick = () => saveRenamable("categories", rowsOf("st-cats"), (r) => ({ name: r.name.trim(), group: r.group.trim() || "Other", kind: r.kind, budget: r.budget === "" ? null : +r.budget }), ["category"]);
   $("#st-split-save").onclick = async () => { await Store.setCfg("split", rowsOf("st-split").filter((s) => s.toAccount).map((s) => ({ toAccount: s.toAccount, mode: s.mode, value: s.value === "" ? 0 : +s.value }))); toast("Split saved."); };
   $("#st-rules-save").onclick = async () => { await Store.setCfg("rules", rowsOf("st-rules").filter((r) => r.match.trim() && r.category).map((r) => ({ match: r.match.trim(), category: r.category }))); toast("Rules saved."); };

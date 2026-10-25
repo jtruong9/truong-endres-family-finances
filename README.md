@@ -33,7 +33,11 @@ If Chrome asks again after a restart, click **Reconnect**. That's Chrome confirm
 | Log a refund | Add it with a **negative** amount in the original category. |
 | Log and split a paycheck | **Distribute paycheck** → enter net pay. It logs the paycheck in the Hub plus one transfer per account, using Settings → Paycheck split. |
 | Move money yourself | Add a transaction with Category **Transfer**, the *from* account and a **To account**. |
-| Import from your bank | Bank website → download transactions as **CSV** → Import tab → choose the account → pick the file → check the column mapping → Preview → Import. Rows you already have are skipped. |
+| Import from your bank | Bank website → download the statement as **CSV** → Import tab → choose the account → pick the file → Preview → **Send to review**. Then sort every row on **Transactions › To review**; nothing counts until you confirm it. |
+| Monthly money date | **Check-in** tab: sort transactions, check balances against the bank, bills, budgets, goals, mark done. |
+| Savings goals / project budgets | **Goals** tab. Goals follow a tag you put on transactions. |
+| Rental property | **Rental** tab: income, expenses and net per month and year. |
+| Compare years | **Summary › Compare years**. |
 | See where money went | **Summary**: choose the year and *Household / Joint / Justin / Kelly*. Averages divide by the months that have passed. |
 | Check the bills | **Bills**: Paid / Due soon / Overdue for the month. |
 | See what's left | Dashboard → *allowance left* cards, and Account flows. |
@@ -65,3 +69,5 @@ If Chrome asks again after a restart, click **Reconnect**. That's Chrome confirm
 The app is static files (`index.html`, `css/`, `js/`, `vendor/`) on GitHub Pages. Edit, commit, push, and Pages updates in about a minute. Run the logic tests with `node tests/model.test.js`.
 Libraries are vendored: Chart.js 4.4.7, SheetJS 0.18.5, Barlow font (SIL Open Font License, `vendor/fonts/OFL.txt`).
 After changing any file in `js/` or `css/`, bump the `?v=N` numbers in `index.html` so browsers load the new version.
+
+**Working with an AI assistant:** start it in this folder. `AGENTS.md` (and `CLAUDE.md`, which points to it) gives any AI the project context, rules and architecture. `docs/DECISIONS.md` and `docs/LESSONS.md` are the shared memory. Ask the assistant to add to them, and never to put real financial data in this public repo.

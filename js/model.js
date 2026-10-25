@@ -54,10 +54,18 @@ const Model = (() => {
       recurring: get("recurring", []),
       split: get("split", []),           // paycheck distribution: [{ toAccount, mode: "fixed"|"percent"|"rest", value }]
       rules: get("rules", []),           // CSV auto-categorize: [{ match, category }]
+      goals: get("goals", []),           // [{ name, type: "save"|"budget", tag, target, due "YYYY-MM", note }]
+      rental: get("rental", { name: "Rental property", match: "", tag: "rental" }),
+      balanceChecks: get("balanceChecks", []),   // [{ account, date, bank, app, at }]
+      checkins: get("checkins", {}),             // { "YYYY-MM": { at, by, note } }
       accountByName: new Map(accounts.map((a) => [a.name, a])),
       categoryByName: new Map(categories.map((c) => [c.name, c])),
     };
   }
+
+  // Bank-imported rows wait in a review queue and don't count anywhere until confirmed
+  const isPosted = (t) => !t.review;
+  const tagList = (t) => String(t.tags || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
 
   const ownerLabel = (cfg, key) => cfg.people[key] || key;
   const kindOf = (cfg, tx) => (cfg.categoryByName.get(tx.category) || {}).kind || "Expense";
@@ -73,7 +81,7 @@ const Model = (() => {
   function yearGrid(cfg, txs, year, owner) {
     const grid = new Map();   // category -> [12]
     for (const t of txs) {
-      if (!inYear(t, year) || !matchesOwner(cfg, t, owner)) continue;
+      if (!isPosted(t) || !inYear(t, year) || !matchesOwner(cfg, t, owner)) continue;
       if (kindOf(cfg, t) === "Transfer") continue;
       if (!grid.has(t.category)) grid.set(t.category, Array(12).fill(0));
       grid.get(t.category)[monthIdx(t)] += t.amount;
@@ -94,7 +102,7 @@ const Model = (() => {
   function monthlyTotals(cfg, txs, year, owner) {
     const out = { income: Array(12).fill(0), savings: Array(12).fill(0), spending: Array(12).fill(0) };
     for (const t of txs) {
-      if (!inYear(t, year) || !matchesOwner(cfg, t, owner)) continue;
+      if (!isPosted(t) || !inYear(t, year) || !matchesOwner(cfg, t, owner)) continue;
       const k = kindOf(cfg, t);
       if (k === "Income") out.income[monthIdx(t)] += t.amount;
       else if (k === "Savings") out.savings[monthIdx(t)] += t.amount;
@@ -114,7 +122,7 @@ const Model = (() => {
       return rows.get(name);
     };
     for (const t of txs) {
-      if (!inYear(t, year) || monthIdx(t) !== month) continue;
+      if (!isPosted(t) || !inYear(t, year) || monthIdx(t) !== month) continue;
       const k = kindOf(cfg, t);
       const a = get(t.account);
       if (k === "Transfer") {
@@ -148,11 +156,13 @@ const Model = (() => {
     return { transfers: out, leftover: r2(left) };
   }
 
-  // Recurring bill status for a given month
+  // Recurring bill status for a given month. A bill counts as paid by a transaction logged from the
+  // Bills tab (t.bill), or one that month with the bill's category + account (+ match text, if set).
   function recurringStatus(cfg, txs, year, month, today = new Date()) {
     return cfg.recurring.map((b) => {
-      const paid = txs.filter((t) => inYear(t, year) && monthIdx(t) === month && t.category === b.category && t.account === b.account &&
-        (!b.match || (t.desc || "").toLowerCase().includes(b.match.toLowerCase())));
+      const paid = txs.filter((t) => isPosted(t) && inYear(t, year) && monthIdx(t) === month &&
+        (t.bill === b.name || (t.category === b.category && t.account === b.account &&
+        (!b.match || (t.desc || "").toLowerCase().includes(b.match.toLowerCase())))));
       const isCurrent = year === today.getFullYear() && month === today.getMonth();
       const isPast = year < today.getFullYear() || (year === today.getFullYear() && month < today.getMonth());
       let status = "Upcoming";
@@ -181,9 +191,194 @@ const Model = (() => {
     return hit ? hit.category : "";
   }
 
+  // ------------------------------------------------------------------ review queue
+  // A review row keeps the bank's direction: amount is always positive, dir is "out" (money left
+  // the account) or "in" (money arrived). Confirming turns it into a normal transaction.
+  function resolveReview(cfg, row, choice) {
+    const category = choice.category;
+    const kind = (cfg.categoryByName.get(category) || {}).kind || "Expense";
+    const t = { ...row, category, tags: choice.tags ?? row.tags ?? "", review: false, guess: false };
+    if (kind === "Transfer") {
+      if (row.dir === "in") { t.account = choice.other; t.toAccount = row.account; }
+      else { t.account = row.account; t.toAccount = choice.other; }
+      t.amount = row.amount;
+    } else {
+      t.toAccount = "";
+      // Income is positive when money came in; spending is positive when money went out
+      t.amount = kind === "Income" ? (row.dir === "in" ? row.amount : -row.amount) : (row.dir === "out" ? row.amount : -row.amount);
+    }
+    return t;
+  }
+
+  // "GROCER #1234 SPRINGFIELD ST" -> "grocer springfield st": a key that stays the same between visits
+  function merchantKey(desc) {
+    return String(desc || "").toLowerCase().replace(/[#*]\S*/g, " ").replace(/\d+/g, " ").replace(/[^a-z&' ]/g, " ")
+      .split(/\s+/).filter((w) => w.length > 1).slice(0, 3).join(" ");
+  }
+
+  // Index of what each merchant was categorized as before (latest wins; first word = most common)
+  function buildGuessIndex(cfg, txs) {
+    const full = new Map(), firstCounts = new Map();
+    const sorted = txs.filter(isPosted).slice().sort((a, b) => (a.date < b.date ? -1 : 1));
+    for (const t of sorted) {
+      if (!cfg.categoryByName.has(t.category)) continue;
+      const key = merchantKey(t.desc);
+      if (!key) continue;
+      full.set(key, t.category);
+      const w = key.split(" ")[0];
+      if (w.length >= 4) {
+        if (!firstCounts.has(w)) firstCounts.set(w, new Map());
+        const m = firstCounts.get(w); m.set(t.category, (m.get(t.category) || 0) + 1);
+      }
+    }
+    const first = new Map([...firstCounts].map(([w, m]) => [w, [...m].sort((a, b) => b[1] - a[1])[0][0]]));
+    return { full, first };
+  }
+
+  function guessCategory(cfg, index, row) {
+    const transfer = (cfg.categories.find((c) => c.kind === "Transfer") || {}).name;
+    let c = autoCategory(cfg.rules, row.desc);
+    const key = merchantKey(row.desc);
+    if (!c) c = index.full.get(key) || index.first.get(key.split(" ")[0]) || "";
+    if (!c && transfer && /transfer|xfer|zelle|venmo cashout/i.test(row.desc || "")) c = transfer;
+    if (!c && row.dir === "in" && /payroll|direct dep|salary|paycheck/i.test(row.desc || "") && cfg.categoryByName.has("Paychecks")) c = "Paychecks";
+    const kind = (cfg.categoryByName.get(c) || {}).kind;
+    if (!kind || (kind === "Income" && row.dir === "out")) return "";
+    return c;
+  }
+
+  // Possible duplicates: an already-saved transaction in (or transferring into) the same account,
+  // same amount, within a few days. Each saved transaction can explain only one row per account.
+  function buildMatchIndex(txs) {
+    const m = new Map();
+    for (const t of txs) {
+      if (!isPosted(t)) continue;
+      const k = Math.round(Math.abs(t.amount) * 100);
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(t);
+    }
+    return m;
+  }
+  function findMatches(index, rows, days = 4) {
+    const claimed = new Set();
+    const out = new Map();
+    for (const row of rows.slice().sort((a, b) => (a.date < b.date ? -1 : 1))) {
+      const d = Date.parse(row.date);
+      const hit = (index.get(Math.round(row.amount * 100)) || [])
+        .filter((t) => (t.account === row.account || t.toAccount === row.account) && !claimed.has(`${t.id}|${row.account}`) &&
+          Math.abs(Date.parse(t.date) - d) <= days * 864e5)
+        .sort((a, b) => Math.abs(Date.parse(a.date) - d) - Math.abs(Date.parse(b.date) - d))[0];
+      if (hit) { claimed.add(`${hit.id}|${row.account}`); out.set(row.id, hit); }
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------------ balances
+  // Money in/out of one account from a transaction (credit cards go negative as you spend)
+  function accountEffect(cfg, t, name) {
+    const k = kindOf(cfg, t);
+    let e = 0;
+    if (t.account === name) e += k === "Income" ? t.amount : -t.amount;
+    if (k === "Transfer" && t.toAccount === name) e += t.amount;
+    return e;
+  }
+  const hasOpening = (a) => a && a.openingDate && a.openingBalance !== null && a.openingBalance !== undefined && a.openingBalance !== "";
+
+  // Balance at the END of the given date. The starting balance is the balance before anything on its date.
+  function balanceAt(cfg, txs, name, iso) {
+    const a = cfg.accountByName.get(name);
+    if (!hasOpening(a) || iso < a.openingDate) return null;
+    let b = +a.openingBalance;
+    for (const t of txs) if (isPosted(t) && t.date >= a.openingDate && t.date <= iso) b += accountEffect(cfg, t, name);
+    return r2(b);
+  }
+
+  // ------------------------------------------------------------------ goals (tracked by tag)
+  function monthsBetween(fromDate, dueYm) {
+    if (!dueYm) return null;
+    const [y, m] = dueYm.split("-").map(Number);
+    return (y - fromDate.getFullYear()) * 12 + (m - 1 - fromDate.getMonth());
+  }
+  function goalProgress(cfg, txs, g, today = new Date()) {
+    const tag = String(g.tag || g.name || "").trim().toLowerCase();
+    let added = 0, spent = 0;
+    const items = [];
+    for (const t of txs) {
+      if (!isPosted(t) || !tag || !tagList(t).includes(tag)) continue;
+      items.push(t);
+      if (kindOf(cfg, t) === "Expense") spent += t.amount; else added += t.amount;
+    }
+    const target = +g.target || 0;
+    const left = monthsBetween(today, g.due);
+    if (g.type === "budget") {
+      return { type: "budget", tag, target, spent: r2(spent), left: r2(target - spent), pct: target ? spent / target : 0, over: spent > target, items };
+    }
+    const saved = r2(added - spent);
+    const monthsLeft = left === null ? null : Math.max(1, left + 1);
+    return { type: "save", tag, target, saved, need: r2(Math.max(0, target - saved)), pct: target ? saved / target : 0,
+             monthsLeft, perMonth: monthsLeft ? r2(Math.max(0, target - saved) / monthsLeft) : null, done: saved >= target && target > 0,
+             pastDue: left !== null && left < 0 && saved < target, items };
+  }
+
+  // ------------------------------------------------------------------ compare years
+  function yearCompare(cfg, txs, owner, today = new Date()) {
+    const years = [...new Set(txs.filter(isPosted).map((t) => +t.date.slice(0, 4)))].filter(Boolean).sort((a, b) => a - b);
+    const totals = new Map();   // category -> { year: total }
+    for (const t of txs) {
+      if (!isPosted(t) || kindOf(cfg, t) === "Transfer" || !matchesOwner(cfg, t, owner)) continue;
+      const y = +t.date.slice(0, 4);
+      if (!totals.has(t.category)) totals.set(t.category, {});
+      const row = totals.get(t.category);
+      row[y] = (row[y] || 0) + t.amount;
+    }
+    const months = Object.fromEntries(years.map((y) => [y, monthsElapsed(y, today)]));
+    return { years, totals, months };
+  }
+
+  // ------------------------------------------------------------------ rental property
+  function isRental(rental, t) {
+    const m = String(rental.match || "").trim().toLowerCase(), tag = String(rental.tag || "").trim().toLowerCase();
+    return (m && String(t.desc || "").toLowerCase().includes(m)) || (tag && tagList(t).includes(tag));
+  }
+  function rentalSummary(cfg, txs, year) {
+    const rows = txs.filter((t) => isPosted(t) && kindOf(cfg, t) !== "Transfer" && isRental(cfg.rental, t));
+    const byYear = new Map();
+    const months = Array.from({ length: 12 }, () => ({ income: 0, expenses: 0 }));
+    const byCategory = new Map();
+    for (const t of rows) {
+      const y = +t.date.slice(0, 4), inc = kindOf(cfg, t) === "Income";
+      if (!byYear.has(y)) byYear.set(y, { year: y, income: 0, expenses: 0 });
+      byYear.get(y)[inc ? "income" : "expenses"] += t.amount;
+      if (y !== year) continue;
+      months[monthIdx(t)][inc ? "income" : "expenses"] += t.amount;
+      if (!inc) byCategory.set(t.category, (byCategory.get(t.category) || 0) + t.amount);
+    }
+    const fin = (o) => ({ ...o, income: r2(o.income), expenses: r2(o.expenses), net: r2(o.income - o.expenses) });
+    return {
+      years: [...byYear.values()].sort((a, b) => b.year - a.year).map(fin),
+      months: months.map(fin),
+      byCategory: [...byCategory].map(([category, v]) => ({ category, amount: r2(v) })).sort((a, b) => b.amount - a.amount),
+      list: rows.filter((t) => +t.date.slice(0, 4) === year).sort((a, b) => (a.date < b.date ? 1 : -1)),
+    };
+  }
+
+  // ------------------------------------------------------------------ budgets for one month
+  function budgetStatus(cfg, txs, year, month, owner = "all") {
+    const spent = new Map();
+    for (const t of txs) {
+      if (!isPosted(t) || !inYear(t, year) || monthIdx(t) !== month || !matchesOwner(cfg, t, owner)) continue;
+      spent.set(t.category, (spent.get(t.category) || 0) + t.amount);
+    }
+    return cfg.categories.filter((c) => c.kind !== "Transfer" && +c.budget > 0)
+      .map((c) => ({ category: c.name, kind: c.kind, budget: +c.budget, spent: r2(spent.get(c.name) || 0) }))
+      .map((b) => ({ ...b, over: b.kind === "Expense" && b.spent > b.budget }));
+  }
+
   return {
     DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2,
-    config, ownerLabel, kindOf, ownerOf, matchesOwner,
+    config, ownerLabel, kindOf, ownerOf, matchesOwner, isPosted, tagList,
     yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, autoCategory,
+    resolveReview, merchantKey, buildGuessIndex, guessCategory, buildMatchIndex, findMatches,
+    accountEffect, hasOpening, balanceAt, goalProgress, yearCompare, isRental, rentalSummary, budgetStatus,
   };
 })();

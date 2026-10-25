@@ -101,8 +101,119 @@ t("issues flag bad rows", () => {
 });
 
 t("auto category rules", () => {
-  assert.strictEqual(Model.autoCategory([{ match: "safeway", category: "Groceries" }], "SAFEWAY #1062 SEATTLE WA"), "Groceries");
+  assert.strictEqual(Model.autoCategory([{ match: "grocer", category: "Groceries" }], "GROCER #1234 SPRINGFIELD ST"), "Groceries");
   assert.strictEqual(Model.autoCategory([], "x"), "");
+});
+
+// ---------------------------------------------------------------- round 2
+const J = (x) => JSON.stringify(x);
+const C2 = Model.config((k, d) => {
+  if (k === "accounts") return [
+    { name: "Joint Hub", owner: "joint", type: "Checking", openingBalance: 100, openingDate: "2026-11-01" },
+    { name: "Joint Bills", owner: "joint", type: "Checking", openingBalance: 0, openingDate: "2026-11-01" },
+    { name: "Joint Savings", owner: "joint", type: "Savings" },
+    { name: "Justin Personal", owner: "p1", type: "Checking", openingBalance: 50, openingDate: "2026-11-01" },
+    { name: "Kelly Personal", owner: "p2", type: "Checking" },
+    { name: "Visa", owner: "p1", type: "Credit Card", openingBalance: 0, openingDate: "2026-11-01" }];
+  if (k === "rules") return [{ match: "grocer", category: "Groceries" }];
+  if (k === "rental") return { name: "Main St", match: "123 main", tag: "rental" };
+  return d;
+});
+
+t("review: purchase out -> positive expense", () => {
+  const r = Model.resolveReview(C2, { id: "r1", date: "2026-11-02", desc: "GROCER", amount: 23.45, dir: "out", account: "Justin Personal", review: true }, { category: "Groceries" });
+  assert.strictEqual(J([r.amount, r.account, r.toAccount, r.review]), J([23.45, "Justin Personal", "", false]));
+});
+t("review: refund in on an expense -> negative expense", () => {
+  const r = Model.resolveReview(C2, { amount: 12.99, dir: "in", account: "Justin Personal" }, { category: "Personal" });
+  assert.strictEqual(r.amount, -12.99);
+});
+t("review: deposit as income -> positive; withdrawal as income -> negative", () => {
+  assert.strictEqual(Model.resolveReview(C2, { amount: 4000, dir: "in", account: "Joint Hub" }, { category: "Paychecks" }).amount, 4000);
+  assert.strictEqual(Model.resolveReview(C2, { amount: 50, dir: "out", account: "Joint Hub" }, { category: "Paychecks" }).amount, -50);
+});
+t("review: transfers record from the sending account", () => {
+  const out = Model.resolveReview(C2, { amount: 600, dir: "out", account: "Joint Hub" }, { category: "Transfer", other: "Justin Personal" });
+  assert.strictEqual(J([out.account, out.toAccount, out.amount]), J(["Joint Hub", "Justin Personal", 600]));
+  const inn = Model.resolveReview(C2, { amount: 600, dir: "in", account: "Justin Personal" }, { category: "Transfer", other: "Joint Hub" });
+  assert.strictEqual(J([inn.account, inn.toAccount, inn.amount]), J(["Joint Hub", "Justin Personal", 600]));
+});
+
+t("guesses: rules first, then the merchant's history; never income for money out", () => {
+  const idx = Model.buildGuessIndex(C2, [{ date: "2026-01-01", desc: "MARIOS PIZZERIA 555-0100 ST", amount: 53, category: "Food & Drinks", account: "Justin Personal" }]);
+  assert.strictEqual(Model.guessCategory(C2, idx, { desc: "GROCER #1234", dir: "out" }), "Groceries");
+  assert.strictEqual(Model.guessCategory(C2, idx, { desc: "MARIOS PIZZERIA 555-0199 ST", dir: "out" }), "Food & Drinks");
+  assert.strictEqual(Model.guessCategory(C2, idx, { desc: "ACME PAYROLL DIRECT DEP", dir: "in" }), "Paychecks");
+  assert.strictEqual(Model.guessCategory(C2, idx, { desc: "ACME PAYROLL DIRECT DEP", dir: "out" }), "");
+  assert.strictEqual(Model.guessCategory(C2, idx, { desc: "Online Transfer to SAV", dir: "out" }), "Transfer");
+});
+
+t("possible duplicates: same account, amount, nearby date; each match used once", () => {
+  const saved = [{ id: "a", date: "2026-11-01", amount: 600, category: "Transfer", account: "Joint Hub", toAccount: "Justin Personal" }];
+  const idx = Model.buildMatchIndex(saved);
+  const rows = [
+    { id: "x", date: "2026-11-02", amount: 600, account: "Justin Personal" },
+    { id: "y", date: "2026-11-02", amount: 600, account: "Justin Personal" },
+    { id: "z", date: "2026-11-20", amount: 600, account: "Justin Personal" }];
+  const m = Model.findMatches(idx, rows);
+  assert.strictEqual(J([m.has("x"), m.has("y"), m.has("z")]), J([true, false, false]));
+});
+
+t("balances start at the opening date and ignore review rows", () => {
+  const txs = [
+    { date: "2026-10-30", amount: 999, category: "Groceries", account: "Justin Personal" },
+    { date: "2026-11-01", amount: 4000, category: "Paychecks", account: "Joint Hub" },
+    { date: "2026-11-01", amount: 600, category: "Transfer", account: "Joint Hub", toAccount: "Justin Personal" },
+    { date: "2026-11-03", amount: 45.25, category: "Food & Drinks", account: "Justin Personal" },
+    { date: "2026-11-04", amount: 20, category: "Groceries", account: "Justin Personal", review: true },
+    { date: "2026-11-05", amount: 80, category: "Gas", account: "Visa" },
+    { date: "2026-11-06", amount: 80, category: "Transfer", account: "Justin Personal", toAccount: "Visa" }];
+  assert.strictEqual(Model.balanceAt(C2, txs, "Joint Hub", "2026-11-30"), 3500);
+  assert.strictEqual(Model.balanceAt(C2, txs, "Justin Personal", "2026-11-30"), Model.r2(50 + 600 - 45.25 - 80));
+  assert.strictEqual(Model.balanceAt(C2, txs, "Visa", "2026-11-05"), -80);
+  assert.strictEqual(Model.balanceAt(C2, txs, "Visa", "2026-11-30"), 0);
+  assert.strictEqual(Model.balanceAt(C2, txs, "Joint Savings", "2026-11-30"), null);
+});
+
+t("review rows don't count in totals", () => {
+  const m = Model.monthlyTotals(C2, [{ date: "2026-11-04", amount: 20, category: "Groceries", account: "Justin Personal", review: true }], 2026, "all");
+  assert.strictEqual(m.spending[10], 0);
+});
+
+t("goals by tag: savings goal and project budget", () => {
+  const txs = [
+    { date: "2026-11-01", amount: 500, category: "Monthly Saving", account: "Joint Hub", tags: "Emergency" },
+    { date: "2026-11-01", amount: 300, category: "Transfer", account: "Joint Hub", toAccount: "Joint Savings", tags: "emergency, other" },
+    { date: "2026-11-09", amount: 100, category: "Personal", account: "Joint Hub", tags: "emergency" },
+    { date: "2026-11-09", amount: 250, category: "Travel", account: "Justin Personal", tags: "honeymoon" }];
+  const now = new Date(2026, 10, 15);
+  const s = Model.goalProgress(C2, txs, { name: "Emergency", type: "save", tag: "emergency", target: 1300, due: "2027-02" }, now);
+  assert.strictEqual(J([s.saved, s.need, s.monthsLeft, s.perMonth]), J([700, 600, 4, 150]));
+  const b = Model.goalProgress(C2, txs, { name: "Honeymoon", type: "budget", tag: "honeymoon", target: 200 }, now);
+  assert.strictEqual(J([b.spent, b.left, b.over]), J([250, -50, true]));
+});
+
+t("year compare totals by category and year", () => {
+  const c = Model.yearCompare(C2, [
+    { date: "2025-03-01", amount: 100, category: "Gas", account: "Justin Personal" },
+    { date: "2026-03-01", amount: 150, category: "Gas", account: "Justin Personal" },
+    { date: "2026-03-01", amount: 999, category: "Transfer", account: "Joint Hub", toAccount: "Joint Bills" }], "all", new Date(2026, 9, 1));
+  assert.strictEqual(J([c.years, c.totals.get("Gas")[2025], c.totals.get("Gas")[2026], c.totals.has("Transfer"), c.months[2026]]), J([[2025, 2026], 100, 150, false, 10]));
+});
+
+t("rental summary by match text or tag", () => {
+  const r = Model.rentalSummary(C2, [
+    { date: "2026-09-28", desc: "123 Main rent", amount: 1500, category: "Other Income Sources", account: "Justin Personal" },
+    { date: "2026-10-01", desc: "123 Main mortgage", amount: 2500, category: "Rent / Mortgage", account: "Justin Personal" },
+    { date: "2026-08-12", desc: "Roof repair", amount: 3100, category: "Car Payment / House Repair", account: "Justin Personal", tags: "rental" },
+    { date: "2026-10-01", desc: "Apartment rent", amount: 1600, category: "Rent / Mortgage", account: "Justin Personal" }], 2026);
+  assert.strictEqual(J([r.years[0].income, r.years[0].expenses, r.years[0].net, r.list.length]), J([1500, 5600, -4100, 3]));
+});
+
+t("budget status flags overspending", () => {
+  const c = Model.config((k, d) => (k === "categories" ? [{ name: "Groceries", group: "Food", kind: "Expense", budget: 100 }] : d));
+  const b = Model.budgetStatus(c, [{ date: "2026-11-02", amount: 120, category: "Groceries", account: "Justin Personal" }], 2026, 10);
+  assert.strictEqual(J([b[0].spent, b[0].over]), J([120, true]));
 });
 
 console.log(`\n${n} tests passed`);

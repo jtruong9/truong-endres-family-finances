@@ -91,7 +91,8 @@ $("#btn-refresh").onclick = async () => { const info = await Store.reload(); set
 // Pick up the other computer's edits when the window regains focus. Skip the Import and Settings
 // tabs: closing a file dialog fires this too, and redrawing those forms mid-use clears what was chosen.
 window.addEventListener("focus", async () => {
-  if ($("#app").hidden || ui.tab === "import" || ui.tab === "settings" || document.querySelector("dialog[open]")) return;
+  // Also skip tabs with forms that are typed into (check-in balances, goals, rental, bills)
+  if ($("#app").hidden || ["import", "settings", "checkin", "goals", "rental", "bills"].includes(ui.tab) || document.querySelector("dialog[open]")) return;
   setStatus(await Store.reload());
 });
 
@@ -106,8 +107,12 @@ $("#tabs").onclick = (e) => {
 
 function render() {
   if (!CFG || $("#app").hidden) return;
-  ({ dashboard: renderDashboard, transactions: renderTransactions, summary: renderSummary,
-     bills: renderBills, import: renderImport, settings: renderSettings, help: renderHelp })[ui.tab]();
+  ({ dashboard: renderDashboard, transactions: renderTransactions, summary: renderSummary, checkin: renderCheckin,
+     goals: renderGoals, bills: renderBills, rental: renderRental, import: renderImport, settings: renderSettings, help: renderHelp })[ui.tab]();
+}
+function renderGoals() {
+  $("#tab-goals").innerHTML = goalsTab();
+  wireGoals($("#tab-goals"));
 }
 
 // --------------------------------------------------------------------------------- dashboard
@@ -118,11 +123,13 @@ function renderDashboard() {
   const flows = Model.accountFlows(CFG, txs, y, m);
   const bills = Model.recurringStatus(CFG, txs, y, m);
   const unpaid = bills.filter((b) => b.status !== "Paid");
-  const flagged = txs.filter((t) => Model.issues(CFG, t).length).length;
+  const flagged = txs.filter((t) => Model.isPosted(t) && Model.issues(CFG, t).length).length;
+  const toReview = txs.filter((t) => t.review).length;
   const personal = flows.filter((f) => f.owner === "p1" || f.owner === "p2");
 
   const stat = (label, value, sub, cls = "", box = "") => `<div class="stat ${box}"><div class="label">${label}</div><div class="value ${cls}">${value}</div><div class="sub">${sub}</div></div>`;
   $("#tab-dashboard").innerHTML = `
+    ${toReview ? `<div class="card banner"><b>${toReview}</b> imported transaction(s) are waiting to be sorted. They don't count in any totals until you review them. <button class="small primary" id="go-review">Review now</button></div>` : ""}
     <div class="cards">
       ${stat(`Income · ${Model.MONTHS[m]}`, money(tot.income[m], false), "paychecks + other income", "", "income")}
       ${stat(`Spending · ${Model.MONTHS[m]}`, money(tot.spending[m], false), "all accounts, excludes transfers", "", "spend")}
@@ -145,6 +152,8 @@ function renderDashboard() {
 
   const go = $("#go-flagged");
   if (go) go.onclick = () => { ui.tx = { ...ui.tx, flagged: true, page: 0 }; $('#tabs [data-tab="transactions"]').click(); };
+  const gr = $("#go-review");
+  if (gr) gr.onclick = () => $('#tabs [data-tab="transactions"]').click();
 
   chart("ch-year", {
     type: "bar",
@@ -189,7 +198,7 @@ const PAGE = 100;
 function renderTransactions() {
   const f = ui.tx;
   const q = f.q.toLowerCase();
-  let rows = Store.transactions().filter((t) =>
+  let rows = Store.transactions().filter((t) => Model.isPosted(t) &&
     (!f.account || t.account === f.account || t.toAccount === f.account) &&
     (!f.category || t.category === f.category) &&
     (!f.year || t.date.startsWith(f.year)) &&
@@ -202,8 +211,9 @@ function renderTransactions() {
   f.page = Math.min(f.page, pages - 1);
   const shown = rows.slice(f.page * PAGE, (f.page + 1) * PAGE);
 
-  $("#tab-transactions").innerHTML = `
+  $("#tab-transactions").innerHTML = `${reviewSection()}
     <div class="card">
+      <h2>All transactions</h2>
       <div class="filters">
         <input type="search" id="tf-q" placeholder="Search description, notes, tags, amount" value="${esc(f.q)}">
         <select id="tf-year">${opts(years().map(String), f.year, "All years")}</select>
@@ -214,7 +224,7 @@ function renderTransactions() {
         <span class="spacer"></span>
         <span class="muted">${rows.length.toLocaleString()} rows · total (excl. transfers) <b>${money(total, false)}</b></span>
       </div>
-      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th class="num">Amount</th><th>Category</th><th>Account</th><th>Owner</th><th>Notes / Tags</th></tr></thead><tbody>
+      <div class="table-wrap"><table id="tx-table"><thead><tr><th>Date</th><th>Description</th><th class="num">Amount</th><th>Category</th><th>Account</th><th>Owner</th><th>Notes / Tags</th></tr></thead><tbody>
         ${shown.map((t) => {
           const iss = Model.issues(CFG, t), k = Model.kindOf(CFG, t);
           return `<tr class="clickable${iss.length ? " flag" : ""}" data-id="${esc(t.id)}" title="${esc(iss.join("; "))}">
@@ -228,6 +238,7 @@ function renderTransactions() {
       <div class="pager"><button id="tp-prev" ${f.page === 0 ? "disabled" : ""}>&lsaquo; Newer</button><span>Page ${f.page + 1} of ${pages}</span><button id="tp-next" ${f.page >= pages - 1 ? "disabled" : ""}>Older &rsaquo;</button></div>
     </div>`;
 
+  wireReview();
   const set = (k, v) => { ui.tx[k] = v; ui.tx.page = 0; renderTransactions(); };
   $("#tf-q").oninput = (e) => { clearTimeout(set.h); set.h = setTimeout(() => { set("q", e.target.value); $("#tf-q").focus(); const el = $("#tf-q"); el.setSelectionRange(el.value.length, el.value.length); }, 250); };
   $("#tf-year").onchange = (e) => set("year", e.target.value);
@@ -237,7 +248,7 @@ function renderTransactions() {
   $("#tf-flagged").onchange = (e) => set("flagged", e.target.checked);
   $("#tp-prev").onclick = () => { f.page--; renderTransactions(); };
   $("#tp-next").onclick = () => { f.page++; renderTransactions(); };
-  $("#tab-transactions tbody").onclick = (e) => {
+  $("#tx-table tbody").onclick = (e) => {
     const tr = e.target.closest("tr[data-id]");
     if (tr) openTx(Store.transactions().find((t) => t.id === tr.dataset.id));
   };

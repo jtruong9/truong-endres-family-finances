@@ -169,7 +169,7 @@ const notice = (text, btn, id, warn = false) =>
   `<div class="banner${warn ? " warn" : ""}">${icon(warn ? "alert" : "list")}<span>${text}</span><span class="spacer"></span><button class="small" id="${id}">${btn}</button></div>`;
 
 const CHART = { income: "#16A34A", spend: "#2563EB", saved: "#A78BFA", ink: "#111827", grid: "#F0F1F3", tick: "#9CA3AF" };
-const moneyAxis = { grid: { color: CHART.grid }, border: { display: false }, ticks: { color: CHART.tick, callback: (v) => "$" + (Math.abs(v) >= 1000 ? `${v / 1000}k` : v) } };
+const moneyAxis = { grid: { color: CHART.grid }, border: { display: false }, ticks: { color: CHART.tick, maxRotation: 0, autoSkip: true, callback: (v) => "$" + (Math.abs(v) >= 1000 ? `${v / 1000}k` : v) } };
 
 function renderDashboard() {
   const txs = Store.transactions();

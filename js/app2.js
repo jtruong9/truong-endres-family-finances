@@ -36,8 +36,12 @@ formPay.onsubmit = async (e) => {
   const date = formPay.date.value, from = formPay.account.value;
   const transferCat = (CFG.categories.find((c) => c.kind === "Transfer") || { name: "Transfer" }).name;
   const payCat = (CFG.categories.find((c) => c.name === "Paychecks") || CFG.categories.find((c) => c.kind === "Income")).name;
+  // The share that goes into a savings account is logged as savings (shared, from the Hub), so it counts in Saved
+  const saveCat = (CFG.categories.find((c) => c.kind === "Savings") || { name: transferCat }).name;
+  const isSavingsAcct = (name) => (CFG.accountByName.get(name) || {}).type === "Savings";
   const batch = [{ date, desc: `Paycheck – ${who}`, amount: amt, category: payCat, account: from, toAccount: "", notes: "", tags: "" },
-    ...transfers.filter((t) => t.toAccount !== from).map((t) => ({ date, desc: `Paycheck split → ${t.toAccount}`, amount: t.amount, category: transferCat, account: from, toAccount: t.toAccount, notes: `from ${who}'s paycheck`, tags: "" }))];
+    ...transfers.filter((t) => t.toAccount !== from).map((t) => ({ date, desc: `Paycheck split → ${t.toAccount}`, amount: t.amount,
+      category: isSavingsAcct(t.toAccount) ? saveCat : transferCat, account: from, toAccount: t.toAccount, notes: `from ${who}'s paycheck`, tags: "" }))];
   await Store.saveTxs(batch);
   dlgPay.close();
   toast(`Logged paycheck + ${batch.length - 1} transfer(s).`);

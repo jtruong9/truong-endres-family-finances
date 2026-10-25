@@ -67,6 +67,8 @@ function renderHelp() {
       ${step("−", "Got a refund?", `<p>Add it with a <b>minus sign</b>, e.g. <b>-12.99</b>, in the same category as the original purchase. Don't change the original entry.</p>`)}
       ${step(icon("list"), "Fix or delete something", `<p>Go to <b>Transactions</b>, click the row, change it, and Save. To remove it, click the row and press <b>Delete</b>.</p>`)}
       ${step(icon("refresh"), "Move money between accounts", `<p>Add a transaction with Category <b>Transfer</b>. Account is where the money <b>left</b>, and <b>To account</b> is where it <b>went</b>.</p>`)}
+      ${step(icon("target"), "Put money into Joint Savings", `<p>We keep all our savings in <b>Joint Savings</b>. To save from your own account, add it with a <b>savings category</b> (e.g. <b>Monthly Saving</b>), Account = <b>your personal account</b>, and <b>Put into</b> = <b>Joint Savings</b> (it's filled in for you). It then counts as <b>your</b> savings on the Dashboard and Summary, and it also raises the Joint Savings balance. Don't log it as a Transfer: transfers never count as saved.</p>
+        <p class="hint">The paycheck split's share for Joint Savings is logged the same way by the <b>Paycheck</b> button, and counts as <b>joint</b> savings.</p>`)}
     </div>
 
     <div class="card" id="h-paycheck">

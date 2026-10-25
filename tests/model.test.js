@@ -267,4 +267,33 @@ t("money flow knows whose paycheck it is from the description", () => {
   assert.strictEqual(J([p, last, Model.lastPaycheck(CFG, [], "p2")]), J(["p2", 4100, null]));
 });
 
+t("savings put into Joint Savings: payer's savings, and the joint account's balance", () => {
+  const c = Model.config((k, d) => (k === "accounts" ? Model.DEFAULT_ACCOUNTS.map((a) => ({ ...a, openingBalance: 0, openingDate: "2026-11-01" })) : d));
+  const s = [{ date: "2026-11-10", desc: "Savings", amount: 600, category: "Monthly Saving", account: "Justin Personal", toAccount: "Joint Savings" }];
+  assert.strictEqual(J([Model.monthlyTotals(c, s, 2026, "p1").savings[10], Model.monthlyTotals(c, s, 2026, "joint").savings[10], Model.monthlyTotals(c, s, 2026, "all").savings[10]]), J([600, 0, 600]));
+  assert.strictEqual(J([Model.balanceAt(c, s, "Justin Personal", "2026-11-30"), Model.balanceAt(c, s, "Joint Savings", "2026-11-30")]), J([-600, 600]));
+  const f = new Map(Model.accountFlows(c, s, 2026, 10).map((x) => [x.account, x]));
+  assert.strictEqual(J([f.get("Justin Personal").saved, f.get("Joint Savings").transfersIn, f.get("Joint Savings").net]), J([600, 600, 600]));
+  assert.strictEqual(J(Model.issues(c, s[0])), J([]));   // not flagged as "To account on a non-transfer"
+  assert.strictEqual(J(Model.issues(c, { ...s[0], category: "Groceries" })), J(["To account set on a non-transfer"]));
+});
+
+t("review: a savings row can name the account it went into", () => {
+  const row = { date: "2026-11-10", desc: "XFER", amount: 600, dir: "out", account: "Justin Personal", review: true };
+  const r = Model.resolveReview(CFG, row, { category: "Monthly Saving", other: "Joint Savings" });
+  const plain = Model.resolveReview(CFG, row, { category: "Monthly Saving", other: "" });
+  assert.strictEqual(J([r.account, r.toAccount, r.amount, plain.toAccount, plain.amount]), J(["Justin Personal", "Joint Savings", 600, "", 600]));
+});
+
+t("money flow: hub's split into savings is a savings arrow (joint), and hub savings into an account is drawn to it", () => {
+  const c = Model.config((k, d) => (k === "split" ? [{ toAccount: "Joint Savings", mode: "fixed", value: 500 }, { toAccount: "Joint Bills", mode: "rest" }] : d));
+  const p = Model.planFlow(c, [{ who: "p1", amount: 2000 }]);
+  assert.strictEqual(p.links.find((l) => l.to === "acct:Joint Savings").kind, "saved");
+  const a = Model.actualFlow(c, [
+    { date: "2026-11-01", desc: "Paycheck – Justin", amount: 2000, category: "Paychecks", account: "Joint Hub" },
+    { date: "2026-11-01", desc: "Save", amount: 500, category: "Monthly Saving", account: "Joint Hub", toAccount: "Joint Savings" }], 2026, 10);
+  const l = a.links.filter((x) => x.to === "acct:Joint Savings");
+  assert.strictEqual(J([l.map((x) => [x.kind, x.amount]), a.nodes.find((x) => x.id === "acct:Joint Savings").amount, !!a.nodes.find((x) => x.id === "out:hub")]), J([[["saved", 500]], 500, false]));
+});
+
 console.log(`\n${n} tests passed`);

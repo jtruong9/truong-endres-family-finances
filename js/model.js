@@ -132,7 +132,7 @@ const Model = (() => {
         a.transfersOut += t.amount;
         if (t.toAccount) get(t.toAccount).transfersIn += t.amount;
       } else if (k === "Income") a.income += t.amount;
-      else if (k === "Savings") a.saved += t.amount;
+      else if (k === "Savings") { a.saved += t.amount; if (t.toAccount) get(t.toAccount).transfersIn += t.amount; }
       else a.spent += t.amount;
     }
     return [...rows.values()].map((r) => {
@@ -188,7 +188,7 @@ const Model = (() => {
     else if (!cfg.categoryByName.has(t.category)) add("unknown-category", t.category, `unknown category "${t.category}"`);
     const k = kindOf(cfg, t);
     if (k === "Transfer" && !t.toAccount) add("transfer-no-to", "", "transfer has no To account");
-    if (k !== "Transfer" && t.toAccount) add("to-on-non-transfer", "", "To account set on a non-transfer");
+    if (k !== "Transfer" && k !== "Savings" && t.toAccount) add("to-on-non-transfer", "", "To account set on a non-transfer");
     return out;
   }
   const issues = (cfg, t) => issueList(cfg, t).map((i) => i.label);
@@ -225,7 +225,7 @@ const Model = (() => {
     const category = choice.category;
     const kind = (cfg.categoryByName.get(category) || {}).kind || "Expense";
     const t = { ...row, category, tags: choice.tags ?? row.tags ?? "", review: false, guess: false };
-    if (kind === "Transfer") {
+    if (kind === "Transfer" || (kind === "Savings" && choice.other)) {
       if (row.dir === "in") { t.account = choice.other; t.toAccount = row.account; }
       else { t.account = row.account; t.toAccount = choice.other; }
       t.amount = row.amount;
@@ -306,7 +306,8 @@ const Model = (() => {
     const k = kindOf(cfg, t);
     let e = 0;
     if (t.account === name) e += k === "Income" ? t.amount : -t.amount;
-    if (k === "Transfer" && t.toAccount === name) e += t.amount;
+    // A transfer, or savings put into one of our accounts (e.g. Joint Savings), lands in toAccount
+    if ((k === "Transfer" || k === "Savings") && t.toAccount === name) e += t.amount;
     return e;
   }
   const hasOpening = (a) => a && a.openingDate && a.openingBalance !== null && a.openingBalance !== undefined && a.openingBalance !== "";
@@ -450,7 +451,7 @@ const Model = (() => {
     for (const a of accts) {
       const amt = r2(into.get(a.name) || 0), role = acctRole(cfg, a);
       nodes.push({ id: `acct:${a.name}`, level: 2, label: a.name, amount: amt, lines: [] });
-      links.push({ from: `acct:${hub}`, to: `acct:${a.name}`, amount: amt, kind: "move" });
+      links.push({ from: `acct:${hub}`, to: `acct:${a.name}`, amount: amt, kind: role === "save" ? "saved" : "move" });
       const billsListed = r2(cfg.recurring.filter((b) => b.account === a.name).reduce((s, b) => s + (+b.amount || 0), 0));
       nodes.push({ id: `out:${a.name}`, level: 3, label: outLabel(cfg, a, role), amount: amt, lines: billsListed ? [["Bills listed", billsListed]] : [] });
       links.push({ from: `acct:${a.name}`, to: `out:${a.name}`, amount: amt, kind: role === "save" ? "saved" : "spent" });
@@ -467,13 +468,14 @@ const Model = (() => {
   function actualFlow(cfg, txs, year, month) {
     const hub = hubName(cfg), nodes = [], links = [];
     const flows = new Map(accountFlows(cfg, txs, year, month).map((f) => [f.account, f]));
-    const income = new Map(), hubTo = new Map(), moved = new Map();
+    const income = new Map(), hubTo = new Map(), hubSaved = new Map(), moved = new Map();
     const add = (m, k, v) => m.set(k, (m.get(k) || 0) + v);
     for (const t of txs) {
       if (!isPosted(t) || !inYear(t, year) || monthIdx(t) !== month) continue;
       const k = kindOf(cfg, t);
       if (k === "Income") add(income, `${incomeOwner(cfg, t)}|${t.account}`, t.amount);
       else if (k === "Transfer" && t.toAccount) (t.account === hub ? add(hubTo, t.toAccount, t.amount) : add(moved, t.account, t.amount));
+      else if (k === "Savings" && t.toAccount && t.account === hub) add(hubSaved, t.toAccount, t.amount);
     }
     // Row 0: whose income, and the account it landed in
     const who = [...new Set([...income.keys()].map((k) => k.split("|")[0]))].sort();
@@ -489,10 +491,11 @@ const Model = (() => {
     // Row 1: the hub, plus what it paid or saved itself and what's left in it
     const h = flows.get(hub) || { income: 0, transfersIn: 0, spent: 0, saved: 0, transfersOut: 0, net: 0 };
     nodes.push({ id: `acct:${hub}`, level: 1, label: hub, amount: r2(h.income + h.transfersIn), lines: [], hub: true });
-    if (h.spent || h.saved) {
-      nodes.push({ id: "out:hub", level: 2, label: `Paid from ${hub}`, amount: r2(h.spent + h.saved), lines: [["Spent", h.spent], ["Saved", h.saved]].filter((l) => l[1]) });
+    const hubSavedOut = r2(h.saved - [...hubSaved.values()].reduce((s, v) => s + v, 0));   // saved with no account named
+    if (h.spent || hubSavedOut > 0.005) {
+      nodes.push({ id: "out:hub", level: 2, label: `Paid from ${hub}`, amount: r2(h.spent + hubSavedOut), lines: [["Spent", h.spent], ["Saved", hubSavedOut]].filter((l) => l[1] > 0.005) });
       if (h.spent) links.push({ from: `acct:${hub}`, to: "out:hub", amount: h.spent, kind: "spent" });
-      if (h.saved) links.push({ from: `acct:${hub}`, to: "out:hub", amount: h.saved, kind: "saved" });
+      if (hubSavedOut > 0.005) links.push({ from: `acct:${hub}`, to: "out:hub", amount: hubSavedOut, kind: "saved" });
     }
     // Row 2: every other account (the usual ones always; others only if something moved)
     for (const a of flowAccounts(cfg, hub)) {
@@ -501,7 +504,9 @@ const Model = (() => {
       if (acctRank(a) >= 4 && !active) continue;
       const z = f || { income: 0, transfersIn: 0, spent: 0, saved: 0, transfersOut: 0, net: 0 };
       nodes.push({ id: `acct:${a.name}`, level: 2, label: a.name, amount: r2(z.income + z.transfersIn), lines: [["Left", z.net]] });
-      links.push({ from: `acct:${hub}`, to: `acct:${a.name}`, amount: r2(hubTo.get(a.name) || 0), kind: "move" });
+      const sv = r2(hubSaved.get(a.name) || 0), tr = r2(hubTo.get(a.name) || 0);
+      if (tr || !sv) links.push({ from: `acct:${hub}`, to: `acct:${a.name}`, amount: tr, kind: "move" });
+      if (sv) links.push({ from: `acct:${hub}`, to: `acct:${a.name}`, amount: sv, kind: "saved" });
       // Row 3: where it left this account
       const mv = r2(moved.get(a.name) || 0);
       const parts = [[acctRole(cfg, a) === "bills" ? "Bills paid" : "Spent", z.spent, "spent"], ["Saved", z.saved, "saved"], ["Moved to other accounts", mv, "move"]].filter((p) => p[1]);

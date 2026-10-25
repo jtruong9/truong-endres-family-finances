@@ -332,11 +332,21 @@ function openTx(tx) {
   dlgTx.showModal();
   formTx.amount.focus();
 }
+// Transfers need a To account. Savings can name one too (the account the money was put into, e.g.
+// Joint Savings): it counts as the payer's savings and raises that account's balance.
 function toggleTo() {
-  const isT = (CFG.categoryByName.get(formTx.category.value) || {}).kind === "Transfer";
-  $(".to-acct").hidden = !isT;
-  if (!isT) formTx.toAccount.value = "";
+  const kind = (CFG.categoryByName.get(formTx.category.value) || {}).kind;
+  const show = kind === "Transfer" || kind === "Savings";
+  $(".to-acct").hidden = !show;
+  $(".to-acct .to-label").textContent = kind === "Savings" ? "Put into (optional)" : "To account";
+  if (!show) formTx.toAccount.value = "";
+  // A savings entry from a personal account usually goes into the joint savings account
+  if (kind === "Savings" && !formTx.toAccount.value && !editing) {
+    const from = CFG.accountByName.get(formTx.account.value), sav = CFG.accounts.find((a) => a.type === "Savings" && a.owner === "joint");
+    if (sav && from && from.name !== sav.name && from.type !== "Savings") formTx.toAccount.value = sav.name;
+  }
 }
+formTx.account.addEventListener("change", toggleTo);
 formTx.category.onchange = toggleTo;
 // Typing a description you've used before pre-fills its last category/account
 formTx.desc.onchange = () => {

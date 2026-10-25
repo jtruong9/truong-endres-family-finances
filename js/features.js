@@ -15,7 +15,7 @@ function balancesTable(asOf, withEntry) {
     ${CFG.accounts.map((a) => {
       const bal = Model.balanceAt(CFG, txs, a.name, asOf);
       const last = checks.filter((c) => c.account === a.name).sort((x, y) => (x.date < y.date ? 1 : -1))[0];
-      const lastLine = last ? `${fmtDate(last.date)} · ${Math.abs(last.bank - last.app) < 0.005 ? '<span class="pos">✓ matched</span>' : `<span class="neg">off by ${money(Model.r2(last.app - last.bank), false)}</span>`}` : '<span class="muted">never</span>';
+      const lastLine = last ? `${fmtDate(last.date)} · ${Math.abs(last.bank - last.app) < 0.005 ? '<span class="pos">Matched</span>' : `<span class="neg">off by ${money(Model.r2(last.app - last.bank), false)}</span>`}` : '<span class="muted">never</span>';
       if (bal === null) return `<tr><td>${esc(a.name)}</td><td class="muted">${esc(Model.ownerLabel(CFG, a.owner))}</td><td colspan="3" class="muted">Set a starting balance in Settings &rsaquo; Accounts</td></tr>`;
       const saved = checks.find((c) => c.account === a.name && c.date === asOf);
       return `<tr data-acct="${esc(a.name)}" data-app="${bal}"><td>${esc(a.name)}</td><td class="muted">${esc(Model.ownerLabel(CFG, a.owner))}</td>
@@ -40,7 +40,7 @@ function wireBalanceEntry(root, asOf) {
       const tr = inp.closest("tr"), app = +tr.dataset.app, v = parseFloat(inp.value), cell = tr.querySelector(".diff");
       if (isNaN(v)) { cell.innerHTML = ""; return; }
       const d = Model.r2(app - v);
-      cell.innerHTML = Math.abs(d) < 0.005 ? '<span class="pos">✓ matches</span>' : `<span class="neg">${money(d, false)}</span><div class="hint">${d > 0 ? "app is higher: something's logged that the bank doesn't have, or a deposit is missing" : "app is lower: a purchase may be logged twice, or something is missing"}</div>`;
+      cell.innerHTML = Math.abs(d) < 0.005 ? '<span class="pos">Matches</span>' : `<span class="neg">${money(d, false)}</span><div class="hint">${d > 0 ? "app is higher: something's logged that the bank doesn't have, or a deposit is missing" : "app is lower: a purchase may be logged twice, or something is missing"}</div>`;
     };
   });
   return async () => {
@@ -52,7 +52,7 @@ function wireBalanceEntry(root, asOf) {
     if (!add.length) { toast("Type at least one bank balance first."); return false; }
     await Store.setCfg("balanceChecks", [...CFG.balanceChecks.filter((c) => !add.some((a) => a.account === c.account && a.date === c.date)), ...add]);
     const bad = add.filter((c) => Math.abs(c.bank - c.app) >= 0.005).length;
-    toast(bad ? `Saved. ${bad} account(s) don't match yet: look for missing or doubled entries.` : "Saved. Every account matches the bank ✓", 4500);
+    toast(bad ? `Saved. ${bad} account(s) don't match yet: look for missing or doubled entries.` : "Saved. Every account matches the bank.", 4500);
     return true;
   };
 }
@@ -66,7 +66,7 @@ function goalsTab() {
     const pct = Math.max(0, Math.min(1, p.pct));
     const line = p.type === "budget"
       ? `<b>${money(p.spent, false)}</b> spent of ${money(p.target, false)} · <span class="${p.over ? "neg" : "pos"}">${p.over ? `${money(-p.left, false)} over budget` : `${money(p.left, false)} left`}</span>`
-      : `<b>${money(p.saved, false)}</b> saved of ${money(p.target, false)}${p.done ? ' · <span class="pos">reached 🎉</span>' : p.perMonth != null ? ` · save <b>${money(p.perMonth, false)}/month</b> to reach it by ${esc(fmtYm(g.due))}` : ""}${p.pastDue ? ' · <span class="neg">past its date</span>' : ""}`;
+      : `<b>${money(p.saved, false)}</b> saved of ${money(p.target, false)}${p.done ? ' · <span class="pos">Reached</span>' : p.perMonth != null ? ` · save <b>${money(p.perMonth, false)}/month</b> to reach it by ${esc(fmtYm(g.due))}` : ""}${p.pastDue ? ' · <span class="neg">past its date</span>' : ""}`;
     return `<div class="goal" data-i="${i}">
       <div class="row"><h3 style="margin:0">${esc(g.name)}</h3><span class="pill">${p.type === "budget" ? "Project budget" : "Savings goal"}</span>
         <span class="pill">tag: ${esc(p.tag)}</span><span class="spacer"></span>
@@ -76,11 +76,9 @@ function goalsTab() {
     </div>`;
   };
   return `
-    <div class="card"><div class="row"><h2>Savings goals &amp; project budgets</h2><span class="spacer"></span><button id="gl-add" class="primary">+ New goal</button></div>
-      <p class="hint">Goals follow a <b>tag</b>. Add the goal's tag to transactions (the Tags box when adding or reviewing).
-        <b>Savings goal</b>: tagged savings and transfers add to it, tagged spending takes away (an emergency fund, a car, a house down payment, car tabs once a year).
-        <b>Project budget</b>: adds up tagged spending against a budget (a trip, a wedding, a remodel).</p>
-      ${goals.length ? goals.map(card).join("") : `<p class="muted">No goals yet. Click <b>+ New goal</b>.</p>`}
+    ${pageHead("Goals", "Savings goals and project budgets, tracked by tag", `<button id="gl-add" class="primary">${icon("plus")}New goal</button>`)}
+    <div class="card">
+      ${goals.length ? goals.map(card).join("") : `<p class="muted">No goals yet. A goal adds up every transaction with its tag.</p>`}
       <div id="gl-form"></div></div>`;
 }
 const fmtYm = (ym) => (ym ? `${Model.MONTHS[+ym.slice(5, 7) - 1]} ${ym.slice(0, 4)}` : "");
@@ -134,13 +132,17 @@ function renderCheckin() {
   const monthOpts = [];
   for (let k = 0; k < 13; k++) { const d = new Date(now.getFullYear(), now.getMonth() - k, 1); monthOpts.push([`${d.getFullYear()}-${d.getMonth()}`, `${Model.MONTHS[d.getMonth()]} ${d.getFullYear()}`]); }
   if (!monthOpts.some(([v]) => v === `${y}-${m}`)) monthOpts.unshift([`${y}-${m}`, `${Model.MONTHS[m]} ${y}`]);
-  const step = (n, ok, title, body) => `<div class="ci-step ${ok ? "ok" : ""}"><div class="ci-num">${ok ? "✓" : n}</div><div class="ci-body"><h3>${title}</h3>${body}</div></div>`;
+  const step = (n, ok, title, body) => `<div class="ci-step ${ok ? "ok" : ""}"><div class="ci-num">${ok ? icon("check") : n}</div><div class="ci-body"><h3>${title}</h3>${body}</div></div>`;
 
   $("#tab-checkin").innerHTML = `
-    <div class="card"><div class="row"><h2 class="sheet-title">Monthly check-in</h2>
-      <label>Month <select id="ci-month">${opts(monthOpts, `${y}-${m}`)}</select></label><span class="spacer"></span>
-      ${done ? `<span class="pill Paid">Done ${new Date(done.at).toLocaleDateString()}${done.by ? ` by ${esc(done.by)}` : ""}</span>` : `<span class="pill Due">Not done yet</span>`}</div>
-      <p class="hint">About 10–15 minutes, ideally together once a month. Work top to bottom. ${Model.MONTHS[m]} at a glance: income <b>${money(tot.income[m], false)}</b> · spent <b>${money(tot.spending[m], false)}</b> · saved <b>${money(tot.savings[m], false)}</b> · remaining <b class="${tot.remaining[m] < 0 ? "neg" : "pos"}">${money(tot.remaining[m], false)}</b></p></div>
+    ${pageHead("Check-in", done ? `Done ${new Date(done.at).toLocaleDateString()}${done.by ? ` by ${esc(done.by)}` : ""}` : "A monthly review, about 10 minutes",
+      `<select id="ci-month">${opts(monthOpts, `${y}-${m}`)}</select>`)}
+    <div class="cards">
+      <div class="stat"><div class="label">Income</div><div class="value">${money(tot.income[m], false)}</div></div>
+      <div class="stat"><div class="label">Spent</div><div class="value">${money(tot.spending[m], false)}</div></div>
+      <div class="stat"><div class="label">Saved</div><div class="value">${money(tot.savings[m], false)}</div></div>
+      <div class="stat"><div class="label">Remaining</div><div class="value ${tot.remaining[m] < 0 ? "neg" : ""}">${money(tot.remaining[m], false)}</div></div>
+    </div>
 
     <div class="card ci">
       ${step(1, !toReview && !flagged, "Sort every transaction", toReview || flagged
@@ -181,14 +183,14 @@ function renderRental() {
   const configured = (r.match || "").trim() || (r.tag || "").trim();
 
   $("#tab-rental").innerHTML = `
-    <div class="card"><div class="row"><h2 class="sheet-title">${esc(r.name || "Rental property")}</h2>
-      ${yrs.length ? `<label>Year <select id="rn-year">${opts(yrs.map(String), String(ui.rentYear))}</select></label>` : ""}</div>
-      <div class="row" style="margin-top:8px">
+    ${pageHead(esc(r.name || "Rental property"), "Income, costs and net for the rental", yrs.length ? `<select id="rn-year">${opts(yrs.map(String), String(ui.rentYear))}</select>` : "")}
+    <div class="card">
+      <div class="row">
         <label>Name <input id="rn-name" value="${esc(r.name || "")}" size="18"></label>
         <label>Description contains <input id="rn-match" value="${esc(r.match || "")}" placeholder="e.g. 123 Main" size="12"></label>
         <label>or tag <input id="rn-tag" value="${esc(r.tag || "")}" size="10"></label>
         <button id="rn-save" class="small primary">Save</button></div>
-      <p class="hint">Transactions count here if the description contains that text <b>or</b> they carry the tag. Tag anything that doesn't mention the property (e.g. a repair paid by Venmo) with <b>${esc(r.tag || "rental")}</b>. For taxes, ask your preparer what they need. This is a running total, not tax advice.</p></div>
+      <p class="hint">Counts any transaction whose description contains the text, or that has the tag. Not tax advice.</p></div>
     ${!configured ? `<div class="card"><p class="muted">Enter the text that identifies the property (for example its street number) above, then Save.</p></div>` : `
     <div class="cards">
       <div class="stat income"><div class="label">Income · ${ui.rentYear}</div><div class="value">${money(thisYear.income, false)}</div><div class="sub">rent and other income</div></div>
@@ -196,8 +198,8 @@ function renderRental() {
       <div class="stat rem"><div class="label">Net · ${ui.rentYear}</div><div class="value ${thisYear.net < 0 ? "neg" : "pos"}">${money(thisYear.net, false)}</div><div class="sub">income − expenses</div></div>
     </div>
     <div class="two">
-      <div class="card"><h2>By month · ${ui.rentYear}</h2><div class="table-wrap summary"><table><thead><tr><th>Month</th><th class="num">Income</th><th class="num">Expenses</th><th class="num">Net</th></tr></thead><tbody>
-        ${s.months.map((x, i) => `<tr><td><span class="month-dot" style="background:${Model.MONTH_COLORS[i][0]}"></span>${Model.MONTHS[i]}</td><td class="num">${money(x.income)}</td><td class="num">${money(x.expenses)}</td><td class="num ${x.net < 0 ? "rem-neg" : x.net > 0 ? "rem-pos" : ""}">${money(x.net)}</td></tr>`).join("")}
+      <div class="card"><h2>By month · ${ui.rentYear}</h2><div class="table-wrap"><table><thead><tr><th>Month</th><th class="num">Income</th><th class="num">Expenses</th><th class="num">Net</th></tr></thead><tbody>
+        ${s.months.map((x, i) => `<tr><td><span class="month-dot" style="background:${Model.MONTH_COLORS[i][0]}"></span>${Model.MONTHS[i]}</td><td class="num">${money(x.income)}</td><td class="num">${money(x.expenses)}</td><td class="num ${x.net < 0 ? "neg" : ""}" style="font-weight:500">${money(x.net)}</td></tr>`).join("")}
       </tbody></table></div></div>
       <div class="card"><h2>Every year</h2><table><thead><tr><th>Year</th><th class="num">Income</th><th class="num">Expenses</th><th class="num">Net</th></tr></thead><tbody>
         ${s.years.map((x) => `<tr><td>${x.year}</td><td class="num">${money(x.income, false)}</td><td class="num">${money(x.expenses, false)}</td><td class="num ${x.net < 0 ? "neg" : "pos"}"><b>${money(x.net, false)}</b></td></tr>`).join("") || `<tr><td colspan="4" class="muted">Nothing matched yet.</td></tr>`}

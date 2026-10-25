@@ -32,3 +32,7 @@ Format: **What didn't work / What worked / Note for next time.** Check here befo
 ## Compare years crashed with only one year of data
 - **Cause:** The handler for the "average per month" checkbox ran even when that checkbox wasn't rendered.
 - **Note:** guard optional controls (`const el = $(...); if (el) ...`).
+
+## Testing an edit: the browser kept the old CSS
+- **Cause:** the service worker serves files from its saved copy first. Editing a file without bumping `?v=N` means a browser that already has the app keeps the old version, even on reload.
+- **Note:** after editing js/css, bump `?v=N` (index.html) and `VERSION` + the list in `sw.js` before testing, or unregister the service worker and clear `caches` in the test browser.

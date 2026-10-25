@@ -6,9 +6,9 @@
   <title>Truong Finance</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#3B3838">
-  <link rel="stylesheet" href="css/app.css?v=29">
-  <link rel="stylesheet" href="css/summary.css?v=29">
+  <meta name="theme-color" content="#FFFFFF">
+  <link rel="stylesheet" href="css/app.css?v=31">
+  <link rel="stylesheet" href="css/summary.css?v=31">
 </head>
 <body>
   <!-- Shown until a data folder is connected -->
@@ -18,7 +18,7 @@
       <p id="setup-msg">Choose the shared Google Drive folder that holds your finance data.</p>
       <button id="btn-pick" class="primary">Choose data folder</button>
       <button id="btn-regrant" class="primary" hidden>Reconnect to "<span id="regrant-name"></span>"</button>
-      <p class="hint">First time? Create an empty folder such as <b>My Drive &rsaquo; Truong Finance Data</b> in Google Drive for desktop, share it with each other, then pick it here. Your data never leaves that folder.</p>
+      <p class="hint">Pick <b>My Drive &rsaquo; Truong Finance Data</b> in Google Drive. Your data stays in that folder.</p>
       <p id="unsupported" class="error" hidden>This browser can't open folders. Please use Google Chrome on a Windows computer.</p>
     </div>
   </section>
@@ -27,36 +27,36 @@
     <!-- Left pull-out menu. Wide windows: docked, collapsible to an icon rail. Narrow windows: slides over the page. -->
     <aside id="sidebar" aria-label="Main menu">
       <div class="sb-brand">
-        <span class="sb-logo">$</span><span class="sb-label sb-title">Truong Finance</span>
+        <span class="sb-logo">T</span><span class="sb-label sb-title">Truong Finance</span>
       </div>
       <nav id="tabs">
-        <div class="sb-section sb-label">Everyday</div>
-        <button data-tab="dashboard" class="active" title="Dashboard"><span class="sb-ico">◧</span><span class="sb-label">Dashboard</span></button>
-        <button data-tab="transactions" title="Transactions"><span class="sb-ico">☰</span><span class="sb-label">Transactions</span><span class="sb-badge" id="sb-review-count" hidden></span></button>
-        <button data-tab="summary" title="Summary"><span class="sb-ico">▤</span><span class="sb-label">Summary</span></button>
-        <button data-tab="checkin" title="Check-in"><span class="sb-ico">✓</span><span class="sb-label">Check-in</span></button>
+        <div class="sb-section sb-label">Overview</div>
+        <button data-tab="dashboard" class="active" title="Dashboard"><span class="sb-ico" data-icon="dashboard"></span><span class="sb-label">Dashboard</span></button>
+        <button data-tab="transactions" title="Transactions"><span class="sb-ico" data-icon="list"></span><span class="sb-label">Transactions</span><span class="sb-badge" id="sb-review-count" hidden></span></button>
+        <button data-tab="summary" title="Summary"><span class="sb-ico" data-icon="chart"></span><span class="sb-label">Summary</span></button>
+        <button data-tab="checkin" title="Check-in"><span class="sb-ico" data-icon="checkCircle"></span><span class="sb-label">Check-in</span></button>
         <div class="sb-section sb-label">Plan</div>
-        <button data-tab="goals" title="Goals"><span class="sb-ico">◎</span><span class="sb-label">Goals</span></button>
-        <button data-tab="bills" title="Bills"><span class="sb-ico">▦</span><span class="sb-label">Bills</span></button>
-        <button data-tab="rental" title="Rental"><span class="sb-ico">⌂</span><span class="sb-label">Rental</span></button>
+        <button data-tab="goals" title="Goals"><span class="sb-ico" data-icon="target"></span><span class="sb-label">Goals</span></button>
+        <button data-tab="bills" title="Bills"><span class="sb-ico" data-icon="receipt"></span><span class="sb-label">Bills</span></button>
+        <button data-tab="rental" title="Rental"><span class="sb-ico" data-icon="home"></span><span class="sb-label">Rental</span></button>
         <div class="sb-section sb-label">Data</div>
-        <button data-tab="import" title="Import"><span class="sb-ico">⇪</span><span class="sb-label">Import</span></button>
-        <button data-tab="settings" title="Settings"><span class="sb-ico">⚙</span><span class="sb-label">Settings</span></button>
-        <button data-tab="help" title="How to use"><span class="sb-ico">?</span><span class="sb-label">How to use</span></button>
+        <button data-tab="import" title="Import"><span class="sb-ico" data-icon="upload"></span><span class="sb-label">Import</span></button>
+        <button data-tab="settings" title="Settings"><span class="sb-ico" data-icon="settings"></span><span class="sb-label">Settings</span></button>
+        <button data-tab="help" title="How to use"><span class="sb-ico" data-icon="help"></span><span class="sb-label">How to use</span></button>
       </nav>
     </aside>
     <div id="sb-scrim" hidden></div>
 
     <div id="page">
       <header class="topbar">
-        <button id="btn-menu" class="icon-btn" title="Show or hide the menu" aria-controls="sidebar" aria-expanded="true">☰</button>
+        <button id="btn-menu" class="icon-btn" title="Show or hide the menu" aria-controls="sidebar" aria-expanded="true"><span data-icon="menu"></span></button>
         <div class="topbar-title" id="page-title">Dashboard</div>
         <div class="topbar-right">
-          <button id="btn-add" class="primary">+ Add</button>
-          <button id="btn-paycheck">Distribute paycheck</button>
-          <span id="net-pill" class="net-pill" hidden title="No internet. Everything still works and saves to your computer; Google Drive will upload it when you're back online.">● Offline</span>
-          <button id="btn-install" hidden title="Install Truong Finance so it opens from its own icon, even without internet">⤓ Install app</button>
-          <button id="btn-refresh" title="Load changes saved from the other computer">&#x21bb;</button>
+          <span id="net-pill" class="net-pill" hidden title="No internet. Changes save to this computer and upload when you're back online."><span data-icon="wifiOff"></span>Offline</span>
+          <button id="btn-refresh" class="icon-btn" title="Load the other computer's changes"><span data-icon="refresh"></span></button>
+          <button id="btn-install" hidden title="Install so it opens from its own icon, even offline"><span data-icon="download"></span>Install</button>
+          <button id="btn-paycheck"><span data-icon="wallet"></span>Paycheck</button>
+          <button id="btn-add" class="primary"><span data-icon="plus"></span>Add</button>
         </div>
       </header>
 
@@ -102,7 +102,7 @@
     </form>
   </dialog>
 
-  <!-- Distribute paycheck -->
+  <!-- Paycheck: log it and split it to the other accounts -->
   <dialog id="dlg-pay">
     <form method="dialog" id="form-pay">
       <h2>Log &amp; distribute a paycheck</h2>
@@ -133,23 +133,24 @@
     <div class="actions"><span class="spacer"></span><button type="button" id="lb-cancel">Cancel</button><button type="button" class="primary" id="lb-save">Log selected bills</button></div>
   </dialog>
 
-  <div id="update-bar" class="update-bar" hidden>A new version of Truong Finance is ready. <button id="btn-update" class="small primary">Update now</button></div>
+  <div id="update-bar" class="update-bar" hidden>A new version is ready <button id="btn-update" class="small primary">Update</button></div>
   <div id="toast" class="toast" hidden></div>
 
   <script src="vendor/chart.umd.min.js"></script>
   <script src="vendor/xlsx.full.min.js"></script>
-  <script src="js/store.js?v=29"></script>
-  <script src="js/model.js?v=29"></script>
-  <script src="js/importers.js?v=29"></script>
-  <script src="js/app.js?v=29"></script>
-  <script src="js/help.js?v=29"></script>
-  <script src="js/review.js?v=29"></script>
-  <script src="js/attention.js?v=29"></script>
-  <script src="js/reorg.js?v=29"></script>
-  <script src="js/reorg-ui.js?v=29"></script>
-  <script src="js/features.js?v=29"></script>
-  <script src="js/summary.js?v=29"></script>
-  <script src="js/app2.js?v=29"></script>
-  <script src="js/offline.js?v=29"></script>
+  <script src="js/icons.js?v=31"></script>
+  <script src="js/store.js?v=31"></script>
+  <script src="js/model.js?v=31"></script>
+  <script src="js/importers.js?v=31"></script>
+  <script src="js/app.js?v=31"></script>
+  <script src="js/help.js?v=31"></script>
+  <script src="js/review.js?v=31"></script>
+  <script src="js/attention.js?v=31"></script>
+  <script src="js/reorg.js?v=31"></script>
+  <script src="js/reorg-ui.js?v=31"></script>
+  <script src="js/features.js?v=31"></script>
+  <script src="js/summary.js?v=31"></script>
+  <script src="js/app2.js?v=31"></script>
+  <script src="js/offline.js?v=31"></script>
 </body>
 </html>

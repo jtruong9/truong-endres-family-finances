@@ -51,15 +51,17 @@ Paychecks → Joint Hub → Joint Bills (all recurring bills)
 | `js/store.js` | Data layer. Folder handle in IndexedDB; append-only **event log per device** (`ledger-<deviceId>.json`); merges all ledger files. |
 | `js/model.js` | **Pure** calculations (no DOM): config defaults, totals, flows, balances, goals, review-row resolution, guesses, duplicate matching, year compare, rental, budgets. Unit-tested. |
 | `js/importers.js` | Old-spreadsheet (.xlsm) import, bank CSV parsing → review rows, Excel export. Uses SheetJS. |
-| `js/app.js` | Startup, tab routing, Dashboard, Transactions list, add/edit dialog, spouse-name migration. |
+| `js/icons.js` | Line icons (inline SVG) used everywhere: `icon("name")`, or `<span data-icon="name">` in index.html. No emoji or text symbols as icons. |
+| `js/app.js` | Startup, tab routing, shared UI helpers (`pageHead`, `notice`, `CHART` colors, `moneyAxis`), Dashboard, Transactions list, add/edit dialog, spouse-name migration. |
 | `js/help.js` | "How to use" tab: the user guide, written for Justin and Kelly. Update it when features change. |
 | `js/review.js` | "To review" queue on the Transactions tab (bank rows waiting to be categorized). |
 | `js/reorg.js` + `js/reorg-ui.js` | "Reorganize a year" (Settings): pure rules that propose a new category per transaction (Home vs Rental Property, Personal split up…) and a review screen; nothing changes until the owners approve. Declined rows are remembered in `cfg.reorgDone[year].declined`. Tests: `tests/reorg.test.js`. |
 | `js/attention.js` | "Needs attention" panel on the Transactions tab: saved rows with problems, grouped, with bulk fixes and "Leave as is" (`ackIssues`). Problem rules live in `Model.issueList`. |
 | `js/features.js` | Balances + bank check, Goals, Check-in, Rental, Compare years, one-click bill logging. |
-| `js/app2.js` | Paycheck distribution, Summary (year report), Bills, Import tab, Settings. Calls `start()`. |
-| `css/app.css` | Look and feel (matches the owners' old Excel workbook; see DECISIONS). |
-| `vendor/` | Chart.js 4.4.7, SheetJS 0.18.5, Barlow font (OFL). Vendored on purpose: no CDN at runtime. |
+| `js/summary.js` + `css/summary.css` | Summary page: year table (fits the window, month colors) and Compare years. Hovering a group or total number shows what it adds up: every row has `data-key`, and `ui._sums` lists the parts of each sum row. |
+| `js/app2.js` | Paycheck distribution, Bills, Import tab, Settings. Calls `start()`. |
+| `css/app.css` | The design system: neutral minimal (white, hairline borders, no shadows, one blue accent, Inter). Tokens are CSS variables at the top; see DECISIONS. |
+| `vendor/` | Chart.js 4.4.7, SheetJS 0.18.5, Inter font (OFL). Barlow is still in `vendor/fonts` but no longer loaded. Vendored on purpose: no CDN at runtime. |
 | `tests/` | `node tests/model.test.js`, `node tests/reorg.test.js`, `node tests/offline.test.js`. All must pass before committing. |
 
 ### Data format (`ledger-<deviceId>.json`)

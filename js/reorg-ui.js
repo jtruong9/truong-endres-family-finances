@@ -25,11 +25,9 @@ function reorgCard() {
 
   return `
   <div class="card reorg" id="reorg">
-    <h2>Reorganize ${y} categories</h2>
-    <p class="hint">Sorts ${y} into a clearer layout: <b>Home</b> and <b>Rental Property</b> are separate groups, "Personal" is split into real categories
-      (shopping, hobbies & gear, fun, gifts, car upkeep, rides…), restaurants become <b>Dining Out</b>, and wedding/engagement costs get a tag for Goals.
-      Other years are not changed. Old categories stay in the list so earlier years still add up. ${done ? `<b>Last applied ${new Date(done.at).toLocaleDateString()}.</b> Rows you unticked then won't be suggested again; anything below is new since.` : ""}</p>
-    ${!(r.match || r.tag) ? `<p class="error">Set up the Rental tab first (the text that identifies your rental, e.g. its street number). Otherwise rental costs can't be told apart from home costs.</p>` : ""}
+    <h2>Reorganize ${y}</h2>
+    <p class="hint">Proposed new categories for ${y} (Home vs Rental Property, Personal split up). Review, then apply. Other years don't change.${done ? ` Last applied ${new Date(done.at).toLocaleDateString()}.` : ""}</p>
+    ${!(r.match || r.tag) ? `<p class="error">Set the rental's text on the Rental page first, so rental costs can be told apart from home costs.</p>` : ""}
     <div class="row" style="margin:6px 0 10px">
       <b>${moves.length}</b>&nbsp;proposed change${moves.length === 1 ? "" : "s"} · <b>${chosen}</b>&nbsp;selected
       <span class="spacer"></span>

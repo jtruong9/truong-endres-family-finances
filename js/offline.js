@@ -1,5 +1,5 @@
 // Offline support on the page side: registers sw.js (which keeps a copy of the app files), shows an
-// "Offline" badge, an "Install app" button, and an "Update now" bar when a new version is downloaded.
+// "Offline" badge, an "Install" button, and an "Update" bar when a new version is downloaded.
 "use strict";
 
 (() => {

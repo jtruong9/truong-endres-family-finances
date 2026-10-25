@@ -1,147 +1,115 @@
-/* Summary page: "clean fintech" look. Everything is scoped under .fx so the other pages
-   keep the old-workbook styling. */
-@font-face { font-family: "Inter"; font-weight: 400; font-display: swap; src: url("../vendor/fonts/inter-400.woff2") format("woff2"); }
-@font-face { font-family: "Inter"; font-weight: 500; font-display: swap; src: url("../vendor/fonts/inter-500.woff2") format("woff2"); }
-@font-face { font-family: "Inter"; font-weight: 600; font-display: swap; src: url("../vendor/fonts/inter-600.woff2") format("woff2"); }
-@font-face { font-family: "Inter"; font-weight: 700; font-display: swap; src: url("../vendor/fonts/inter-700.woff2") format("woff2"); }
+/* Summary page. Uses the shared design system (app.css) and only adds what the year table and
+   the sum breakdown need. */
 
-#tab-summary { margin: -16px; padding: 18px 16px; background: #F6F8FB; min-height: calc(100vh - 60px); }
-.fx { --ink: #0F172A; --ink-2: #334155; --muted: #64748B; --line: #E5EAF1; --line-2: #EEF2F7; --card: #FFFFFF;
-      --blue: #2563EB; --blue-50: #EFF4FF; --good: #16A34A; --bad: #DC2626;
-      font-family: "Inter", "Segoe UI", system-ui, sans-serif; font-size: 14px; color: var(--ink);
-      font-feature-settings: "tnum" 1; max-width: 1480px; margin: 0 auto; }
+.fx { max-width: 1480px; margin: 0 auto; }
 .fx .num { font-variant-numeric: tabular-nums; }
-.fx .hint, .fx .muted { color: var(--muted); }
 
-/* header */
-.fx-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 2px 0 18px; }
-.fx-eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); }
-.fx-title { margin: 2px 0 0; font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
-.fx-controls { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.fx-select, .fx-btn { font: 500 13.5px "Inter", system-ui, sans-serif; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 0 12px; }
-.fx-select:focus, .fx-btn:focus-visible { outline: 3px solid #BFD3FE; outline-offset: 0; border-color: var(--blue); }
-.fx-btn { cursor: pointer; font-weight: 600; }
-.fx-btn:hover { border-color: #CBD5E1; background: #F8FAFC; }
-.fx-btn.ghost { height: 30px; font-size: 12.5px; }
-.fx-seg { display: inline-flex; background: #EAEFF6; border-radius: 10px; padding: 3px; }
-.fx-seg button { border: none; background: transparent; height: 30px; padding: 0 14px; border-radius: 8px; font: 600 13px "Inter", system-ui, sans-serif; color: var(--muted); cursor: pointer; }
-.fx-seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(15,23,42,.08), 0 1px 1px rgba(15,23,42,.04); }
-
-/* headline cards */
-.fx-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
+/* headline numbers: one bordered strip, like the Dashboard */
+.fx-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
 @media (max-width: 1000px) { .fx-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.fx-kpi { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
-.fx-kpi-label { font-size: 13px; font-weight: 500; color: var(--muted); }
-.fx-kpi-value { font-size: clamp(20px, 2vw, 28px); font-weight: 700; letter-spacing: -.02em; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
-.fx-kpi-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.fx-delta { font-size: 12.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
-.fx-delta.good { color: #15803D; background: #DCFCE7; }
-.fx-delta.bad { color: #B91C1C; background: #FEE2E2; }
-.fx-delta.flat { color: var(--muted); background: #F1F5F9; }
-.spark { display: block; overflow: hidden; }   /* never push the page wider */
-.fx-kpi { min-width: 0; }
-.fx-kpi-foot { min-width: 0; }
+.fx-kpi { padding: 16px 18px; border-right: 1px solid var(--line); min-width: 0; }
+.fx-kpi:last-child { border-right: none; }
+.fx-kpi-label { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+.fx-kpi-value { font-size: clamp(20px, 1.9vw, 26px); font-weight: 600; letter-spacing: -.02em; margin: 2px 0 6px; font-variant-numeric: tabular-nums; }
+.fx-kpi-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.fx-delta { font-size: 12px; font-weight: 500; white-space: nowrap; color: var(--muted); }
+.fx-delta.good { color: var(--good); }
+.fx-delta.bad { color: var(--bad); }
+.spark { display: block; overflow: hidden; }
 .fx-kpi-foot .spark { flex: 0 1 84px; min-width: 0; width: 84px; max-width: 40%; }
 
 /* cards */
-.fx-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+.fx-card { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
 .fx-card-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.fx-card-head h2 { font: 600 16px "Inter", system-ui, sans-serif; margin: 0; letter-spacing: -.01em; }
-.fx-grid2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; }   /* minmax(0,…) lets charts shrink */
+.fx-card-head h2 { margin: 0; }
+.fx-grid2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; }
 .fx-grid2 > .fx-card { min-width: 0; }
 @media (max-width: 1000px) { .fx-grid2 { grid-template-columns: minmax(0, 1fr); } }
-.fx-chart { position: relative; height: 270px; min-width: 0; overflow: hidden; }
-.fx-legend { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.fx-chart { position: relative; height: 260px; min-width: 0; overflow: hidden; }
+.fx-legend { font-size: 12px; color: var(--faint); display: flex; align-items: center; gap: 6px; }
 .fx-check { font-size: 13px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
 
-/* table */
-.fx .table-wrap { max-height: 72vh; }
-
-.fx-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13.5px; }
-.fx-table th, .fx-table td { border: none; border-bottom: 1px solid var(--line-2); padding: 7px 10px; vertical-align: middle; white-space: nowrap; }
-.fx-table thead th { position: sticky; top: 0; z-index: 3; background: #fff; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--line); }
+/* ---- tables ---- */
+.fx-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
+.fx-table th, .fx-table td { border: none; border-bottom: 1px solid var(--line-2); padding: 7px 8px; vertical-align: middle; white-space: nowrap; }
+.fx-table thead th { position: sticky; top: 0; z-index: 3; background: var(--bg); font-size: 11.5px; font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--line); vertical-align: bottom; }
 .fx-table th.num, .fx-table td.num { text-align: right; }
-.fx-table .fx-sticky { position: sticky; left: 0; z-index: 2; background: #fff; min-width: 190px; text-align: left; }
+.fx-table .fx-sticky { position: sticky; left: 0; z-index: 2; background: var(--bg); min-width: 180px; text-align: left; }
 .fx-table thead .fx-sticky { z-index: 4; }
-.fx-cat { padding-left: 34px !important; color: var(--ink-2); }
-.fx-zero { color: #CBD5E1; }
+.fx-cat { padding-left: 28px !important; color: var(--ink-2); }
+.fx-zero { color: #D1D5DB; }
 .fx-year { font-weight: 600; color: var(--ink); }
-
-/* Month columns: each whole column is lightly tinted in its month color (--t, set per m0..m11 in
-   summary.js). The current month is tinted stronger and outlined in a darker shade of its color. */
-.fx-table td.mc, .fx-table th.mc { background-color: #fff; background-image: linear-gradient(var(--t), var(--t)); }
-.fx-table th.fx-m { color: #334155; padding-top: 12px; box-shadow: inset 0 4px 0 var(--mc); position: sticky; }
-.fx-table td.mc.cur, .fx-table th.mc.cur { box-shadow: inset 2px 0 0 var(--mcd), inset -2px 0 0 var(--mcd); }
-.fx-table th.fx-m.cur { box-shadow: inset 0 4px 0 var(--mcd), inset 2px 0 0 var(--mcd), inset -2px 0 0 var(--mcd); color: var(--ink); font-weight: 700; }
-.fx-table tfoot tr:last-child td.mc.cur { box-shadow: inset 2px 0 0 var(--mcd), inset -2px 0 0 var(--mcd), inset 0 -2px 0 var(--mcd); }
-.fx-table thead th { vertical-align: bottom; }
-.fx-now { display: inline-block; padding: 1px 6px; border-radius: 999px; background: var(--mcd, #2563EB); color: #fff;
-  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1.5; }
-.fx-table th .fx-now { display: table; margin: 0 0 3px auto; }   /* sits above the month name, doesn't widen the column */
-.fx-now.static { background: #475569; vertical-align: 1px; }
-
-
-/* Hover: one even highlight across the whole row (drawn on top of the month tints, so the
-   colors stay visible), and the hovered column's header lights up. */
-.fx-table tbody tr.fx-row:hover td { background-image: linear-gradient(rgba(15, 23, 42, .06), rgba(15, 23, 42, .06)), linear-gradient(var(--t, transparent), var(--t, transparent)); }
-.fx-table tbody tr.fx-row:hover td.fx-sticky, .fx-table tbody tr.fx-row:hover td:not(.mc) { background-color: #F1F5F9; }
-.fx-table tbody tr.fx-row:hover td.fx-sticky { box-shadow: inset 3px 0 0 var(--blue); color: var(--ink); }
-.fx-table tbody tr.fx-group:hover td { background-image: linear-gradient(rgba(15, 23, 42, .05), rgba(15, 23, 42, .05)), linear-gradient(var(--t, transparent), var(--t, transparent)); }
-.fx-table thead th.hov { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
 .fx-trend { width: 96px; }
-.fx-group td { background-color: #F8FAFC; font-weight: 600; color: var(--ink); border-top: 1px solid var(--line); cursor: pointer; }
-.fx-group td.fx-sticky { background-color: #F8FAFC; }
-.fx-table .fx-group td.mc { background-color: #F8FAFC; }
+
+/* Month columns: a quiet tint per month (--t, set in summary.js) and a thin color bar on the header.
+   The current month is a touch stronger and gets a "Now" marker. */
+.fx-table td.mc, .fx-table th.mc { background-color: var(--bg); background-image: linear-gradient(var(--t), var(--t)); }
+.fx-table th.fx-m { color: var(--muted); padding-top: 10px; box-shadow: inset 0 2px 0 var(--mc); }
+.fx-table th.fx-m.cur { color: var(--ink); font-weight: 600; }
+.fx-now { display: inline-block; padding: 0 5px; border-radius: 4px; background: var(--ink); color: #fff; font-size: 9.5px; font-weight: 600; letter-spacing: .03em; line-height: 16px; }
+.fx-table th .fx-now { display: table; margin: 0 0 3px auto; }
+.fx-now.static { vertical-align: 1px; }
+
+/* groups and totals */
+.fx-group td { background-color: var(--subtle); font-weight: 600; color: var(--ink); border-top: 1px solid var(--line); cursor: pointer; }
+.fx-group td.fx-sticky, .fx-table .fx-group td.mc { background-color: var(--subtle); }
 .fx-group.static td { cursor: default; }
-.fx-group.warn td { background-color: #FFF7ED; color: #9A3412; cursor: default; }
-.fx-caret { border: none; background: none; width: 18px; padding: 0; margin-right: 6px; color: var(--muted); cursor: pointer; font-size: 12px; }
-.fx-count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: #E2E8F0; color: var(--muted); font-size: 11.5px; font-weight: 600; text-align: center; }
-.fx-table tfoot { position: sticky; bottom: 0; z-index: 3; }   /* totals stay visible while the table scrolls */
-.fx-table tfoot td { background-color: #fff; font-weight: 700; border-top: 1px solid var(--line); }
-.fx-table tfoot tr:first-child td { border-top: 2px solid #CBD5E1; }
-.fx-table tfoot .fx-sticky { z-index: 3; }
-.fx-total.rem td { font-weight: 700; }
+.fx-group.warn td { background-color: var(--warn-bg); color: var(--warn); cursor: default; font-weight: 500; }
+.fx-caret { border: none; background: none; height: auto; width: 16px; padding: 0; margin-right: 4px; color: var(--faint); cursor: pointer; }
+.fx-caret .ico { width: 14px; height: 14px; vertical-align: -2px; }
+.fx-count { color: var(--faint); font-weight: 500; margin-left: 4px; font-size: 11.5px; }
+.fx-net { margin-left: 6px; color: var(--muted); font-size: 11px; font-weight: 500; }
+.fx-table tfoot td { background-color: var(--bg); font-weight: 600; border-top: 1px solid var(--line); }
+.fx-table tfoot tr:first-child td { border-top: 1px solid #D1D5DB; }
 .fx-table .pos { color: var(--good); }
 .fx-table .neg { color: var(--bad); }
 .fx-budget { min-width: 140px; }
-.fx-meter { height: 6px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
-.fx-meter > span { display: block; height: 100%; background: var(--blue); border-radius: 99px; }
+.fx-meter { height: 4px; background: var(--hover); border-radius: 2px; overflow: hidden; }
+.fx-meter > span { display: block; height: 100%; background: var(--ink); border-radius: 2px; }
 .fx-meter.over > span { background: var(--bad); }
-.fx-meter-label { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+.fx-meter-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
-/* Account flows table inside the new look */
-.fx .fx-card table:not(.fx-table) th { background: #fff; color: var(--muted); font: 600 12px "Inter", system-ui, sans-serif; text-transform: uppercase; letter-spacing: .04em; }
-.fx .fx-card table:not(.fx-table) td { border-bottom: 1px solid var(--line-2); font-family: "Inter", system-ui, sans-serif; }
+/* row hover: one even wash over the tints; the column's month name darkens */
+.fx-table tbody tr.fx-row:hover td { background-image: linear-gradient(rgba(17, 24, 39, .035), rgba(17, 24, 39, .035)), linear-gradient(var(--t, transparent), var(--t, transparent)); }
+.fx-table tbody tr.fx-row:hover td.fx-sticky, .fx-table tbody tr.fx-row:hover td:not(.mc) { background-color: var(--subtle); }
+.fx-table tbody tr.fx-group:hover td { background-image: linear-gradient(rgba(17, 24, 39, .03), rgba(17, 24, 39, .03)), linear-gradient(var(--t, transparent), var(--t, transparent)); }
+.fx-table thead th.hov { color: var(--ink); }
 
-/* Year table fits the window: no box of its own to scroll, sideways or down. Columns share the
-   width evenly; numbers shrink a little on smaller windows instead of overflowing. */
+/* ---- sum breakdown: hover a group/total number to see what it adds up ---- */
+.fx-table td.sumable { cursor: help; }
+.fx-table td.sum-on { box-shadow: inset 0 0 0 1.5px var(--accent); background-color: var(--accent-bg) !important; background-image: none !important; }
+.fx-table td.sum-part { box-shadow: inset 0 0 0 1px rgba(37, 99, 235, .45); background-color: #F5F8FE !important; background-image: none !important; }
+.fx-table td.sum-part.sum-minus { box-shadow: inset 0 0 0 1px rgba(185, 28, 28, .45); background-color: #FEF6F6 !important; }
+.fx-sumtip { position: fixed; z-index: 70; min-width: 220px; max-width: 320px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(17, 24, 39, .14); padding: 10px 12px; font-size: 12.5px; pointer-events: none; }
+.fx-sumtip h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.fx-sumtip .ln { display: flex; justify-content: space-between; gap: 14px; padding: 2px 0; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.fx-sumtip .ln span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-sumtip .ln.minus span:last-child { color: var(--bad); }
+.fx-sumtip .more { color: var(--faint); padding-top: 2px; }
+.fx-sumtip .eq { display: flex; justify-content: space-between; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* ---- the year table fits the window: fixed layout, numbers shrink on smaller screens ---- */
 .fx-tablebox { width: 100%; }
-.fx-year-table { table-layout: fixed; width: 100%; font-size: clamp(11px, 0.78vw, 13.5px); }
+.fx-year-table { table-layout: fixed; width: 100%; font-size: clamp(11px, 0.76vw, 13px); }
 .fx-year-table th, .fx-year-table td { padding: 6px 5px; }
-.fx-year-table col.c-cat, .fx-year-table th.fx-sticky { width: 15%; }
-.fx-year-table th.fx-m, .fx-year-table td.mc { width: auto; }
-.fx-year-table .fx-sticky { position: static; min-width: 0; white-space: normal; }
-.fx-year-table thead th { position: sticky; top: 54px; }   /* month names stay visible under the top bar */
-.fx-year-table thead th.fx-sticky { position: sticky; }
+.fx-year-table th.fx-sticky { width: 15%; }
+.fx-year-table tbody .fx-sticky, .fx-year-table tfoot .fx-sticky { position: static; }
+.fx-year-table .fx-sticky { min-width: 0; white-space: normal; }
+.fx-year-table thead th { position: sticky; top: var(--top-h); }
 .fx-year-table .fx-cat { padding-left: 22px !important; }
 .fx-catname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fx-year-table .spark { width: 100%; max-width: 110px; height: 14px; margin-top: 2px; opacity: .85; }
-.fx-year-table tfoot { position: static; }
+.fx-year-table .spark { width: 100%; max-width: 110px; height: 14px; margin-top: 2px; opacity: .8; }
 .fx-year-table .fx-budget { min-width: 0; }
-.fx-year-table th.fx-tot { width: 7.5%; }     /* Year and Avg columns hold the biggest numbers */
+.fx-year-table th.fx-tot { width: 7.5%; }
 .fx-year-table td, .fx-year-table th { overflow: hidden; text-overflow: clip; }
-.fx-year-table .fx-total td { font-weight: 650; }
-/* Narrow windows: tighter padding and the trend lines step aside so every number still fits */
 @media (max-width: 1300px) { .fx-year-table th, .fx-year-table td { padding: 6px 3px; } .fx-year-table .fx-cat { padding-left: 14px !important; } }
-@media (max-width: 1200px) { .fx-year-table .spark { display: none; } .fx-year-table th.fx-sticky { width: 13%; } .fx-year-table .fx-now { font-size: 8.5px; padding: 0 4px; } }
-@media (max-width: 1100px) { .fx-year-table { font-size: 10.5px; letter-spacing: -.01em; } .fx-year-table th, .fx-year-table td { padding: 5px 2px; } .fx-year-table thead th { font-size: 10px; letter-spacing: 0; } }
-/* Very small windows: smaller numbers and a narrower name column so every month still fits */
+@media (max-width: 1200px) { .fx-year-table .spark { display: none; } .fx-year-table th.fx-sticky { width: 13%; } }
+@media (max-width: 1100px) { .fx-year-table { font-size: 10.5px; letter-spacing: -.01em; } .fx-year-table th, .fx-year-table td { padding: 5px 2px; } .fx-year-table thead th { font-size: 10px; } }
 @media (max-width: 1060px) {
   .fx-year-table { font-size: 9.5px; letter-spacing: -.02em; }
   .fx-year-table th.fx-sticky { width: 11%; }
   .fx-year-table th.fx-tot { width: 6.5%; }
   .fx-year-table thead th { font-size: 9px; }
-  .fx-year-table .fx-count { display: none; }
+  .fx-year-table .fx-count, .fx-year-table .fx-net { display: none; }
 }
-
-.fx-net { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: #E0F2FE; color: #0369A1; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }

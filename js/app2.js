@@ -52,11 +52,9 @@ function renderBills() {
   const rec = CFG.recurring;
   const fixed = rec.reduce((s, b) => s + (+b.amount || 0), 0);
   $("#tab-bills").innerHTML = `
-    <div class="card"><div class="row"><h2>Recurring bills</h2>
-      <label>Month <select id="bl-month">${opts(Model.MONTHS.map((m, i) => [String(i), `${m} ${y}`]), String(ui.billMonth))}</select></label>
-      <span class="muted">Fixed bills total ${money(fixed, false)}/month.</span>
-      <span class="spacer"></span>${rec.length ? `<button id="bl-log" class="primary">Log ${Model.MONTHS[ui.billMonth]}'s bills…</button>` : ""}</div>
-      <p class="hint"><b>Log … bills</b> enters every unpaid bill for the month in one step. "Paid" means a transaction that month with the bill's category, paid from the bill's account (and containing the match text, if set).</p>
+    ${pageHead("Bills", `${money(fixed, false)} a month in fixed bills`,
+      `<select id="bl-month">${opts(Model.MONTHS.map((m, i) => [String(i), `${m} ${y}`]), String(ui.billMonth))}</select>${rec.length ? `<button id="bl-log" class="primary">Log ${Model.MONTHS[ui.billMonth]} bills</button>` : ""}`)}
+    <div class="card">
       <div class="table-wrap"><table class="edit-table"><thead><tr><th>Bill</th><th>Category</th><th>Paid from</th><th class="num">Amount</th><th>Due day</th><th>Match text (optional)</th><th>Status</th><th></th></tr></thead><tbody>
         ${st.map((b, i) => `<tr data-i="${i}">
           <td><input data-k="name" value="${esc(b.name)}"></td>
@@ -66,9 +64,9 @@ function renderBills() {
           <td><input data-k="day" type="number" min="1" max="31" value="${b.day}"></td>
           <td><input data-k="match" value="${esc(b.match || "")}" placeholder="e.g. Spotify"></td>
           <td><span class="pill ${b.status.split(" ")[0]}">${b.status}</span>${b.paidAmount ? ` <span class="muted">${money(b.paidAmount, false)}</span>` : ""}</td>
-          <td><button class="small danger" data-del="${i}">✕</button></td></tr>`).join("")}
+          <td><button class="small ghost" data-del="${i}" title="Remove">Remove</button></td></tr>`).join("")}
       </tbody></table></div>
-      <div class="row" style="margin-top:10px"><button id="bl-add">+ Add bill</button><button id="bl-save" class="primary">Save bills</button>
+      <div class="row" style="margin-top:10px"><button id="bl-add">${icon("plus")}Add bill</button><button id="bl-save" class="primary">Save bills</button>
         ${rec.length ? "" : `<button id="bl-seed">Start with a basic bill list</button>`}</div>
     </div>`;
   $("#bl-month").onchange = (e) => { ui.billMonth = +e.target.value; renderBills(); };
@@ -94,13 +92,14 @@ let pending = null;   // { rows, source }
 function renderImport() {
   const accts = opts(CFG.accounts.map((a) => a.name), "", "Choose account…");
   $("#tab-import").innerHTML = `
+    ${pageHead("Import", "Bring in bank statements or your old spreadsheet")}
     <div class="two">
-      <div class="card"><h2>Bank statement (CSV)</h2>
-        <p class="hint">Download your statement as a <b>CSV</b> from the bank's website, then pick it here. Every row goes to <b>Transactions &rsaquo; To review</b>, where you sort each one into a category. Nothing counts until you do. Rows already imported before are skipped.</p>
+      <div class="card"><h2>Bank statement</h2>
+        <p class="hint">A CSV from your bank. Rows go to Transactions to be sorted; anything imported before is skipped.</p>
         <div class="row"><select id="im-csv-acct">${accts}</select><input type="file" id="im-csv" accept=".csv,text/csv"></div>
         <div id="im-map"></div></div>
-      <div class="card"><h2>Old Database (.xlsm)</h2>
-        <p class="hint">Your old expense spreadsheet, whatever its file name is. Everything on its <b>Expense History</b> sheet is imported into the account you pick. Choose your own personal account.</p>
+      <div class="card"><h2>Old database</h2>
+        <p class="hint">Your old .xlsm expense spreadsheet. Imports its Expense History into the account you pick.</p>
         <div class="row"><select id="im-old-acct">${accts}</select><input type="file" id="im-old" accept=".xlsm,.xlsx"></div></div>
     </div>
     <div id="im-preview"></div>`;
@@ -189,8 +188,9 @@ function renderSettings() {
   const ownerOpts = (sel) => opts([["joint", CFG.people.joint], ["p1", CFG.people.p1], ["p2", CFG.people.p2]], sel);
   const acctOpts = (sel) => opts(CFG.accounts.map((a) => a.name), sel, "");
   const catOpts = (sel) => opts(CFG.categories.map((c) => c.name), sel, "");
-  const del = `<td><button class="small danger" data-del>✕</button></td>`;
+  const del = `<td><button class="small ghost" data-del title="Remove">Remove</button></td>`;
   $("#tab-settings").innerHTML = `
+    ${pageHead("Settings")}
     ${reorgCard()}
     <div class="card"><h2>People</h2><div class="row">
       <label>Person 1 (short) <input id="st-p1" value="${esc(CFG.people.p1)}" size="10"></label>
@@ -199,47 +199,44 @@ function renderSettings() {
       <label>Full name <input id="st-p2f" value="${esc(CFG.people.p2Full || "")}"></label>
       <label>Shared label <input id="st-joint" value="${esc(CFG.people.joint)}" size="10"></label>
       <button id="st-people" class="primary">Save names</button></div>
-      <p class="hint">The short name is used in menus and on the Summary (e.g. "Kelly's allowance left").</p></div>
+</div>
 
-    <div class="card"><h2>Account balances today</h2>${balancesTable(todayIso(), false)}
-      <p class="hint">Compare these to the bank in the monthly <b>Check-in</b>.</p></div>
+    <div class="card"><h2>Balances today</h2>${balancesTable(todayIso(), false)}</div>
 
     <div class="card"><h2>Accounts</h2>
-      <p class="hint">Renaming an account here also updates every transaction that uses it.
-        <b>Starting balance</b>: the bank balance at the start of the date you pick (e.g. the day the joint accounts open). Balances are counted from that date forward.
-        For a credit card, enter what you owe as a <b>negative</b> number.</p>
+      <p class="hint">Starting balance is the bank balance at the start of that date. Enter a credit card balance as a negative number.</p>
       <table class="edit-table" id="st-accts"><thead><tr><th>Name</th><th>Owner</th><th>Type</th><th>Starting balance</th><th>…as of date</th><th>Note</th><th></th></tr></thead><tbody>
       ${CFG.accounts.map((a) => `<tr data-orig="${esc(a.name)}"><td><input data-k="name" value="${esc(a.name)}"></td><td><select data-k="owner">${ownerOpts(a.owner)}</select></td>
         <td><select data-k="type">${opts(["Checking", "Savings", "Credit Card", "Investment", "Cash"], a.type)}</select></td>
         <td><input data-k="openingBalance" type="number" step="0.01" value="${a.openingBalance ?? ""}" placeholder="balance" style="width:110px"></td>
         <td><input data-k="openingDate" type="date" value="${esc(a.openingDate || "")}"></td><td><input data-k="note" value="${esc(a.note || "")}"></td>${del}</tr>`).join("")}
-      </tbody></table><div class="row" style="margin-top:8px"><button data-add="st-accts">+ Add account</button><button id="st-accts-save" class="primary">Save accounts</button></div></div>
+      </tbody></table><div class="row" style="margin-top:8px"><button data-add="st-accts">${icon("plus")}Add account</button><button id="st-accts-save" class="primary">Save accounts</button></div></div>
 
     <div class="card"><h2>Paycheck split</h2>
-      <p class="hint">What "Distribute paycheck" moves out of the hub. Fixed amounts and percents go first; "Rest" splits whatever is left.</p>
+      <p class="hint">Fixed amounts and percents come out first; Rest splits what's left.</p>
       <table class="edit-table" id="st-split"><thead><tr><th>To account</th><th>How</th><th>Value</th><th></th></tr></thead><tbody>
       ${CFG.split.map((s) => `<tr><td><select data-k="toAccount">${acctOpts(s.toAccount)}</select></td><td><select data-k="mode">${opts([["fixed", "Fixed $"], ["percent", "Percent %"], ["rest", "Rest"]], s.mode)}</select></td>
         <td><input data-k="value" type="number" step="0.01" value="${s.value ?? ""}"></td>${del}</tr>`).join("")}
-      </tbody></table><div class="row" style="margin-top:8px"><button data-add="st-split">+ Add line</button><button id="st-split-save" class="primary">Save split</button></div></div>
+      </tbody></table><div class="row" style="margin-top:8px"><button data-add="st-split">${icon("plus")}Add line</button><button id="st-split-save" class="primary">Save split</button></div></div>
 
     <div class="card"><h2>Categories &amp; budgets</h2>
-      <p class="hint">Kind decides how it counts: Income, Savings, Expense, or Transfer (never counted). Renaming updates every transaction.</p>
+
       <div class="table-wrap" style="max-height:520px"><table class="edit-table" id="st-cats"><thead><tr><th>Name</th><th>Group</th><th>Kind</th><th>Monthly budget</th><th></th></tr></thead><tbody>
       ${CFG.categories.map((c) => `<tr data-orig="${esc(c.name)}"><td><input data-k="name" value="${esc(c.name)}"></td><td><input data-k="group" value="${esc(c.group)}" list="group-list"></td>
         <td><select data-k="kind">${opts(["Income", "Savings", "Expense", "Transfer"], c.kind)}</select></td><td><input data-k="budget" type="number" step="0.01" value="${c.budget ?? ""}"></td>${del}</tr>`).join("")}
       </tbody></table></div><datalist id="group-list">${CFG.groups.map((g) => `<option value="${esc(g)}">`).join("")}</datalist>
-      <div class="row" style="margin-top:8px"><button data-add="st-cats">+ Add category</button><button id="st-cats-save" class="primary">Save categories</button></div></div>
+      <div class="row" style="margin-top:8px"><button data-add="st-cats">${icon("plus")}Add category</button><button id="st-cats-save" class="primary">Save categories</button></div></div>
 
-    <div class="card"><h2>CSV auto-categorize rules</h2>
-      <p class="hint">When an imported description contains the text, it gets that category. First match wins.</p>
+    <div class="card"><h2>Import rules</h2>
+      <p class="hint">If an imported description contains this text, it gets this category.</p>
       <table class="edit-table" id="st-rules"><thead><tr><th>Description contains</th><th>Category</th><th></th></tr></thead><tbody>
       ${CFG.rules.map((r) => `<tr><td><input data-k="match" value="${esc(r.match)}"></td><td><select data-k="category">${catOpts(r.category)}</select></td>${del}</tr>`).join("")}
-      </tbody></table><div class="row" style="margin-top:8px"><button data-add="st-rules">+ Add rule</button><button id="st-rules-save" class="primary">Save rules</button><button id="st-rules-learn">Suggest rules from my history</button></div></div>
+      </tbody></table><div class="row" style="margin-top:8px"><button data-add="st-rules">${icon("plus")}Add rule</button><button id="st-rules-save" class="primary">Save rules</button><button id="st-rules-learn">Suggest rules from my history</button></div></div>
 
-    <div class="card"><h2>Backup &amp; data</h2>
-      <p class="hint">Your data lives in <b>${esc(Store.folderName())}</b> as ledger-*.json files (one per computer). Google Drive keeps old versions of each file, and a backup file gives you one more copy.</p>
-      <div class="row"><button id="st-backup">Download backup (.json)</button><label class="row">Restore backup <input type="file" id="st-restore" accept=".json"></label>
-        <button id="st-export">Export everything to Excel</button><button id="st-folder">Use a different data folder</button></div></div>`;
+    <div class="card"><h2>Data</h2>
+      <p class="hint">Stored in <b>${esc(Store.folderName())}</b>, one file per computer.</p>
+      <div class="row"><button id="st-backup">Download backup</button><label class="row muted">Restore <input type="file" id="st-restore" accept=".json"></label>
+        <button id="st-export">Export to Excel</button><button id="st-folder">Change folder</button></div></div>`;
 
   const rowsOf = (id) => $$(`#${id} tbody tr`).map((tr) => {
     const o = { _orig: tr.dataset.orig };

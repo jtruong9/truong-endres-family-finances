@@ -25,15 +25,13 @@ function reviewSection() {
   return `
   <div class="card review-card" id="review">
     <div class="row">
-      <h2 class="review-title">To review <span class="count">${all.length}</span></h2>
+      <h2 class="review-title">To review<span class="count">${all.length}</span></h2>
       <select id="rv-acct">${opts(accts, reviewUi.account, "All imported accounts")}</select>
-      <label><input type="checkbox" id="rv-dups" ${reviewUi.showDupOnly ? "checked" : ""}> Only possible duplicates (${matches.size})</label>
+      ${matches.size ? `<label class="muted"><input type="checkbox" id="rv-dups" ${reviewUi.showDupOnly ? "checked" : ""}> Possible duplicates (${matches.size})</label>` : `<input type="checkbox" id="rv-dups" hidden>`}
       <span class="spacer"></span>
-      <button id="rv-accept-guesses" title="Confirm every row whose category is filled in">Confirm all filled-in rows</button>
+      <button id="rv-accept-guesses" title="Confirm every row whose category is filled in">Confirm filled-in</button>
     </div>
-    <p class="hint">These came from a bank statement and <b>don't count anywhere yet</b>. For each one, check or pick the category and click <b>✓</b>.
-      <span class="guess-key">Italic</span> = the app's guess. Money <b class="in">in</b> vs <b class="out">out</b> is shown from the bank's side.
-      Rows marked <span class="pill dup">possible duplicate</span> look like something already saved (for example a paycheck you logged with <i>Distribute paycheck</i>, or the other half of a transfer); remove those with <b>✕</b>.</p>
+    <p class="hint">From a bank statement. These don't count until you confirm them. <span class="guess-key">Italic</span> categories are guesses.</p>
     <div class="table-wrap"><table class="review-table">
       <thead><tr><th><input type="checkbox" id="rv-all" title="Select all"></th><th>Date</th><th>Description</th><th class="num">In</th><th class="num">Out</th><th>Account</th><th>Category</th><th>Other account / Tags</th><th></th></tr></thead>
       <tbody>
@@ -50,7 +48,7 @@ function reviewSection() {
           <td><select class="rv-cat${r.guess ? " guess" : ""}">${catOpts(r.category)}</select></td>
           <td>${tr ? `<select class="rv-other" title="${r.dir === "in" ? "Money came FROM" : "Money went TO"}">${acctOpts(r.toAccount, r.account)}</select>`
                    : `<input class="rv-tags" placeholder="tags (optional)" value="${esc(r.tags || "")}">`}</td>
-          <td class="nowrap"><button class="small primary rv-ok" title="Confirm">✓</button> <button class="small danger rv-del" title="Remove (duplicate or not needed)">✕</button></td></tr>`;
+          <td class="nowrap"><button class="small primary rv-ok" title="Confirm">${icon("check")}</button> <button class="small ghost rv-del" title="Remove (duplicate or not needed)">${icon("x")}</button></td></tr>`;
       }).join("") || `<tr><td colspan="9" class="muted">Nothing here with this filter.</td></tr>`}
       </tbody></table></div>
     <div class="row" style="margin-top:8px">
@@ -122,8 +120,8 @@ function wireReview() {
   root.querySelector("tbody").onclick = (e) => {
     const tr = rowOf(e.target);
     if (!tr) return;
-    if (e.target.classList.contains("rv-ok")) confirmRows([tr]);
-    if (e.target.classList.contains("rv-del")) removeRows([tr.dataset.id]);
+    if (e.target.closest(".rv-ok")) confirmRows([tr]);
+    if (e.target.closest(".rv-del")) removeRows([tr.dataset.id]);
   };
   $("#rv-all").onchange = (e) => {
     $$("#review .rv-sel").forEach((cb) => { cb.checked = e.target.checked; const id = rowOf(cb).dataset.id; e.target.checked ? reviewUi.selected.add(id) : reviewUi.selected.delete(id); });

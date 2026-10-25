@@ -38,6 +38,9 @@ function years() {
 }
 
 // --------------------------------------------------------------------------------- startup
+// Static markup marks icon spots with data-icon; swap in the SVG once
+$$("[data-icon]").forEach((el) => { el.outerHTML = icon(el.dataset.icon); });
+
 async function start() {
   if (!Store.supported()) {
     $("#setup").hidden = false; $("#unsupported").hidden = false; $("#btn-pick").hidden = true;
@@ -100,8 +103,8 @@ window.addEventListener("focus", async () => {
 });
 
 // ---- Left pull-out menu ----
-// Wide window: the menu is docked; the ☰ button shrinks it to an icon rail (remembered per computer).
-// Narrow window: the menu is hidden and ☰ slides it out over the page; picking a page closes it.
+// Wide window: the menu is docked; the menu button shrinks it to an icon rail (remembered per computer).
+// Narrow window: the menu is hidden and the menu button slides it out over the page; picking a page closes it.
 const narrow = () => window.matchMedia("(max-width: 900px)").matches;
 function setMenu(open) {
   const app = $("#app");
@@ -158,6 +161,16 @@ function renderGoals() {
 }
 
 // --------------------------------------------------------------------------------- dashboard
+// Page header used by every tab: title, one line of context, and actions on the right
+const pageHead = (title, sub = "", actions = "") =>
+  `<div class="page-head"><div><h1>${title}</h1>${sub ? `<div class="sub">${sub}</div>` : ""}</div>${actions ? `<div class="actions row">${actions}</div>` : ""}</div>`;
+// One-line notice with an action (review waiting, needs attention…)
+const notice = (text, btn, id, warn = false) =>
+  `<div class="banner${warn ? " warn" : ""}">${icon(warn ? "alert" : "list")}<span>${text}</span><span class="spacer"></span><button class="small" id="${id}">${btn}</button></div>`;
+
+const CHART = { income: "#16A34A", spend: "#2563EB", saved: "#A78BFA", ink: "#111827", grid: "#F0F1F3", tick: "#9CA3AF" };
+const moneyAxis = { grid: { color: CHART.grid }, border: { display: false }, ticks: { color: CHART.tick, callback: (v) => "$" + (Math.abs(v) >= 1000 ? `${v / 1000}k` : v) } };
+
 function renderDashboard() {
   const txs = Store.transactions();
   const now = new Date(), y = now.getFullYear(), m = now.getMonth();
@@ -168,42 +181,44 @@ function renderDashboard() {
   const flagged = txs.filter((t) => Model.openIssues(CFG, t).length).length;
   const toReview = txs.filter((t) => t.review).length;
   const personal = flows.filter((f) => f.owner === "p1" || f.owner === "p2");
+  const M = Model.MONTHS[m];
 
-  const stat = (label, value, sub, cls = "", box = "") => `<div class="stat ${box}"><div class="label">${label}</div><div class="value ${cls}">${value}</div><div class="sub">${sub}</div></div>`;
+  const stat = (label, value, sub, cls = "") => `<div class="stat"><div class="label">${label}</div><div class="value ${cls}">${value}</div><div class="sub">${sub}</div></div>`;
   $("#tab-dashboard").innerHTML = `
-    ${toReview ? `<div class="card banner"><b>${toReview}</b> imported transaction(s) are waiting to be sorted. They don't count in any totals until you review them. <button class="small primary" id="go-review">Review now</button></div>` : ""}
+    ${pageHead(`${M} ${y}`, "This month at a glance")}
+    ${toReview ? notice(`${toReview} imported transaction${toReview > 1 ? "s" : ""} to sort`, "Review", "go-review") : ""}
+    ${flagged ? notice(`${flagged} transaction${flagged > 1 ? "s" : ""} need attention`, "Review", "go-flagged", true) : ""}
     <div class="cards">
-      ${stat(`Income · ${Model.MONTHS[m]}`, money(tot.income[m], false), "paychecks + other income", "", "income")}
-      ${stat(`Spending · ${Model.MONTHS[m]}`, money(tot.spending[m], false), "all accounts, excludes transfers", "", "spend")}
-      ${stat(`Saved · ${Model.MONTHS[m]}`, money(tot.savings[m], false), "savings categories", "", "saved")}
-      ${stat("Remaining", money(tot.remaining[m], false), "income − savings − spending", tot.remaining[m] < 0 ? "neg" : "pos", "rem")}
-      ${personal.map((p) => stat(`${esc(Model.ownerLabel(CFG, p.owner))}'s allowance left`, money(p.net, false), `${esc(p.account)} this month`, p.net < 0 ? "neg" : "")).join("")}
+      ${stat("Income", money(tot.income[m], false), "Paychecks and other income")}
+      ${stat("Spent", money(tot.spending[m], false), "All accounts")}
+      ${stat("Saved", money(tot.savings[m], false), "Savings categories")}
+      ${stat("Remaining", money(tot.remaining[m], false), "After saving and spending", tot.remaining[m] < 0 ? "neg" : "")}
+      ${personal.map((p) => stat(`${esc(Model.ownerLabel(CFG, p.owner))}'s allowance`, money(p.net, false), "Left this month", p.net < 0 ? "neg" : "")).join("")}
     </div>
     <div class="two">
-      <div class="card"><h2>${y}: income vs spending</h2><div class="chart-box"><canvas id="ch-year"></canvas></div></div>
-      <div class="card"><h2>${Model.MONTHS[m]} spending by group</h2><div class="chart-box"><canvas id="ch-groups"></canvas></div></div>
+      <div class="card"><h2>${y}</h2><div class="chart-box"><canvas id="ch-year"></canvas></div></div>
+      <div class="card"><h2>Spending in ${M}</h2><div class="chart-box"><canvas id="ch-groups"></canvas></div></div>
     </div>
     <div class="two">
-      <div class="card"><h2>Bills not yet paid this month</h2>${unpaid.length ? `<table><tbody>${unpaid.map((b) =>
-        `<tr><td>${esc(b.name)}</td><td class="muted">${esc(b.account)}</td><td>day ${b.day}</td><td class="num">${b.amount ? money(b.amount) : "varies"}</td><td><span class="pill ${b.status.split(" ")[0]}">${b.status}</span></td></tr>`).join("")}</tbody></table>`
-        : `<p class="muted">${bills.length ? "All recurring bills are paid for this month." : "No recurring bills set up yet. Add them on the Bills tab."}</p>`}</div>
-      <div class="card"><h2>Account flows · ${Model.MONTHS[m]}</h2>${flowsTable(flows)}
-        <p class="hint">The Hub should net to about $0 once each paycheck is distributed.</p></div>
-    </div>
-    ${flagged ? `<div class="card banner warn"><b>⚠ ${flagged}</b> transaction(s) need attention (for example an unknown category). They're listed at the top of Transactions, where you can fix them or leave them as they are. <button class="small primary" id="go-flagged">Review them</button></div>` : ""}`;
+      <div class="card"><h2>Bills due</h2>${unpaid.length ? `<table><tbody>${unpaid.map((b) =>
+        `<tr><td>${esc(b.name)}</td><td class="muted">${esc(b.account)}</td><td class="muted">Day ${b.day}</td><td class="num">${b.amount ? money(b.amount) : "Varies"}</td><td><span class="pill ${b.status.split(" ")[0]}">${b.status}</span></td></tr>`).join("")}</tbody></table>`
+        : `<p class="muted">${bills.length ? "All paid this month." : "No recurring bills yet."}</p>`}</div>
+      <div class="card"><h2>Accounts</h2>${flowsTable(flows)}</div>
+    </div>`;
 
   const go = $("#go-flagged");
   if (go) go.onclick = () => $('#tabs [data-tab="transactions"]').click();
   const gr = $("#go-review");
   if (gr) gr.onclick = () => $('#tabs [data-tab="transactions"]').click();
 
+  const legend = { position: "bottom", align: "start", labels: { usePointStyle: true, pointStyle: "circle", boxWidth: 6, boxHeight: 6, padding: 16, color: "#6B7280" } };
   chart("ch-year", {
     type: "bar",
     data: { labels: Model.MONTHS, datasets: [
-      { label: "Income", data: tot.income, backgroundColor: "#70AD47" },
-      { label: "Spending", data: tot.spending, backgroundColor: "#ED7D31" },
-      { label: "Saved", data: tot.savings, backgroundColor: "#5B9BD5" }] },
-    options: { maintainAspectRatio: false, scales: { y: { ticks: { callback: (v) => "$" + v.toLocaleString() } } } },
+      { label: "Income", data: tot.income, backgroundColor: CHART.income, borderRadius: 3, barPercentage: .7, categoryPercentage: .7 },
+      { label: "Spent", data: tot.spending, backgroundColor: CHART.spend, borderRadius: 3, barPercentage: .7, categoryPercentage: .7 },
+      { label: "Saved", data: tot.savings, backgroundColor: CHART.saved, borderRadius: 3, barPercentage: .7, categoryPercentage: .7 }] },
+    options: { maintainAspectRatio: false, plugins: { legend }, scales: { x: { grid: { display: false }, border: { display: false }, ticks: { color: CHART.tick } }, y: moneyAxis } },
   });
   const grid = Model.yearGrid(CFG, txs, y, "all");
   const groupSums = {};
@@ -215,21 +230,22 @@ function renderDashboard() {
   const g = Object.entries(groupSums).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   chart("ch-groups", {
     type: "bar",
-    data: { labels: g.map((x) => x[0]), datasets: [{ label: "Spent", data: g.map((x) => Model.r2(x[1])), backgroundColor: Model.MONTH_COLORS[m][0] }] },
-    options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { callback: (v) => "$" + v.toLocaleString() } } } },
+    data: { labels: g.map((x) => x[0]), datasets: [{ label: "Spent", data: g.map((x) => Model.r2(x[1])), backgroundColor: CHART.spend, borderRadius: 3, barThickness: 14 }] },
+    options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: moneyAxis, y: { grid: { display: false }, border: { display: false }, ticks: { color: "#374151" } } } },
   });
 }
 
 function flowsTable(flows) {
-  return `<div class="table-wrap"><table><thead><tr><th>Account</th><th>Owner</th><th class="num">Income</th><th class="num">Transfers in</th><th class="num">Spent</th><th class="num">Saved</th><th class="num">Transfers out</th><th class="num">Net</th></tr></thead><tbody>
-    ${flows.map((f) => `<tr><td>${esc(f.account)}</td><td class="muted">${esc(Model.ownerLabel(CFG, f.owner))}</td><td class="num">${money(f.income)}</td><td class="num">${money(f.transfersIn)}</td><td class="num">${money(f.spent)}</td><td class="num">${money(f.saved)}</td><td class="num">${money(f.transfersOut)}</td><td class="num ${f.net < 0 ? "neg" : ""}"><b>${money(f.net)}</b></td></tr>`).join("")}
+  return `<div class="table-wrap"><table class="flows"><thead><tr><th>Account</th><th>Owner</th><th class="num">Income</th><th class="num">In</th><th class="num">Spent</th><th class="num">Saved</th><th class="num">Out</th><th class="num">Net</th></tr></thead><tbody>
+    ${flows.map((f) => `<tr><td>${esc(f.account)}</td><td class="muted">${esc(Model.ownerLabel(CFG, f.owner))}</td><td class="num">${money(f.income)}</td><td class="num">${money(f.transfersIn)}</td><td class="num">${money(f.spent)}</td><td class="num">${money(f.saved)}</td><td class="num">${money(f.transfersOut)}</td><td class="num ${f.net < 0 ? "neg" : ""}" style="font-weight:600">${money(f.net)}</td></tr>`).join("")}
   </tbody></table></div>`;
 }
 
 function chart(id, cfg) {
-  Chart.defaults.font.family = '"Barlow", "Segoe UI", Arial, sans-serif';
-  Chart.defaults.font.size = 13;
-  Chart.defaults.color = "#3B3838";
+  Chart.defaults.font.family = '"Inter", "Segoe UI", system-ui, sans-serif';
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = "#6B7280";
   if (ui.charts[id]) ui.charts[id].destroy();
   const el = document.getElementById(id);
   if (el) ui.charts[id] = new Chart(el, cfg);
@@ -253,16 +269,15 @@ function renderTransactions() {
   f.page = Math.min(f.page, pages - 1);
   const shown = rows.slice(f.page * PAGE, (f.page + 1) * PAGE);
 
-  $("#tab-transactions").innerHTML = `${reviewSection()}${attentionSection()}
+  $("#tab-transactions").innerHTML = `${pageHead("Transactions", `${Store.transactions().filter(Model.isPosted).length.toLocaleString()} saved`)}${reviewSection()}${attentionSection()}
     <div class="card">
-      <h2>All transactions</h2>
       <div class="filters">
-        <input type="search" id="tf-q" placeholder="Search description, notes, tags, amount" value="${esc(f.q)}">
+        <input type="search" id="tf-q" placeholder="Search" value="${esc(f.q)}">
         <select id="tf-year">${opts(years().map(String), f.year, "All years")}</select>
         <select id="tf-owner">${opts(ownerChoices(), f.owner)}</select>
         <select id="tf-account">${opts(CFG.accounts.map((a) => a.name), f.account, "All accounts")}</select>
         <select id="tf-category">${opts(CFG.categories.map((c) => c.name), f.category, "All categories")}</select>
-        <label><input type="checkbox" id="tf-flagged" ${f.flagged ? "checked" : ""}> Needs attention only</label>
+        <label class="muted"><input type="checkbox" id="tf-flagged" ${f.flagged ? "checked" : ""}> Needs attention</label>
         <span class="spacer"></span>
         <span class="muted">${rows.length.toLocaleString()} rows · total (excl. transfers) <b>${money(total, false)}</b></span>
       </div>
@@ -272,7 +287,7 @@ function renderTransactions() {
           return `<tr class="clickable${iss.length ? " flag" : ""}" data-id="${esc(t.id)}" title="${esc(iss.join("; "))}">
             <td class="nowrap"><span class="month-dot" style="background:${Model.MONTH_COLORS[+t.date.slice(5, 7) - 1][0]}"></span>${fmtDate(t.date)}</td><td>${esc(t.desc)}</td><td class="num ${t.amount < 0 ? "neg" : ""}">${money(t.amount, false)}</td>
             <td>${k !== "Expense" ? `<span class="pill ${k}">${esc(t.category)}</span>` : esc(t.category)}</td>
-            <td>${esc(t.account)}${t.toAccount ? ` &rarr; ${esc(t.toAccount)}` : ""}</td>
+            <td class="nowrap">${esc(t.account)}${t.toAccount ? ` &rarr; ${esc(t.toAccount)}` : ""}</td>
             <td class="muted">${esc(Model.ownerLabel(CFG, Model.ownerOf(CFG, t)))}</td>
             <td class="muted">${esc(t.notes)}${t.tags ? ` <span class="pill">${esc(t.tags)}</span>` : ""}</td></tr>`;
         }).join("") || `<tr><td colspan="7" class="muted">No transactions match.</td></tr>`}

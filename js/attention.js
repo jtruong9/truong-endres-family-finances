@@ -15,7 +15,7 @@ const ISSUE_HELP = {
 function attentionSection() {
   const groups = Model.issueGroups(CFG, Store.transactions());
   // Nothing open: still offer a way back to anything that was marked "leave as is"
-  if (!groups.length) return ackedCount() ? `<div class="card at-quiet" id="attention-quiet">✓ No problems to fix. ${ackedCount()} transaction(s) are marked "leave as is". <a href="#" id="at-unack">Show them again</a></div>` : "";
+  if (!groups.length) return ackedCount() ? `<div class="at-quiet" id="attention-quiet">${ackedCount()} transaction(s) marked "leave as is". <a href="#" id="at-unack">Show again</a></div>` : "";
   const total = new Set(groups.flatMap((g) => g.txs.map((t) => t.id))).size;
   const catOpts = opts(CFG.categories.filter((c) => c.kind !== "Transfer").map((c) => c.name), "", "Choose a category…");
   const acctOpts = (not) => opts(CFG.accounts.map((a) => a.name).filter((n) => n !== not), "", "Choose an account…");
@@ -37,13 +37,13 @@ function attentionSection() {
 
   return `
   <div class="card attention-card" id="attention">
-    <div class="row"><h2 class="attention-title">⚠ Needs attention <span class="count">${total}</span></h2>
-      <span class="muted">These saved transactions have a problem. Fix them here, or choose <b>Leave as is</b> if they're fine the way they are.</span></div>
+    <div class="row"><h2 class="attention-title">Needs attention<span class="count">${total}</span></h2>
+      <span class="hint">Fix each group, or leave it as is.</span></div>
     ${groups.map((g, i) => {
       const open = ui.attOpen === g.sig;
       return `<div class="at-group" data-i="${i}">
         <div class="at-head">
-          <div class="at-what"><b>${esc(cap(g.label))}</b> <span class="pill">${g.txs.length} transaction${g.txs.length > 1 ? "s" : ""} · ${money(amountSum(g.txs), false)}</span>
+          <div class="at-what"><b>${esc(cap(g.label))}</b> <span class="muted">· ${g.txs.length} · ${money(amountSum(g.txs), false)}</span>
             <div class="hint">${ISSUE_HELP[g.code] || ""}</div></div>
           <div class="at-fix">${fixer(g, i)}
             <button class="small" data-act="ack" data-i="${i}" title="Keep them as they are and stop flagging this">Leave as is</button>

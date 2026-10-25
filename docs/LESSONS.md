@@ -19,6 +19,11 @@ Format: **What didn't work / What worked / Note for next time.** Check here befo
 - **Blank Dashboard on a remembered folder:** when the app reopens a remembered folder, data loads before `#app` is shown, and `render()` skips while hidden, so the first page stayed empty (offline made it obvious, but it could happen online too). **Fix:** `openApp()` builds the config and calls `render()` right after un-hiding.
 - **Note:** test offline by really stopping the web server, not only by toggling `navigator.onLine`.
 
+## Summary table hover looked broken
+- **Cause:** the row hover set `background-color`, but spending cells used the `background` shorthand (shading) and the current month had its own background, so hovering lit up only some cells: a patchy, half-working highlight.
+- **What worked:** cells keep their color in `background-image` layers (month tint, stacked under a hover overlay) and a plain `background-color` base, so hover adds one even layer on top of everything.
+- **Note:** in tables with colored cells, never mix the `background` shorthand with hover rules that set `background-color`.
+
 ## Compare years crashed with only one year of data
 - **Cause:** The handler for the "average per month" checkbox ran even when that checkbox wasn't rendered.
 - **Note:** guard optional controls (`const el = $(...); if (el) ...`).

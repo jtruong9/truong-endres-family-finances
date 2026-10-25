@@ -48,8 +48,6 @@
 @media (max-width: 1000px) { .fx-grid2 { grid-template-columns: 1fr; } }
 .fx-chart { position: relative; height: 270px; }
 .fx-legend { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-.fx-heat-key { width: 34px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, #fff, #93B4F8); border: 1px solid var(--line); }
-.fx-cur-key { width: 10px; height: 10px; border-radius: 3px; background: var(--blue-50); border: 1px solid #BFD3FE; }
 .fx-check { font-size: 13px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
 
 /* table */
@@ -58,26 +56,48 @@
 .fx-table th, .fx-table td { border: none; border-bottom: 1px solid var(--line-2); padding: 7px 10px; vertical-align: middle; white-space: nowrap; }
 .fx-table thead th { position: sticky; top: 0; z-index: 3; background: #fff; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--line); }
 .fx-table th.num, .fx-table td.num { text-align: right; }
-.fx-table th.fx-m { text-align: right; padding-top: 11px; box-shadow: inset 0 3px 0 var(--mc); }
 .fx-table .fx-sticky { position: sticky; left: 0; z-index: 2; background: #fff; min-width: 190px; text-align: left; }
 .fx-table thead .fx-sticky { z-index: 4; }
-.fx-table tbody tr:hover td, .fx-table tbody tr:hover td.fx-sticky { background-color: #F8FAFC; }
 .fx-cat { padding-left: 34px !important; color: var(--ink-2); }
-.fx-cell { background: rgba(59, 130, 246, calc(var(--h, 0) * .30)); }
 .fx-zero { color: #CBD5E1; }
-.fx-table td.cur, .fx-table th.cur { background-color: var(--blue-50); }
-.fx-table th.cur { color: var(--blue); }
-.fx-table td.fx-cell.cur { background: linear-gradient(rgba(59,130,246, calc(var(--h, 0) * .30)), rgba(59,130,246, calc(var(--h, 0) * .30))), var(--blue-50); }
 .fx-year { font-weight: 600; color: var(--ink); }
+
+/* Month columns: each whole column is lightly tinted in its month color (--t, set per m0..m11 in
+   summary.js). The current month is tinted stronger and outlined in a darker shade of its color. */
+.fx-table td.mc, .fx-table th.mc { background-color: #fff; background-image: linear-gradient(var(--t), var(--t)); }
+.fx-table th.fx-m { color: #334155; padding-top: 12px; box-shadow: inset 0 4px 0 var(--mc); position: sticky; }
+.fx-table td.mc.cur, .fx-table th.mc.cur { box-shadow: inset 2px 0 0 var(--mcd), inset -2px 0 0 var(--mcd); }
+.fx-table th.fx-m.cur { box-shadow: inset 0 4px 0 var(--mcd), inset 2px 0 0 var(--mcd), inset -2px 0 0 var(--mcd); color: var(--ink); font-weight: 700; }
+.fx-table tfoot tr:last-child td.mc.cur { box-shadow: inset 2px 0 0 var(--mcd), inset -2px 0 0 var(--mcd), inset 0 -2px 0 var(--mcd); }
+.fx-table thead th { vertical-align: bottom; }
+.fx-now { display: inline-block; padding: 1px 6px; border-radius: 999px; background: var(--mcd, #2563EB); color: #fff;
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1.5; }
+.fx-table th .fx-now { display: table; margin: 0 0 3px auto; }   /* sits above the month name, doesn't widen the column */
+.fx-now.static { background: #475569; vertical-align: 1px; }
+
+/* How much was spent: a thin blue bar along the bottom of each spending cell (longer = more) */
+.fx-cell { position: relative; }
+.fx-cell[style*="--h"]::after { content: ""; position: absolute; left: 8px; bottom: 3px; height: 3px; border-radius: 2px;
+  width: calc((100% - 16px) * var(--h)); background: rgba(37, 99, 235, .55); }
+.fx-bar-key { display: inline-block; width: 26px; height: 3px; border-radius: 2px; background: rgba(37, 99, 235, .55); vertical-align: middle; }
+
+/* Hover: one even highlight across the whole row (drawn on top of the month tints, so the
+   colors stay visible), and the hovered column's header lights up. */
+.fx-table tbody tr.fx-row:hover td { background-image: linear-gradient(rgba(15, 23, 42, .06), rgba(15, 23, 42, .06)), linear-gradient(var(--t, transparent), var(--t, transparent)); }
+.fx-table tbody tr.fx-row:hover td.fx-sticky, .fx-table tbody tr.fx-row:hover td:not(.mc) { background-color: #F1F5F9; }
+.fx-table tbody tr.fx-row:hover td.fx-sticky { box-shadow: inset 3px 0 0 var(--blue); color: var(--ink); }
+.fx-table tbody tr.fx-group:hover td { background-image: linear-gradient(rgba(15, 23, 42, .05), rgba(15, 23, 42, .05)), linear-gradient(var(--t, transparent), var(--t, transparent)); }
+.fx-table thead th.hov { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
 .fx-trend { width: 96px; }
-.fx-group td { background: #F8FAFC; font-weight: 600; color: var(--ink); border-top: 1px solid var(--line); cursor: pointer; }
-.fx-group td.fx-sticky { background: #F8FAFC; }
+.fx-group td { background-color: #F8FAFC; font-weight: 600; color: var(--ink); border-top: 1px solid var(--line); cursor: pointer; }
+.fx-group td.fx-sticky { background-color: #F8FAFC; }
+.fx-table .fx-group td.mc { background-color: #F8FAFC; }
 .fx-group.static td { cursor: default; }
-.fx-group.warn td { background: #FFF7ED; color: #9A3412; cursor: default; }
+.fx-group.warn td { background-color: #FFF7ED; color: #9A3412; cursor: default; }
 .fx-caret { border: none; background: none; width: 18px; padding: 0; margin-right: 6px; color: var(--muted); cursor: pointer; font-size: 12px; }
 .fx-count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: #E2E8F0; color: var(--muted); font-size: 11.5px; font-weight: 600; text-align: center; }
 .fx-table tfoot { position: sticky; bottom: 0; z-index: 3; }   /* totals stay visible while the table scrolls */
-.fx-table tfoot td { background: #fff; font-weight: 700; border-top: 1px solid var(--line); }
+.fx-table tfoot td { background-color: #fff; font-weight: 700; border-top: 1px solid var(--line); }
 .fx-table tfoot tr:first-child td { border-top: 2px solid #CBD5E1; }
 .fx-table tfoot .fx-sticky { z-index: 3; }
 .fx-total.rem td { font-size: 14.5px; }

@@ -25,6 +25,21 @@ function yoy(cur, prev, upIsGood, label) {
 
 ui.sumCollapsed = ui.sumCollapsed || {};
 
+// Month column colors come from Model.MONTH_COLORS (one source). Classes m0..m11 get:
+//   --t   light tint for the whole column      --mc  the month's color (header bar, NOW chip)
+//   --mcd darker version for the current-month column edges
+const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const rgba = (h, a) => `rgba(${hexRgb(h).join(",")},${a})`;
+const shade = (h, f) => `rgb(${hexRgb(h).map((v) => Math.round(v * (1 - f))).join(",")})`;
+function ensureMonthStyle() {
+  if (document.getElementById("fx-month-style")) return;
+  const el = document.createElement("style");
+  el.id = "fx-month-style";
+  el.textContent = Model.MONTH_COLORS.map(([c], i) =>
+    `.fx-table .m${i}{--t:${rgba(c, 0.13)};--mc:${c};--mcd:${shade(c, 0.35)}}.fx-table .m${i}.cur{--t:${rgba(c, 0.24)}}`).join("\n");
+  document.head.appendChild(el);
+}
+
 function renderSummary() {
   const v = ui.summaryView || "year";
   const head = `
@@ -77,8 +92,11 @@ function yearView() {
   // Table
   const showBudget = CFG.categories.some((c) => +c.budget > 0);
   const max = Math.max(1, ...[...grid.entries()].filter(([c]) => (CFG.categoryByName.get(c) || {}).kind === "Expense").flatMap(([, r]) => r));
-  const heat = (v, kind) => (kind === "Expense" && v > 0 ? `style="--h:${Math.min(1, Math.sqrt(v / max)).toFixed(3)}"` : "");
-  const monthHead = Model.MONTHS.map((m, i) => `<th class="fx-m${i === curMonth ? " cur" : ""}" style="--mc:${Model.MONTH_COLORS[i][0]}">${m}</th>`).join("");
+  // Spending bar length (square-root scale so mid-size amounts still show; tiny ones get no bar)
+  const heat = (v, kind) => { const h = kind === "Expense" && v > 0 ? Math.min(1, Math.sqrt(v / max)) : 0; return h >= 0.15 ? `style="--h:${h.toFixed(3)}"` : ""; };
+  ensureMonthStyle();
+  const mc = (i) => `mc m${i}${i === curMonth ? " cur" : ""}`;   // month-column classes
+  const monthHead = Model.MONTHS.map((m, i) => `<th class="num fx-m ${mc(i)}">${i === curMonth ? '<span class="fx-now" title="This month">Now</span>' : ""}${m}</th>`).join("");
   const cols = 15 + (showBudget ? 1 : 0);
 
   let body = "";
@@ -93,7 +111,7 @@ function yearView() {
     const kind = cats[0].kind;
     body += `<tr class="fx-group" data-group="${esc(g)}">
       <td class="fx-sticky"><button class="fx-caret" aria-label="Show or hide">${collapsed ? "▸" : "▾"}</button>${esc(g)} <span class="fx-count">${cats.length}</span></td>
-      ${sub.map((x, i) => `<td class="num${i === curMonth ? " cur" : ""}">${kmoney(x)}</td>`).join("")}
+      ${sub.map((x, i) => `<td class="num ${mc(i)}">${kmoney(x)}</td>`).join("")}
       <td class="num fx-year">${money(subYear, false)}</td><td class="num">${money(subYear / n, false)}</td>
       ${showBudget ? "<td></td>" : ""}<td class="fx-trend">${sparkline(sub, upto, kind === "Income" ? "#16A34A" : kind === "Savings" ? "#7C3AED" : "#2563EB")}</td></tr>`;
     if (collapsed) continue;
@@ -104,7 +122,7 @@ function yearView() {
       const pct = b ? avg / b : 0;
       body += `<tr class="fx-row">
         <td class="fx-sticky fx-cat">${esc(c.name)}</td>
-        ${vals.map((x, i) => `<td class="num fx-cell${i === curMonth ? " cur" : ""}" ${heat(x, c.kind)}>${x ? money(x, false) : '<span class="fx-zero">–</span>'}</td>`).join("")}
+        ${vals.map((x, i) => `<td class="num fx-cell ${mc(i)}" ${heat(x, c.kind)}>${x ? money(x, false) : '<span class="fx-zero">–</span>'}</td>`).join("")}
         <td class="num fx-year">${money(yr, false)}</td><td class="num">${money(avg, false)}</td>
         ${showBudget ? `<td class="fx-budget">${b ? `<div class="fx-meter ${pct > 1 && c.kind === "Expense" ? "over" : ""}"><span style="width:${Math.min(100, pct * 100).toFixed(0)}%"></span></div><div class="fx-meter-label">${money(avg, false)} / ${money(b, false)}</div>` : ""}</td>` : ""}
         <td class="fx-trend">${sparkline(vals, upto)}</td></tr>`;
@@ -115,17 +133,17 @@ function yearView() {
     body += `<tr class="fx-group warn"><td class="fx-sticky" colspan="${cols}">Uncategorized / unknown: fix these on the Transactions tab</td></tr>`;
     for (const k of unknown) {
       const vals = grid.get(k);
-      body += `<tr class="fx-row"><td class="fx-sticky fx-cat">${esc(k || "(blank)")}</td>${vals.map((x, i) => `<td class="num fx-cell${i === curMonth ? " cur" : ""}">${x ? money(x, false) : '<span class="fx-zero">–</span>'}</td>`).join("")}
+      body += `<tr class="fx-row"><td class="fx-sticky fx-cat">${esc(k || "(blank)")}</td>${vals.map((x, i) => `<td class="num fx-cell ${mc(i)}">${x ? money(x, false) : '<span class="fx-zero">–</span>'}</td>`).join("")}
         <td class="num fx-year">${money(sum(vals), false)}</td><td class="num">${money(sum(vals) / n, false)}</td>${showBudget ? "<td></td>" : ""}<td></td></tr>`;
     }
   }
   const foot = (label, vals, cls) => `<tr class="fx-total ${cls}"><td class="fx-sticky">${label}</td>
-    ${vals.map((x, i) => `<td class="num${i === curMonth ? " cur" : ""} ${cls === "rem" ? (x < -0.005 ? "neg" : x > 0.005 ? "pos" : "") : ""}">${kmoney(x)}</td>`).join("")}
+    ${vals.map((x, i) => `<td class="num ${mc(i)} ${cls === "rem" ? (x < -0.005 ? "neg" : x > 0.005 ? "pos" : "") : ""}">${kmoney(x)}</td>`).join("")}
     <td class="num fx-year ${cls === "rem" ? (sum(vals) < 0 ? "neg" : "pos") : ""}">${money(sum(vals), false)}</td><td class="num">${money(sum(vals) / n, false)}</td>${showBudget ? "<td></td>" : ""}<td></td></tr>`;
 
   const table = `<div class="fx-card">
     <div class="fx-card-head"><h2>By category</h2>
-      <div class="fx-legend"><span class="fx-heat-key"></span> darker = more spent${curMonth >= 0 ? ` · <span class="fx-cur-key"></span> current month` : ""} · averages over ${n} month${n > 1 ? "s" : ""}</div>
+      <div class="fx-legend">${curMonth >= 0 ? `<span class="fx-now static">Now</span> = this month ·` : ""} <span class="fx-bar-key"></span> blue line = how much was spent · averages over ${n} month${n > 1 ? "s" : ""}</div>
       <span class="spacer"></span><button class="fx-btn ghost" id="fx-expand">${Object.values(ui.sumCollapsed).some(Boolean) ? "Expand all" : "Collapse all"}</button></div>
     <div class="table-wrap"><table class="fx-table">
       <thead><tr><th class="fx-sticky">Category</th>${monthHead}<th class="num">Year</th><th class="num">Avg / mo</th>${showBudget ? "<th>Budget (avg)</th>" : ""}<th>Trend</th></tr></thead>
@@ -149,6 +167,13 @@ function yearView() {
 
 function wireYearView() {
   $("#sm-month").onchange = (e) => { ui.flowMonth = +e.target.value; renderSummary(); };
+  // Light up the header of the column under the mouse, so the month is easy to read off
+  const table = $("#tab-summary .fx-table");
+  const heads = [...table.querySelectorAll("thead th")];
+  let hov = -1;
+  const setHov = (i) => { if (i === hov) return; if (heads[hov]) heads[hov].classList.remove("hov"); hov = i; if (i > 0 && heads[i]) heads[i].classList.add("hov"); };
+  table.addEventListener("mouseover", (e) => { const td = e.target.closest("tbody td, tfoot td"); setHov(td && !td.hasAttribute("colspan") ? td.cellIndex : -1); });
+  table.addEventListener("mouseleave", () => setHov(-1));
   $$("#tab-summary .fx-group[data-group]").forEach((tr) => (tr.onclick = () => { const g = tr.dataset.group; ui.sumCollapsed[g] = !ui.sumCollapsed[g]; renderSummary(); }));
   $("#fx-expand").onclick = () => {
     const anyCollapsed = Object.values(ui.sumCollapsed).some(Boolean);

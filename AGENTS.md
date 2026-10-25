@@ -58,7 +58,7 @@ Paychecks → Joint Hub → Joint Bills (all recurring bills)
 | `js/attention.js` | "Needs attention" panel on the Transactions tab: saved rows with problems, grouped, with bulk fixes and "Leave as is" (`ackIssues`). Problem rules live in `Model.issueList`. |
 | `js/features.js` | Balances + bank check, Goals, Check-in, Rental, Compare years, one-click bill logging. |
 | `js/app2.js` | Paycheck distribution, Summary (year report), Bills, Import tab, Settings. Calls `start()`. |
-| `css/app.css` | Look and feel (matches the owners' old Excel workbook; see DECISIONS). |
+| `css/app.css` + `css/summary.css` | Look and feel: one Barlow font, charcoal chrome like the left menu, hairline cards; month colors and category bars from the old Excel workbook stay (see DECISIONS). |
 | `vendor/` | Chart.js 4.4.7, SheetJS 0.18.5, Barlow font (OFL). Vendored on purpose: no CDN at runtime. |
 | `tests/` | `node tests/model.test.js`, `node tests/reorg.test.js`, `node tests/offline.test.js`. All must pass before committing. |
 

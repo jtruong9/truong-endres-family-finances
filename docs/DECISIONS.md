@@ -80,3 +80,12 @@ Public file: no amounts, account details or other personal financial data.
 - **Why:** The owners want it to work with no internet. Data was already offline-capable (Drive for desktop keeps a local copy and uploads later); only the app files needed it.
 - **Rejected:** A local copy of the app on each PC with a Python launcher (needs Python, manual file copying for every update, and a different site origin means re-picking the data folder).
 - **Rule:** with every `?v=N` bump, bump `VERSION` and the file list in `sw.js`. `tests/offline.test.js` fails if they drift.
+
+## 2026-10 — One look for every page, matching the left menu (supersedes the Summary's own look and "other pages keep the old-workbook palette")
+- **Decided (owners' choice: "lighter touch, keep month colors"):** Every page now shares the left menu's look. The top bar uses the same charcoal (`#2B2828`) as the menu and lines up with its brand row; its main button is white like the menu's current-page pill. Buttons, inputs, cards, tables and dialogs share one set of rules in `css/app.css`: 8px corners on controls, 10px on cards, hairline borders, no shadows or gradients, small uppercase gray table headings. The thick colored frames and caps became a 3px bar on the card's left edge, the same marker the menu uses for the current page. Main buttons are charcoal; the cyan accent is kept for focus rings, badges and that edge bar.
+- **Kept from the old workbook:** the color per month, charcoal category bars, gray total rows, green/red "Remaining".
+- **Summary:** same page background, colors and controls as everything else. Its charts and sparklines use the Dashboard's colors (income green, spending orange, saved blue; charcoal for the remaining line) instead of its own blue and purple. The small "SUMMARY" label above the title is gone because the top bar already names the page.
+- **Font:** Barlow everywhere (text, buttons, inputs, tables, charts). The Summary's separate font (Inter) and its files were removed. Barlow 500 was added (`vendor/fonts/barlow-500.woff2`, same OFL license) for the in-between weight. Native "Choose File" buttons need `::file-selector-button { font: inherit }` or they fall back to the system font.
+- **Why:** The owners wanted the whole app to look as modern and sleek as the menu, and not like a template.
+- **Rejected:** A full redesign that also muted the month colors (the owners chose to keep them). A dark theme throughout (the owners rejected a dark dashboard earlier).
+- **Not touched:** the left menu itself, layout, and all behavior.

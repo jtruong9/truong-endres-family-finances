@@ -216,7 +216,7 @@ function renderDashboard() {
   chart("ch-groups", {
     type: "bar",
     data: { labels: g.map((x) => x[0]), datasets: [{ label: "Spent", data: g.map((x) => Model.r2(x[1])), backgroundColor: Model.MONTH_COLORS[m][0] }] },
-    options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { callback: (v) => "$" + v.toLocaleString() } } } },
+    options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { maxRotation: 0, autoSkip: true, callback: (v) => "$" + v.toLocaleString() } } } },
   });
 }
 

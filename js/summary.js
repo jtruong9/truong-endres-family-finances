@@ -6,7 +6,7 @@
 const kmoney = (n) => (Math.abs(n) < 0.005 ? "–" : `${n < 0 ? "-" : ""}$${Math.round(Math.abs(n)).toLocaleString("en-US")}`);
 
 // Tiny inline trend line (12 months). Zero-filled future months are left off.
-function sparkline(vals, upto, color = "#2563EB") {
+function sparkline(vals, upto, color = "#ED7D31") {
   const v = vals.slice(0, Math.max(1, upto));
   const max = Math.max(...v, 0), min = Math.min(...v, 0), w = 84, h = 22, span = max - min || 1, pad = 3;
   const pts = v.map((x, i) => `${v.length === 1 ? w / 2 : pad + (i * (w - 2 * pad)) / (v.length - 1)},${(h - 3 - ((x - min) / span) * (h - 6)).toFixed(1)}`).join(" ");
@@ -44,7 +44,7 @@ function renderSummary() {
   const v = ui.summaryView || "year";
   const head = `
     <div class="fx-head">
-      <div><div class="fx-eyebrow">Summary</div><h1 class="fx-title">${v === "year" ? `${ui.year} overview` : "Compare years"}</h1></div>
+      <div><h1 class="fx-title">${v === "year" ? `${ui.year} overview` : "Compare years"}</h1></div>
       <div class="fx-controls">
         <div class="fx-seg"><button data-view="year" class="${v === "year" ? "on" : ""}">Year</button><button data-view="compare" class="${v === "compare" ? "on" : ""}">Compare years</button></div>
         ${v === "year" ? `<select id="sm-year" class="fx-select">${opts(years().map(String), String(ui.year))}</select>` : ""}
@@ -83,10 +83,10 @@ function yearView() {
       <div class="fx-kpi-label">${label}</div><div class="fx-kpi-value">${value}</div>
       <div class="fx-kpi-foot"><span class="fx-delta ${delta.cls}">${delta.text}</span>${spark ? sparkline(spark, upto, color) : ""}</div></div>`;
   const cards = `<div class="fx-kpis">
-    ${kpi("Income", money(inc, false), yoy(inc, pInc, true, cmpLabel), tot.income, "#16A34A")}
-    ${kpi("Spent", money(spent, false), yoy(spent, pSpent, false, cmpLabel), tot.spending, "#2563EB")}
-    ${kpi("Saved", money(saved, false), { text: `${(rate * 100).toFixed(1)}% of income`, cls: rate >= 0.15 ? "good" : "flat" }, tot.savings, "#7C3AED")}
-    ${kpi("Remaining", money(rem, false), { text: `avg ${money(rem / n, false)}/month`, cls: rem < 0 ? "bad" : "good" }, tot.remaining, rem < 0 ? "#DC2626" : "#16A34A")}
+    ${kpi("Income", money(inc, false), yoy(inc, pInc, true, cmpLabel), tot.income, "#70AD47")}
+    ${kpi("Spent", money(spent, false), yoy(spent, pSpent, false, cmpLabel), tot.spending, "#ED7D31")}
+    ${kpi("Saved", money(saved, false), { text: `${(rate * 100).toFixed(1)}% of income`, cls: rate >= 0.15 ? "good" : "flat" }, tot.savings, "#5B9BD5")}
+    ${kpi("Remaining", money(rem, false), { text: `avg ${money(rem / n, false)}/month`, cls: rem < 0 ? "bad" : "good" }, tot.remaining, rem < 0 ? "#C62828" : "#3B3838")}
   </div>`;
 
   // Table
@@ -109,7 +109,7 @@ function yearView() {
     const subYear = sum(sub), collapsed = !!ui.sumCollapsed[g];
     const kind = cats[0].kind;
     body += `<tr class="fx-group" data-group="${esc(g)}">
-      <td class="fx-sticky"><div class="fx-catname"><button class="fx-caret" aria-label="Show or hide">${collapsed ? "▸" : "▾"}</button>${esc(g)} <span class="fx-count">${cats.length}</span>${mixed ? ' <span class="fx-net" title="Income minus costs">net</span>' : ""}</div>${sparkline(sub, upto, kind === "Income" ? "#16A34A" : kind === "Savings" ? "#7C3AED" : "#2563EB")}</td>
+      <td class="fx-sticky"><div class="fx-catname"><button class="fx-caret" aria-label="Show or hide">${collapsed ? "▸" : "▾"}</button>${esc(g)} <span class="fx-count">${cats.length}</span>${mixed ? ' <span class="fx-net" title="Income minus costs">net</span>' : ""}</div>${sparkline(sub, upto, kind === "Income" ? "#70AD47" : kind === "Savings" ? "#5B9BD5" : "#ED7D31")}</td>
       ${sub.map((x, i) => `<td class="num ${mc(i)}${sign(x)}">${kmoney(x)}</td>`).join("")}
       <td class="num fx-year${sign(subYear)}" title="${money(subYear, false)}">${kmoney(subYear)}</td><td class="num${sign(subYear)}" title="${money(subYear / n, false)}">${kmoney(subYear / n)}</td>
       ${showBudget ? "<td></td>" : ""}</tr>`;
@@ -183,18 +183,18 @@ function wireYearView() {
     renderSummary();
   };
   const { tot, grid } = ui._sumChartData;
-  const axis = { grid: { color: "#EEF2F7" }, border: { display: false }, ticks: { color: "#64748B", callback: (v) => "$" + (Math.abs(v) >= 1000 ? (v / 1000) + "k" : v) } };
+  const axis = { grid: { color: "#EFEDED" }, border: { display: false }, ticks: { color: "#6B6767", callback: (v) => "$" + (Math.abs(v) >= 1000 ? (v / 1000) + "k" : v) } };
   chart("fx-ch-flow", {
     type: "bar",
     data: { labels: Model.MONTHS, datasets: [
-      { type: "line", label: "Remaining", data: tot.remaining, borderColor: "#0F172A", backgroundColor: "#0F172A", borderWidth: 2, pointRadius: 2.5, tension: 0.35, order: 0 },
-      { label: "Income", data: tot.income, backgroundColor: "#22C55E", borderRadius: 4, order: 1 },
-      { label: "Spent", data: tot.spending, backgroundColor: "#3B82F6", borderRadius: 4, order: 1 },
-      { label: "Saved", data: tot.savings, backgroundColor: "#A78BFA", borderRadius: 4, order: 1 }] },
+      { type: "line", label: "Remaining", data: tot.remaining, borderColor: "#3B3838", backgroundColor: "#3B3838", borderWidth: 2, pointRadius: 2.5, tension: 0.35, order: 0 },
+      { label: "Income", data: tot.income, backgroundColor: "#70AD47", borderRadius: 2, order: 1 },
+      { label: "Spent", data: tot.spending, backgroundColor: "#ED7D31", borderRadius: 2, order: 1 },
+      { label: "Saved", data: tot.savings, backgroundColor: "#5B9BD5", borderRadius: 2, order: 1 }] },
     options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
-      plugins: { legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8, color: "#334155" } },
+      plugins: { legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8, color: "#3B3838" } },
         tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${money(c.parsed.y, false)}` } } },
-      scales: { x: { grid: { display: false }, border: { display: false }, ticks: { color: "#64748B" } }, y: axis } },
+      scales: { x: { grid: { display: false }, border: { display: false }, ticks: { color: "#6B6767" } }, y: axis } },
   });
   const groupTotals = {};
   for (const [cat, row] of grid) {
@@ -203,12 +203,12 @@ function wireYearView() {
     groupTotals[c.group] = (groupTotals[c.group] || 0) + row.reduce((a, b) => a + b, 0);
   }
   const g = Object.entries(groupTotals).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
-  const palette = ["#2563EB", "#7C3AED", "#0EA5E9", "#14B8A6", "#F59E0B", "#EC4899", "#64748B", "#22C55E"];
+  const palette = ["#3B3838", "#5B9BD5", "#ED7D31", "#70AD47", "#FFC000", "#A5A5A5", "#9E480E", "#255E91"];
   chart("fx-ch-groups", {
     type: "doughnut",
     data: { labels: g.map((x) => x[0]), datasets: [{ data: g.map((x) => Model.r2(x[1])), backgroundColor: palette, borderWidth: 2, borderColor: "#fff" }] },
     options: { maintainAspectRatio: false, cutout: "68%",
-      plugins: { legend: { position: "right", labels: { usePointStyle: true, boxWidth: 8, color: "#334155" } },
+      plugins: { legend: { position: "right", labels: { usePointStyle: true, boxWidth: 8, color: "#3B3838" } },
         tooltip: { callbacks: { label: (c) => `${c.label}: ${money(c.parsed, false)}` } } } },
   });
 }
@@ -231,7 +231,7 @@ function compareView() {
       const a = v(prev), b = v(last), ch = a ? (b - a) / Math.abs(a) : null;
       const good = ch == null ? "" : kind === "Expense" ? (ch > 0.05 ? "bad" : ch < -0.05 ? "good" : "flat") : ch > 0.05 ? "good" : ch < -0.05 ? "bad" : "flat";
       return `<tr class="${cls}"><td class="fx-sticky ${cls ? "" : "fx-cat"}">${esc(name)}</td>${ys.map((y) => `<td class="num">${money(Model.r2(v(y)))}</td>`).join("")}
-        <td class="fx-trend">${sparkline(ys.map(v), ys.length, kind === "Income" ? "#16A34A" : kind === "Savings" ? "#7C3AED" : "#2563EB")}</td>
+        <td class="fx-trend">${sparkline(ys.map(v), ys.length, kind === "Income" ? "#70AD47" : kind === "Savings" ? "#5B9BD5" : "#ED7D31")}</td>
         <td class="num">${ch == null ? "" : `<span class="fx-delta ${good}">${ch > 0 ? "▲" : ch < 0 ? "▼" : ""} ${Math.abs(ch * 100).toFixed(0)}%</span>`}</td></tr>`;
     };
     body += line(g, gsum, "fx-group static");

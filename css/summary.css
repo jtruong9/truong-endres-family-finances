@@ -1,122 +1,116 @@
-/* Summary page: "clean fintech" look. Everything is scoped under .fx so the other pages
-   keep the old-workbook styling. */
-@font-face { font-family: "Inter"; font-weight: 400; font-display: swap; src: url("../vendor/fonts/inter-400.woff2") format("woff2"); }
-@font-face { font-family: "Inter"; font-weight: 500; font-display: swap; src: url("../vendor/fonts/inter-500.woff2") format("woff2"); }
-@font-face { font-family: "Inter"; font-weight: 600; font-display: swap; src: url("../vendor/fonts/inter-600.woff2") format("woff2"); }
-@font-face { font-family: "Inter"; font-weight: 700; font-display: swap; src: url("../vendor/fonts/inter-700.woff2") format("woff2"); }
+/* Summary page. Same font, colors and controls as the rest of the app (see app.css); only the
+   month-tinted table and the headline cards are special. Everything is scoped under .fx. */
 
-#tab-summary { margin: -16px; padding: 18px 16px; background: #F6F8FB; min-height: calc(100vh - 60px); }
-.fx { --ink: #0F172A; --ink-2: #334155; --muted: #64748B; --line: #E5EAF1; --line-2: #EEF2F7; --card: #FFFFFF;
-      --blue: #2563EB; --blue-50: #EFF4FF; --good: #16A34A; --bad: #DC2626;
-      font-family: "Inter", "Segoe UI", system-ui, sans-serif; font-size: 14px; color: var(--ink);
+.fx { --ink: #1A1A1A; --ink-2: #3B3838; --muted: #6B6767; --line: #E4E2E2; --line-2: #EFEDED; --card: #FFFFFF;
+      --blue: #0088BD; --blue-50: #E6F6FD; --good: #2E7D32; --bad: #C62828;
+      font-family: "Barlow", "Segoe UI", system-ui, sans-serif; font-size: 15px; color: var(--ink);
       font-feature-settings: "tnum" 1; max-width: 1480px; margin: 0 auto; }
 .fx .num { font-variant-numeric: tabular-nums; }
 .fx .hint, .fx .muted { color: var(--muted); }
 
 /* header */
-.fx-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 2px 0 18px; }
-.fx-eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--blue); }
-.fx-title { margin: 2px 0 0; font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+.fx-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 0 0 16px; }
+.fx-title { margin: 0; font-size: 24px; font-weight: 600; }
 .fx-controls { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.fx-select, .fx-btn { font: 500 13.5px "Inter", system-ui, sans-serif; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 0 12px; }
-.fx-select:focus, .fx-btn:focus-visible { outline: 3px solid #BFD3FE; outline-offset: 0; border-color: var(--blue); }
+.fx-select, .fx-btn { font: 500 14.5px "Barlow", "Segoe UI", system-ui, sans-serif; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); padding: 0 12px; }
+.fx-select:focus, .fx-btn:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0, 176, 240, .18); }
 .fx-btn { cursor: pointer; font-weight: 600; }
-.fx-btn:hover { border-color: #CBD5E1; background: #F8FAFC; }
-.fx-btn.ghost { height: 30px; font-size: 12.5px; }
-.fx-seg { display: inline-flex; background: #EAEFF6; border-radius: 10px; padding: 3px; }
-.fx-seg button { border: none; background: transparent; height: 30px; padding: 0 14px; border-radius: 8px; font: 600 13px "Inter", system-ui, sans-serif; color: var(--muted); cursor: pointer; }
-.fx-seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(15,23,42,.08), 0 1px 1px rgba(15,23,42,.04); }
+.fx-btn:hover { border-color: #A8A4A4; background: #FAF9F9; }
+.fx-btn.ghost { height: 30px; font-size: 13.5px; }
+.fx-seg { display: inline-flex; background: #ECEAEA; border-radius: 8px; padding: 3px; }
+.fx-seg button { border: none; background: transparent; height: 30px; padding: 0 14px; border-radius: 6px; font: 600 14px "Barlow", "Segoe UI", system-ui, sans-serif; color: var(--muted); cursor: pointer; }
+.fx-seg button.on { background: #fff; color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
 
 /* headline cards */
 .fx-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
 @media (max-width: 1000px) { .fx-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.fx-kpi { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
-.fx-kpi-label { font-size: 13px; font-weight: 500; color: var(--muted); }
-.fx-kpi-value { font-size: clamp(20px, 2vw, 28px); font-weight: 700; letter-spacing: -.02em; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
+.fx-kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+.fx-kpi-label { font-size: 14px; font-weight: 500; color: var(--muted); }
+.fx-kpi-value { font-size: clamp(22px, 2.1vw, 30px); font-weight: 600; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
 .fx-kpi-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.fx-delta { font-size: 12.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
-.fx-delta.good { color: #15803D; background: #DCFCE7; }
-.fx-delta.bad { color: #B91C1C; background: #FEE2E2; }
-.fx-delta.flat { color: var(--muted); background: #F1F5F9; }
+.fx-delta { font-size: 13.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.fx-delta.good { color: #2E7D32; background: #E2F0D9; }
+.fx-delta.bad { color: #C62828; background: #FFD9D9; }
+.fx-delta.flat { color: var(--muted); background: #F1F0F0; }
 .spark { display: block; overflow: hidden; }   /* never push the page wider */
 .fx-kpi { min-width: 0; }
 .fx-kpi-foot { min-width: 0; }
 .fx-kpi-foot .spark { flex: 0 1 84px; min-width: 0; width: 84px; max-width: 40%; }
 
 /* cards */
-.fx-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(15,23,42,.04); }
+.fx-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(26,26,26,.04); }
 .fx-card-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-.fx-card-head h2 { font: 600 16px "Inter", system-ui, sans-serif; margin: 0; letter-spacing: -.01em; }
+.fx-card-head h2 { font: 600 17px "Barlow", "Segoe UI", system-ui, sans-serif; margin: 0; }
 .fx-grid2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 14px; }   /* minmax(0,…) lets charts shrink */
 .fx-grid2 > .fx-card { min-width: 0; }
 @media (max-width: 1000px) { .fx-grid2 { grid-template-columns: minmax(0, 1fr); } }
 .fx-chart { position: relative; height: 270px; min-width: 0; overflow: hidden; }
-.fx-legend { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-.fx-check { font-size: 13px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
+.fx-legend { font-size: 13.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.fx-check { font-size: 14px; color: var(--ink-2); display: flex; gap: 6px; align-items: center; }
 
 /* table */
 .fx .table-wrap { max-height: 72vh; }
 
-.fx-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13.5px; }
+.fx-table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 14.5px; }
 .fx-table th, .fx-table td { border: none; border-bottom: 1px solid var(--line-2); padding: 7px 10px; vertical-align: middle; white-space: nowrap; }
-.fx-table thead th { position: sticky; top: 0; z-index: 3; background: #fff; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--line); }
+.fx-table thead th { position: sticky; top: 0; z-index: 3; background: #fff; font-size: 12.5px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--line); }
 .fx-table th.num, .fx-table td.num { text-align: right; }
 .fx-table .fx-sticky { position: sticky; left: 0; z-index: 2; background: #fff; min-width: 190px; text-align: left; }
 .fx-table thead .fx-sticky { z-index: 4; }
 .fx-cat { padding-left: 34px !important; color: var(--ink-2); }
-.fx-zero { color: #CBD5E1; }
+.fx-zero { color: #D6D3D3; }
 .fx-year { font-weight: 600; color: var(--ink); }
 
 /* Month columns: each whole column is lightly tinted in its month color (--t, set per m0..m11 in
    summary.js). The current month is tinted stronger and outlined in a darker shade of its color. */
 .fx-table td.mc, .fx-table th.mc { background-color: #fff; background-image: linear-gradient(var(--t), var(--t)); }
-.fx-table th.fx-m { color: #334155; padding-top: 12px; box-shadow: inset 0 4px 0 var(--mc); position: sticky; }
+.fx-table th.fx-m { color: #3B3838; padding-top: 12px; box-shadow: inset 0 4px 0 var(--mc); position: sticky; }
 .fx-table td.mc.cur, .fx-table th.mc.cur { box-shadow: inset 2px 0 0 var(--mcd), inset -2px 0 0 var(--mcd); }
 .fx-table th.fx-m.cur { box-shadow: inset 0 4px 0 var(--mcd), inset 2px 0 0 var(--mcd), inset -2px 0 0 var(--mcd); color: var(--ink); font-weight: 700; }
 .fx-table tfoot tr:last-child td.mc.cur { box-shadow: inset 2px 0 0 var(--mcd), inset -2px 0 0 var(--mcd), inset 0 -2px 0 var(--mcd); }
 .fx-table thead th { vertical-align: bottom; }
-.fx-now { display: inline-block; padding: 1px 6px; border-radius: 999px; background: var(--mcd, #2563EB); color: #fff;
+.fx-now { display: inline-block; padding: 1px 6px; border-radius: 999px; background: var(--mcd, #0088BD); color: #fff;
   font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 1.5; }
 .fx-table th .fx-now { display: table; margin: 0 0 3px auto; }   /* sits above the month name, doesn't widen the column */
-.fx-now.static { background: #475569; vertical-align: 1px; }
+.fx-now.static { background: #524E4E; vertical-align: 1px; }
 
 
 /* Hover: one even highlight across the whole row (drawn on top of the month tints, so the
    colors stay visible), and the hovered column's header lights up. */
-.fx-table tbody tr.fx-row:hover td { background-image: linear-gradient(rgba(15, 23, 42, .06), rgba(15, 23, 42, .06)), linear-gradient(var(--t, transparent), var(--t, transparent)); }
-.fx-table tbody tr.fx-row:hover td.fx-sticky, .fx-table tbody tr.fx-row:hover td:not(.mc) { background-color: #F1F5F9; }
+.fx-table tbody tr.fx-row:hover td { background-image: linear-gradient(rgba(26, 26, 26, .06), rgba(26, 26, 26, .06)), linear-gradient(var(--t, transparent), var(--t, transparent)); }
+.fx-table tbody tr.fx-row:hover td.fx-sticky, .fx-table tbody tr.fx-row:hover td:not(.mc) { background-color: #F1F0F0; }
 .fx-table tbody tr.fx-row:hover td.fx-sticky { box-shadow: inset 3px 0 0 var(--blue); color: var(--ink); }
-.fx-table tbody tr.fx-group:hover td { background-image: linear-gradient(rgba(15, 23, 42, .05), rgba(15, 23, 42, .05)), linear-gradient(var(--t, transparent), var(--t, transparent)); }
+.fx-table tbody tr.fx-group:hover td { background-image: linear-gradient(rgba(26, 26, 26, .05), rgba(26, 26, 26, .05)), linear-gradient(var(--t, transparent), var(--t, transparent)); }
 .fx-table thead th.hov { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
 .fx-trend { width: 96px; }
-.fx-group td { background-color: #F8FAFC; font-weight: 600; color: var(--ink); border-top: 1px solid var(--line); cursor: pointer; }
-.fx-group td.fx-sticky { background-color: #F8FAFC; }
-.fx-table .fx-group td.mc { background-color: #F8FAFC; }
+.fx-group td { background-color: #F7F6F6; font-weight: 600; color: var(--ink); border-top: 1px solid var(--line); cursor: pointer; }
+.fx-group td.fx-sticky { background-color: #F7F6F6; }
+.fx-table .fx-group td.mc { background-color: #F7F6F6; }
 .fx-group.static td { cursor: default; }
 .fx-group.warn td { background-color: #FFF7ED; color: #9A3412; cursor: default; }
 .fx-caret { border: none; background: none; width: 18px; padding: 0; margin-right: 6px; color: var(--muted); cursor: pointer; font-size: 12px; }
-.fx-count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: #E2E8F0; color: var(--muted); font-size: 11.5px; font-weight: 600; text-align: center; }
+.fx-count { display: inline-block; min-width: 20px; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: #ECEAEA; color: var(--muted); font-size: 12px; font-weight: 600; text-align: center; }
 .fx-table tfoot { position: sticky; bottom: 0; z-index: 3; }   /* totals stay visible while the table scrolls */
 .fx-table tfoot td { background-color: #fff; font-weight: 700; border-top: 1px solid var(--line); }
-.fx-table tfoot tr:first-child td { border-top: 2px solid #CBD5E1; }
+.fx-table tfoot tr:first-child td { border-top: 2px solid #D6D3D3; }
 .fx-table tfoot .fx-sticky { z-index: 3; }
 .fx-total.rem td { font-weight: 700; }
 .fx-table .pos { color: var(--good); }
 .fx-table .neg { color: var(--bad); }
 .fx-budget { min-width: 140px; }
-.fx-meter { height: 6px; background: #E2E8F0; border-radius: 99px; overflow: hidden; }
+.fx-meter { height: 6px; background: #E4E2E2; border-radius: 99px; overflow: hidden; }
 .fx-meter > span { display: block; height: 100%; background: var(--blue); border-radius: 99px; }
 .fx-meter.over > span { background: var(--bad); }
-.fx-meter-label { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+.fx-meter-label { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
 
 /* Account flows table inside the new look */
-.fx .fx-card table:not(.fx-table) th { background: #fff; color: var(--muted); font: 600 12px "Inter", system-ui, sans-serif; text-transform: uppercase; letter-spacing: .04em; }
-.fx .fx-card table:not(.fx-table) td { border-bottom: 1px solid var(--line-2); font-family: "Inter", system-ui, sans-serif; }
+.fx .fx-card table:not(.fx-table) th { background: #fff; color: var(--muted); font: 600 12px "Barlow", "Segoe UI", system-ui, sans-serif; text-transform: uppercase; letter-spacing: .04em; }
+.fx .fx-card table:not(.fx-table) td { border-bottom: 1px solid var(--line-2); font-family: "Barlow", "Segoe UI", system-ui, sans-serif; }
 
 /* Year table fits the window: no box of its own to scroll, sideways or down. Columns share the
    width evenly; numbers shrink a little on smaller windows instead of overflowing. */
 .fx-tablebox { width: 100%; }
-.fx-year-table { table-layout: fixed; width: 100%; font-size: clamp(11px, 0.78vw, 13.5px); }
+.fx-year-table { table-layout: fixed; width: 100%; font-size: clamp(12.5px, 0.88vw, 14.5px); }
 .fx-year-table th, .fx-year-table td { padding: 6px 5px; }
 .fx-year-table col.c-cat, .fx-year-table th.fx-sticky { width: 15%; }
 .fx-year-table th.fx-m, .fx-year-table td.mc { width: auto; }
@@ -144,4 +138,4 @@
   .fx-year-table .fx-count { display: none; }
 }
 
-.fx-net { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: #E0F2FE; color: #0369A1; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.fx-net { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: #E1F3FB; color: #0A6E96; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }

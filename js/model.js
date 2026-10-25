@@ -6,14 +6,14 @@
 "use strict";
 
 const Model = (() => {
-  const DEFAULT_PEOPLE = { p1: "Justin", p2: "Spouse", joint: "Joint" };
+  const DEFAULT_PEOPLE = { p1: "Justin", p2: "Kelly", joint: "Joint", p1Full: "Justin Truong", p2Full: "Kelly Endres" };
 
   const DEFAULT_ACCOUNTS = [
     { name: "Joint Hub", owner: "joint", type: "Checking", note: "Every paycheck lands here, then gets distributed" },
     { name: "Joint Bills", owner: "joint", type: "Checking", note: "Pays all recurring bills" },
     { name: "Joint Savings", owner: "joint", type: "Savings", note: "Shared savings" },
     { name: "Justin Personal", owner: "p1", type: "Checking", note: "Justin's spending" },
-    { name: "Spouse Personal", owner: "p2", type: "Checking", note: "Spouse's spending" },
+    { name: "Kelly Personal", owner: "p2", type: "Checking", note: "Kelly's spending" },
   ];
 
   const DEFAULT_CATEGORIES = [
@@ -34,6 +34,12 @@ const Model = (() => {
 
   const GROUP_ORDER = ["Income", "Savings", "Bills", "Transportation", "Health", "Food and Drinks", "Entertainment"];
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  // Month colors from the old expense database: header color, and the lighter tint used for its cells
+  const MONTH_COLORS = [
+    ["#EF956D", "#F7C8B3"], ["#9999FF", "#B9B9FF"], ["#9DF1EF", "#CCF8F7"], ["#F95555", "#FCAEAE"],
+    ["#92D050", "#BEE395"], ["#FFD966", "#FFE89F"], ["#FF9797", "#FFC5C5"], ["#FFC000", "#FFDB69"],
+    ["#00B0F0", "#C1EFFF"], ["#9BC2E6", "#BCD6EE"], ["#DA4E83", "#E78DAF"], ["#24908B", "#65D9D3"],
+  ];
 
   const r2 = (x) => Math.round(x * 100) / 100;
 
@@ -176,7 +182,7 @@ const Model = (() => {
   }
 
   return {
-    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, r2,
+    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2,
     config, ownerLabel, kindOf, ownerOf, matchesOwner,
     yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, autoCategory,
   };

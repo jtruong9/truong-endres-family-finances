@@ -20,11 +20,11 @@ const ledger = [
   tx("2026-11-01", 4000, "Paychecks", "Joint Hub"),
   tx("2026-11-01", 2500, "Transfer", "Joint Hub", "Joint Bills"),
   tx("2026-11-01", 600, "Transfer", "Joint Hub", "Justin Personal"),
-  tx("2026-11-01", 600, "Transfer", "Joint Hub", "Spouse Personal"),
+  tx("2026-11-01", 600, "Transfer", "Joint Hub", "Kelly Personal"),
   tx("2026-11-01", 300, "Monthly Saving", "Joint Hub"),
   tx("2026-11-02", 1500, "Rent / Mortgage", "Joint Bills"),
   tx("2026-11-03", 45.25, "Food & Drinks", "Justin Personal"),
-  tx("2026-11-04", 20, "Groceries", "Spouse Personal"),
+  tx("2026-11-04", 20, "Groceries", "Kelly Personal"),
   tx("2026-11-05", -10, "Food & Drinks", "Justin Personal"),   // refund
   tx("2025-12-31", 99, "Gym", "Justin Personal"),              // other year
 ];
@@ -50,7 +50,7 @@ t("account flows: hub nets to 0, personal = allowance left", () => {
   assert.strictEqual(f["Joint Hub"].net, 0);
   assert.strictEqual(f["Joint Bills"].net, Model.r2(2500 - 1500));
   assert.strictEqual(f["Justin Personal"].net, Model.r2(600 - 35.25));
-  assert.strictEqual(f["Spouse Personal"].net, 580);
+  assert.strictEqual(f["Kelly Personal"].net, 580);
 });
 
 t("year grid excludes transfers and other years", () => {
@@ -65,7 +65,7 @@ t("paycheck split: fixed + percent + rest", () => {
     { toAccount: "Joint Bills", mode: "fixed", value: 2500 },
     { toAccount: "Joint Savings", mode: "percent", value: 10 },
     { toAccount: "Justin Personal", mode: "rest" },
-    { toAccount: "Spouse Personal", mode: "rest" },
+    { toAccount: "Kelly Personal", mode: "rest" },
   ], 4000.01);
   assert.strictEqual(JSON.stringify(transfers.map((x) => x.amount)), JSON.stringify([2500, 400, 550.01, 550]));
   assert.strictEqual(leftover, 0);

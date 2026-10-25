@@ -49,13 +49,34 @@ function renderSummary() {
   const grid = Model.yearGrid(CFG, txs, ui.year, ui.owner);
   const tot = Model.monthlyTotals(CFG, txs, ui.year, ui.owner);
   const n = Model.monthsElapsed(ui.year);
+  const now = new Date();
+  const curMonth = ui.year === now.getFullYear() ? now.getMonth() : -1;
+  // Month cells take that month's color (header) or light tint (data), like the old spreadsheet.
+  // Total/grand rows keep their gray so the group breaks stay obvious.
+  const cell = (v, i, tinted) => `<td class="num${i === curMonth ? " cur" : ""}"${tinted ? ` style="background:${Model.MONTH_COLORS[i][1]}"` : ""}>${money(v)}</td>`;
+  // Budget columns only appear once at least one category has a budget
+  const showBudget = CFG.categories.some((c) => +c.budget > 0);
+  const extra = showBudget ? 4 : 2;
   const row = (label, vals, cls = "", budget = null) => {
     const sum = vals.reduce((a, b) => a + b, 0), avg = sum / n;
-    const over = budget != null && budget !== "" && avg > +budget;
-    return `<tr class="${cls}"><td class="sticky">${esc(label)}</td>${vals.map((v) => `<td class="num">${money(v)}</td>`).join("")}
-      <td class="num"><b>${money(sum)}</b></td><td class="num">${money(avg)}</td>
-      <td class="num">${budget != null && budget !== "" ? money(+budget, false) : ""}</td>
-      <td class="num ${over ? "neg" : ""}">${budget != null && budget !== "" ? money(avg - budget, false) : ""}</td></tr>`;
+    const has = budget != null && budget !== "" && +budget > 0;
+    const tinted = cls === "";
+    const isRem = cls.includes("remaining");
+    const remCls = isRem ? (x) => (x > 0.005 ? " rem-pos" : x < -0.005 ? " rem-neg" : "") : () => "";
+    return `<tr class="${cls}"><td class="sticky label">${esc(label)}</td>
+      ${vals.map((v, i) => isRem ? `<td class="num${remCls(v)}${i === curMonth ? " cur" : ""}">${money(v)}</td>` : cell(v, i, tinted)).join("")}
+      <td class="num year${remCls(sum)}"><b>${money(sum)}</b></td><td class="num year${remCls(avg)}">${money(avg)}</td>
+      ${showBudget ? `<td class="num">${has ? money(+budget, false) : ""}</td>
+      <td class="num ${has && avg > +budget ? "neg" : has ? "pos" : ""}">${has ? money(avg - budget, false) : ""}</td>` : ""}</tr>`;
+  };
+  // Dark category bar; the first group's bar sits right under the colored month header, so later
+  // bars repeat the month names (small) to keep columns easy to follow on a long page.
+  let firstGroup = true;
+  const groupBar = (title) => {
+    const months = firstGroup ? Model.MONTHS.map(() => `<td></td>`).join("")
+      : Model.MONTHS.map((m, i) => `<td class="mh" style="background:${Model.MONTH_COLORS[i][0]}">${m.toUpperCase()}</td>`).join("");
+    firstGroup = false;
+    return `<tr class="group"><td class="sticky">${esc(title)}</td>${months}<td colspan="${extra}"></td></tr>`;
   };
   let body = "";
   const seen = new Set();
@@ -63,7 +84,7 @@ function renderSummary() {
     const cats = CFG.categories.filter((c) => c.group === g && c.kind !== "Transfer");
     const withData = cats.filter((c) => (grid.get(c.name) || []).some((v) => v !== 0) || +c.budget > 0);
     if (!withData.length) continue;
-    body += `<tr class="group"><td class="sticky">${esc(g.toUpperCase())}</td><td colspan="16"></td></tr>`;
+    body += groupBar(g.toUpperCase());
     const sub = Array(12).fill(0);
     for (const c of withData) {
       const vals = grid.get(c.name) || Array(12).fill(0);
@@ -71,24 +92,27 @@ function renderSummary() {
       vals.forEach((v, i) => (sub[i] += v));
       body += row(c.name, vals, "", c.budget);
     }
-    body += row(`Total ${g}`, sub.map(Model.r2), "total");
+    body += row(`Total ${g}:`, sub.map(Model.r2), "total");
+    body += `<tr class="gap"><td colspan="${13 + extra}"></td></tr>`;
   }
   const unknown = [...grid.keys()].filter((k) => !seen.has(k));
   if (unknown.length) {
-    body += `<tr class="group"><td class="sticky">UNCATEGORIZED / UNKNOWN</td><td colspan="16"></td></tr>`;
+    body += groupBar("UNCATEGORIZED / UNKNOWN");
     for (const k of unknown) body += row(k || "(blank)", grid.get(k));
+    body += `<tr class="gap"><td colspan="${13 + extra}"></td></tr>`;
   }
-  body += row("Total Spending", tot.spending, "grand") + row("Total Saved", tot.savings, "grand") + row("Remaining", tot.remaining, "grand");
+  body += row("Total Monthly Spent:", tot.spending, "grand") + row("Total Saved:", tot.savings, "grand") + row("Total Remaining:", tot.remaining, "grand remaining");
 
   $("#tab-summary").innerHTML = `
     <div class="card"><div class="row">
+      <h2 class="sheet-title">${ui.year} EXPENSE REPORT</h2>
       <label>Year <select id="sm-year">${opts(years().map(String), String(ui.year))}</select></label>
       <label>Owner <select id="sm-owner">${opts(ownerChoices(), ui.owner)}</select></label>
-      <span class="muted">Averages divide by ${n} month(s). Transfers between your own accounts are excluded. Budgets are set under Settings &rsaquo; Categories.</span>
-      <span class="spacer"></span><button id="sm-export">Export to Excel</button>
-    </div></div>
+      <span class="spacer"></span><button id="sm-export">Export to Excel</button></div>
+      <p class="hint" style="margin:6px 0 0">Averages divide by ${n} month(s). Transfers between your own accounts are left out. Budgets are set under Settings &rsaquo; Categories.${curMonth >= 0 ? ` The outlined column is the current month.` : ""}</p>
+    </div>
     <div class="card"><div class="table-wrap summary"><table>
-      <thead><tr><th class="sticky">Category</th>${Model.MONTHS.map((m) => `<th class="num">${m}</th>`).join("")}<th class="num">Year</th><th class="num">Avg/mo</th><th class="num">Budget</th><th class="num">Avg − Budget</th></tr></thead>
+      <thead><tr><th class="sticky">Category</th>${Model.MONTHS.map((m, i) => `<th class="num mh" style="background:${Model.MONTH_COLORS[i][0]}">${m.toUpperCase()}</th>`).join("")}<th class="num">Year Total</th><th class="num">Avg / Month</th>${showBudget ? `<th class="num">Budget</th><th class="num">Avg − Budget</th>` : ""}</tr></thead>
       <tbody>${body}</tbody></table></div></div>
     <div class="card"><div class="row"><h2>Account flows</h2>
       <label>Month <select id="sm-month">${opts(Model.MONTHS.map((m, i) => [String(i), m]), String(ui.flowMonth))}</select></label></div>
@@ -150,21 +174,15 @@ function renderImport() {
         <p class="hint">Download a CSV of transactions from your bank's website, then pick it here. Rows that match something already saved are skipped.</p>
         <div class="row"><select id="im-csv-acct">${accts}</select><input type="file" id="im-csv" accept=".csv,text/csv"></div>
         <div id="im-map"></div></div>
-      <div class="card"><h2>Spreadsheets</h2>
-        <p><b>Old Truong_Database (.xlsm)</b>: imports its Expense History into the account you choose.</p>
-        <div class="row"><select id="im-old-acct">${accts}</select><input type="file" id="im-old" accept=".xlsm,.xlsx"></div>
-        <p style="margin-top:14px"><b>Truong_Household (.xlsx)</b> from Option B: keeps each row's account.</p>
-        <div class="row"><input type="file" id="im-hh" accept=".xlsx"></div></div>
+      <div class="card"><h2>Old Database (.xlsm)</h2>
+        <p class="hint">Your old expense spreadsheet, whatever its file name is. Everything on its <b>Expense History</b> sheet is imported into the account you pick. Choose your own personal account.</p>
+        <div class="row"><select id="im-old-acct">${accts}</select><input type="file" id="im-old" accept=".xlsm,.xlsx"></div></div>
     </div>
     <div id="im-preview"></div>`;
   const need = (sel) => { const v = $(sel).value; if (!v) toast("Choose the account first."); return v; };
   $("#im-old").onchange = async (e) => {
     const acct = need("#im-old-acct"); if (!acct) { e.target.value = ""; return; }
     try { preview(Importers.fromOldTemplate(await Importers.readWorkbook(e.target.files[0]), acct), e.target.files[0].name); }
-    catch (err) { toast(err.message, 6000); }
-  };
-  $("#im-hh").onchange = async (e) => {
-    try { preview(Importers.fromHousehold(await Importers.readWorkbook(e.target.files[0])), e.target.files[0].name); }
     catch (err) { toast(err.message, 6000); }
   };
   $("#im-csv").onchange = async (e) => {
@@ -226,10 +244,13 @@ function renderSettings() {
   const del = `<td><button class="small danger" data-del>✕</button></td>`;
   $("#tab-settings").innerHTML = `
     <div class="card"><h2>People</h2><div class="row">
-      <label>Person 1 <input id="st-p1" value="${esc(CFG.people.p1)}"></label>
-      <label>Person 2 <input id="st-p2" value="${esc(CFG.people.p2)}"></label>
-      <label>Shared label <input id="st-joint" value="${esc(CFG.people.joint)}"></label>
-      <button id="st-people" class="primary">Save names</button></div></div>
+      <label>Person 1 (short) <input id="st-p1" value="${esc(CFG.people.p1)}" size="10"></label>
+      <label>Full name <input id="st-p1f" value="${esc(CFG.people.p1Full || "")}"></label>
+      <label>Person 2 (short) <input id="st-p2" value="${esc(CFG.people.p2)}" size="10"></label>
+      <label>Full name <input id="st-p2f" value="${esc(CFG.people.p2Full || "")}"></label>
+      <label>Shared label <input id="st-joint" value="${esc(CFG.people.joint)}" size="10"></label>
+      <button id="st-people" class="primary">Save names</button></div>
+      <p class="hint">The short name is used in menus and on the Summary (e.g. "Kelly's allowance left").</p></div>
 
     <div class="card"><h2>Accounts</h2>
       <p class="hint">Renaming an account here also updates every transaction that uses it.</p>
@@ -281,7 +302,7 @@ function renderSettings() {
     if (e.target.hasAttribute("data-del")) e.target.closest("tr").remove();
   };
 
-  $("#st-people").onclick = async () => { await Store.setCfg("people", { p1: $("#st-p1").value.trim() || "Person 1", p2: $("#st-p2").value.trim() || "Person 2", joint: $("#st-joint").value.trim() || "Joint" }); toast("Names saved."); };
+  $("#st-people").onclick = async () => { await Store.setCfg("people", { p1: $("#st-p1").value.trim() || "Person 1", p1Full: $("#st-p1f").value.trim(), p2: $("#st-p2").value.trim() || "Person 2", p2Full: $("#st-p2f").value.trim(), joint: $("#st-joint").value.trim() || "Joint" }); toast("Names saved."); };
 
   // Rename-aware save: when a name changes, rewrite the transactions that used the old name
   async function saveRenamable(key, rows, clean, fields) {

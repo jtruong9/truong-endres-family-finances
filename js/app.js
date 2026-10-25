@@ -5,6 +5,8 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const money = (n, dash = true) => (dash && Math.abs(n) < 0.005 ? "–" : (n < 0 ? "-$" : "$") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+// "2026-10-24" -> "Oct 24, 2026"
+const fmtDate = (d) => `${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+d.slice(5, 7) - 1]} ${+d.slice(8, 10)}, ${d.slice(0, 4)}`;
 const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
 const opts = (list, sel, blank) => (blank !== undefined ? `<option value="">${esc(blank)}</option>` : "") +
   list.map((v) => { const [val, lab] = Array.isArray(v) ? v : [v, v]; return `<option value="${esc(val)}"${val === sel ? " selected" : ""}>${esc(lab)}</option>`; }).join("");
@@ -51,12 +53,27 @@ async function start() {
     $("#regrant-name").textContent = Store.folderName();
   }
 }
+// One-time upgrade for folders set up before Kelly's name was built in: "Spouse" -> Kelly,
+// and the "Spouse Personal" account (plus any transactions in it) -> "Kelly Personal".
+async function migrateSpouse() {
+  const people = Store.cfg("people", null);
+  if (people && people.p2 === "Spouse") await Store.setCfg("people", { ...people, p2: "Kelly", p2Full: "Kelly Endres" });
+  const accounts = Store.cfg("accounts", null);
+  if (accounts && accounts.some((a) => a.name === "Spouse Personal") && !accounts.some((a) => a.name === "Kelly Personal")) {
+    await Store.setCfg("accounts", accounts.map((a) => (a.name === "Spouse Personal" ? { ...a, name: "Kelly Personal", note: "Kelly's spending" } : a)));
+  }
+  const moved = Store.transactions().filter((t) => t.account === "Spouse Personal" || t.toAccount === "Spouse Personal")
+    .map((t) => ({ ...t, account: t.account === "Spouse Personal" ? "Kelly Personal" : t.account, toAccount: t.toAccount === "Spouse Personal" ? "Kelly Personal" : t.toAccount }));
+  if (moved.length) await Store.saveTxs(moved);
+}
+
 async function openApp(fn) {
   try {
     const info = await fn();
     $("#setup").hidden = true;
     $("#app").hidden = false;
     if (info.problems.length) toast("Couldn't read: " + info.problems.join("; "), 8000);
+    await migrateSpouse();
     setStatus(info);
   } catch (e) {
     if (e.name !== "AbortError") { $("#setup").hidden = false; $("#setup-msg").textContent = "Couldn't open the folder: " + e.message; }
@@ -90,7 +107,7 @@ $("#tabs").onclick = (e) => {
 function render() {
   if (!CFG || $("#app").hidden) return;
   ({ dashboard: renderDashboard, transactions: renderTransactions, summary: renderSummary,
-     bills: renderBills, import: renderImport, settings: renderSettings })[ui.tab]();
+     bills: renderBills, import: renderImport, settings: renderSettings, help: renderHelp })[ui.tab]();
 }
 
 // --------------------------------------------------------------------------------- dashboard
@@ -104,13 +121,13 @@ function renderDashboard() {
   const flagged = txs.filter((t) => Model.issues(CFG, t).length).length;
   const personal = flows.filter((f) => f.owner === "p1" || f.owner === "p2");
 
-  const stat = (label, value, sub, cls = "") => `<div class="stat"><div class="label">${label}</div><div class="value ${cls}">${value}</div><div class="sub">${sub}</div></div>`;
+  const stat = (label, value, sub, cls = "", box = "") => `<div class="stat ${box}"><div class="label">${label}</div><div class="value ${cls}">${value}</div><div class="sub">${sub}</div></div>`;
   $("#tab-dashboard").innerHTML = `
     <div class="cards">
-      ${stat(`Income · ${Model.MONTHS[m]}`, money(tot.income[m], false), "paychecks + other income")}
-      ${stat(`Spending · ${Model.MONTHS[m]}`, money(tot.spending[m], false), "all accounts, excludes transfers")}
-      ${stat(`Saved · ${Model.MONTHS[m]}`, money(tot.savings[m], false), "savings categories")}
-      ${stat("Remaining", money(tot.remaining[m], false), "income − savings − spending", tot.remaining[m] < 0 ? "neg" : "pos")}
+      ${stat(`Income · ${Model.MONTHS[m]}`, money(tot.income[m], false), "paychecks + other income", "", "income")}
+      ${stat(`Spending · ${Model.MONTHS[m]}`, money(tot.spending[m], false), "all accounts, excludes transfers", "", "spend")}
+      ${stat(`Saved · ${Model.MONTHS[m]}`, money(tot.savings[m], false), "savings categories", "", "saved")}
+      ${stat("Remaining", money(tot.remaining[m], false), "income − savings − spending", tot.remaining[m] < 0 ? "neg" : "pos", "rem")}
       ${personal.map((p) => stat(`${esc(Model.ownerLabel(CFG, p.owner))}'s allowance left`, money(p.net, false), `${esc(p.account)} this month`, p.net < 0 ? "neg" : "")).join("")}
     </div>
     <div class="two">
@@ -132,9 +149,9 @@ function renderDashboard() {
   chart("ch-year", {
     type: "bar",
     data: { labels: Model.MONTHS, datasets: [
-      { label: "Income", data: tot.income, backgroundColor: "#2e7d32" },
-      { label: "Spending", data: tot.spending, backgroundColor: "#c62828" },
-      { label: "Saved", data: tot.savings, backgroundColor: "#1565c0" }] },
+      { label: "Income", data: tot.income, backgroundColor: "#70AD47" },
+      { label: "Spending", data: tot.spending, backgroundColor: "#ED7D31" },
+      { label: "Saved", data: tot.savings, backgroundColor: "#5B9BD5" }] },
     options: { maintainAspectRatio: false, scales: { y: { ticks: { callback: (v) => "$" + v.toLocaleString() } } } },
   });
   const grid = Model.yearGrid(CFG, txs, y, "all");
@@ -147,7 +164,7 @@ function renderDashboard() {
   const g = Object.entries(groupSums).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   chart("ch-groups", {
     type: "bar",
-    data: { labels: g.map((x) => x[0]), datasets: [{ label: "Spent", data: g.map((x) => Model.r2(x[1])), backgroundColor: "#2e4a7d" }] },
+    data: { labels: g.map((x) => x[0]), datasets: [{ label: "Spent", data: g.map((x) => Model.r2(x[1])), backgroundColor: Model.MONTH_COLORS[m][0] }] },
     options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { callback: (v) => "$" + v.toLocaleString() } } } },
   });
 }
@@ -159,6 +176,9 @@ function flowsTable(flows) {
 }
 
 function chart(id, cfg) {
+  Chart.defaults.font.family = '"Barlow", "Segoe UI", Arial, sans-serif';
+  Chart.defaults.font.size = 13;
+  Chart.defaults.color = "#3B3838";
   if (ui.charts[id]) ui.charts[id].destroy();
   const el = document.getElementById(id);
   if (el) ui.charts[id] = new Chart(el, cfg);
@@ -198,7 +218,7 @@ function renderTransactions() {
         ${shown.map((t) => {
           const iss = Model.issues(CFG, t), k = Model.kindOf(CFG, t);
           return `<tr class="clickable${iss.length ? " flag" : ""}" data-id="${esc(t.id)}" title="${esc(iss.join("; "))}">
-            <td>${t.date}</td><td>${esc(t.desc)}</td><td class="num ${t.amount < 0 ? "neg" : ""}">${money(t.amount, false)}</td>
+            <td class="nowrap"><span class="month-dot" style="background:${Model.MONTH_COLORS[+t.date.slice(5, 7) - 1][0]}"></span>${fmtDate(t.date)}</td><td>${esc(t.desc)}</td><td class="num ${t.amount < 0 ? "neg" : ""}">${money(t.amount, false)}</td>
             <td>${k !== "Expense" ? `<span class="pill ${k}">${esc(t.category)}</span>` : esc(t.category)}</td>
             <td>${esc(t.account)}${t.toAccount ? ` &rarr; ${esc(t.toAccount)}` : ""}</td>
             <td class="muted">${esc(Model.ownerLabel(CFG, Model.ownerOf(CFG, t)))}</td>

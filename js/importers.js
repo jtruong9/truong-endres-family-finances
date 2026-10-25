@@ -1,4 +1,4 @@
-// Importers (old template .xlsm, household .xlsx from Option B, bank CSV) and exporters.
+// Importers (old database .xlsm, bank CSV) and exporters.
 // Every importer returns plain transaction objects; the UI previews them before saving.
 "use strict";
 
@@ -35,10 +35,10 @@ const Importers = (() => {
     return isNaN(n) ? NaN : neg ? -n : n;
   };
 
-  // ---- Old template: sheet "Expense History", columns Month | Date | Description | Value | Category | Notes ----
+  // ---- Old database: sheet "Expense History", columns Month | Date | Description | Value | Category | Notes ----
   function fromOldTemplate(wb, account) {
     const ws = wb.Sheets["Expense History"];
-    if (!ws) throw new Error('No "Expense History" sheet found. Is this the old Truong_Database template?');
+    if (!ws) throw new Error('No "Expense History" sheet in this file. Pick the old expense database (the spreadsheet with the Add Expense button).');
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, range: 2, raw: true, defval: null });
     const out = [];
     for (const r of rows) {
@@ -47,23 +47,6 @@ const Importers = (() => {
       if (!date || isNaN(amount)) continue;
       out.push({ date, desc: String(r[2] ?? "").trim(), amount: Math.round(amount * 100) / 100,
                  category: String(r[4] ?? "").trim(), account, toAccount: "", notes: String(r[5] ?? "").trim(), tags: "" });
-    }
-    return out;
-  }
-
-  // ---- Option B household workbook: sheet "Transactions" ----
-  function fromHousehold(wb) {
-    const ws = wb.Sheets["Transactions"];
-    if (!ws) throw new Error('No "Transactions" sheet found. Is this the Truong_Household workbook?');
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, range: 1, raw: true, defval: null });
-    const out = [];
-    for (const r of rows) {
-      const date = toIso(r[0]);
-      const amount = toNum(r[2]);
-      if (!date || isNaN(amount)) continue;
-      out.push({ date, desc: String(r[1] ?? "").trim(), amount: Math.round(amount * 100) / 100,
-                 category: String(r[3] ?? "").trim(), account: String(r[4] ?? "").trim(),
-                 toAccount: String(r[5] ?? "").trim(), notes: String(r[6] ?? "").trim(), tags: "" });
     }
     return out;
   }
@@ -145,5 +128,5 @@ const Importers = (() => {
     XLSX.writeFile(wb, name);
   }
 
-  return { readWorkbook, fromOldTemplate, fromHousehold, parseCsv, guessMapping, fromCsv, markDuplicates, download, exportXlsx, parseDate };
+  return { readWorkbook, fromOldTemplate, parseCsv, guessMapping, fromCsv, markDuplicates, download, exportXlsx, parseDate };
 })();

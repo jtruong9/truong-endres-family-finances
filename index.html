@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Truong Finance</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231f3864'/><text x='16' y='23' font-size='19' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>$</text></svg>">
-  <link rel="stylesheet" href="css/app.css?v=2">
+  <link rel="stylesheet" href="css/app.css?v=4">
 </head>
 <body>
   <!-- Shown until a data folder is connected -->
@@ -30,6 +30,7 @@
         <button data-tab="bills">Bills</button>
         <button data-tab="import">Import</button>
         <button data-tab="settings">Settings</button>
+        <button data-tab="help">How to use</button>
       </nav>
       <div class="topbar-right">
         <button id="btn-add" class="primary">+ Add</button>
@@ -45,6 +46,7 @@
       <section id="tab-bills" class="tab" hidden></section>
       <section id="tab-import" class="tab" hidden></section>
       <section id="tab-settings" class="tab" hidden></section>
+      <section id="tab-help" class="tab" hidden></section>
     </main>
     <footer class="status" id="status"></footer>
   </div>
@@ -101,10 +103,11 @@
 
   <script src="vendor/chart.umd.min.js"></script>
   <script src="vendor/xlsx.full.min.js"></script>
-  <script src="js/store.js?v=2"></script>
-  <script src="js/model.js?v=2"></script>
-  <script src="js/importers.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
-  <script src="js/app2.js?v=2"></script>
+  <script src="js/store.js?v=4"></script>
+  <script src="js/model.js?v=4"></script>
+  <script src="js/importers.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
+  <script src="js/help.js?v=4"></script>
+  <script src="js/app2.js?v=4"></script>
 </body>
 </html>

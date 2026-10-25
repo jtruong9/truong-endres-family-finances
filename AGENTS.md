@@ -54,6 +54,7 @@ Paychecks → Joint Hub → Joint Bills (all recurring bills)
 | `js/app.js` | Startup, tab routing, Dashboard, Transactions list, add/edit dialog, spouse-name migration. |
 | `js/help.js` | "How to use" tab: the user guide, written for Justin and Kelly. Update it when features change. |
 | `js/review.js` | "To review" queue on the Transactions tab (bank rows waiting to be categorized). |
+| `js/attention.js` | "Needs attention" panel on the Transactions tab: saved rows with problems, grouped, with bulk fixes and "Leave as is" (`ackIssues`). Problem rules live in `Model.issueList`. |
 | `js/features.js` | Balances + bank check, Goals, Check-in, Rental, Compare years, one-click bill logging. |
 | `js/app2.js` | Paycheck distribution, Summary (year report), Bills, Import tab, Settings. Calls `start()`. |
 | `css/app.css` | Look and feel (matches the owners' old Excel workbook; see DECISIONS). |
@@ -70,7 +71,7 @@ Paychecks → Joint Hub → Joint Bills (all recurring bills)
 - Each device writes **only its own file**, so no two writers share a file and Drive sync never conflicts.
   State = replay all events from all files ordered by `ts`; the latest event per tx id / cfg key wins.
 - Transaction fields: `id, date "YYYY-MM-DD", desc, amount, category, account, toAccount, notes, tags`
-  (comma-separated), plus optional `review` (true = waiting in the queue, counts nowhere),
+  (comma-separated), plus optional `ackIssues` (problem signatures the owners chose to leave as is), `review` (true = waiting in the queue, counts nowhere),
   `dir` ("in"/"out", review rows only), `guess`, `bankDesc`, `bill` (name of the recurring bill it pays).
 - Config keys: `people, accounts, categories, recurring, split, rules, goals, rental, balanceChecks, checkins`.
   Defaults are in `Model.config()`.

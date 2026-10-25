@@ -91,9 +91,6 @@ function yearView() {
 
   // Table
   const showBudget = CFG.categories.some((c) => +c.budget > 0);
-  const max = Math.max(1, ...[...grid.entries()].filter(([c]) => (CFG.categoryByName.get(c) || {}).kind === "Expense").flatMap(([, r]) => r));
-  // Spending bar length (square-root scale so mid-size amounts still show; tiny ones get no bar)
-  const heat = (v, kind) => { const h = kind === "Expense" && v > 0 ? Math.min(1, Math.sqrt(v / max)) : 0; return h >= 0.15 ? `style="--h:${h.toFixed(3)}"` : ""; };
   ensureMonthStyle();
   const mc = (i) => `mc m${i}${i === curMonth ? " cur" : ""}`;   // month-column classes
   const monthHead = Model.MONTHS.map((m, i) => `<th class="num fx-m ${mc(i)}">${i === curMonth ? '<span class="fx-now" title="This month">Now</span>' : ""}${m}</th>`).join("");
@@ -122,7 +119,7 @@ function yearView() {
       const pct = b ? avg / b : 0;
       body += `<tr class="fx-row">
         <td class="fx-sticky fx-cat">${esc(c.name)}</td>
-        ${vals.map((x, i) => `<td class="num fx-cell ${mc(i)}" ${heat(x, c.kind)}>${x ? money(x, false) : '<span class="fx-zero">–</span>'}</td>`).join("")}
+        ${vals.map((x, i) => `<td class="num fx-cell ${mc(i)}">${x ? money(x, false) : '<span class="fx-zero">–</span>'}</td>`).join("")}
         <td class="num fx-year">${money(yr, false)}</td><td class="num">${money(avg, false)}</td>
         ${showBudget ? `<td class="fx-budget">${b ? `<div class="fx-meter ${pct > 1 && c.kind === "Expense" ? "over" : ""}"><span style="width:${Math.min(100, pct * 100).toFixed(0)}%"></span></div><div class="fx-meter-label">${money(avg, false)} / ${money(b, false)}</div>` : ""}</td>` : ""}
         <td class="fx-trend">${sparkline(vals, upto)}</td></tr>`;
@@ -130,7 +127,7 @@ function yearView() {
   }
   const unknown = [...grid.keys()].filter((k) => !seen.has(k) && !CFG.categories.some((c) => c.name === k && ui.sumCollapsed[c.group]));
   if (unknown.length) {
-    body += `<tr class="fx-group warn"><td class="fx-sticky" colspan="${cols}">Uncategorized / unknown: fix these on the Transactions tab</td></tr>`;
+    body += `<tr class="fx-group warn" id="fx-unknown"><td class="fx-sticky" colspan="${cols}">⚠ Uncategorized / unknown categories: <a href="#" id="fx-go-fix">fix them or leave them as is on Transactions</a></td></tr>`;
     for (const k of unknown) {
       const vals = grid.get(k);
       body += `<tr class="fx-row"><td class="fx-sticky fx-cat">${esc(k || "(blank)")}</td>${vals.map((x, i) => `<td class="num fx-cell ${mc(i)}">${x ? money(x, false) : '<span class="fx-zero">–</span>'}</td>`).join("")}
@@ -143,7 +140,7 @@ function yearView() {
 
   const table = `<div class="fx-card">
     <div class="fx-card-head"><h2>By category</h2>
-      <div class="fx-legend">${curMonth >= 0 ? `<span class="fx-now static">Now</span> = this month ·` : ""} <span class="fx-bar-key"></span> blue line = how much was spent · averages over ${n} month${n > 1 ? "s" : ""}</div>
+      <div class="fx-legend">${curMonth >= 0 ? `<span class="fx-now static">Now</span> = this month ·` : ""} averages over ${n} month${n > 1 ? "s" : ""}</div>
       <span class="spacer"></span><button class="fx-btn ghost" id="fx-expand">${Object.values(ui.sumCollapsed).some(Boolean) ? "Expand all" : "Collapse all"}</button></div>
     <div class="table-wrap"><table class="fx-table">
       <thead><tr><th class="fx-sticky">Category</th>${monthHead}<th class="num">Year</th><th class="num">Avg / mo</th>${showBudget ? "<th>Budget (avg)</th>" : ""}<th>Trend</th></tr></thead>
@@ -167,6 +164,8 @@ function yearView() {
 
 function wireYearView() {
   $("#sm-month").onchange = (e) => { ui.flowMonth = +e.target.value; renderSummary(); };
+  const fix = $("#fx-go-fix");
+  if (fix) fix.onclick = (e) => { e.preventDefault(); $('#tabs [data-tab="transactions"]').click(); };
   // Light up the header of the column under the mouse, so the month is easy to read off
   const table = $("#tab-summary .fx-table");
   const heads = [...table.querySelectorAll("thead th")];

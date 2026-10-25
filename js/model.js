@@ -173,15 +173,39 @@ const Model = (() => {
     });
   }
 
-  // Problems worth flagging in the ledger
-  function issues(cfg, t) {
+  // Problems worth flagging in the ledger. Each has a code + value so a group of them can be fixed
+  // at once, and a sig ("code:value") a person can mark "leave as is" (stored on the transaction as
+  // ackIssues: [sig, ...]). A different problem on the same transaction still shows up.
+  function issueList(cfg, t) {
     const out = [];
-    if (!t.date) out.push("no date");
-    if (!cfg.accountByName.has(t.account)) out.push(`unknown account "${t.account || ""}"`);
-    if (!cfg.categoryByName.has(t.category)) out.push(`unknown category "${t.category || ""}"`);
-    if (kindOf(cfg, t) === "Transfer" && !t.toAccount) out.push("transfer has no To account");
-    if (kindOf(cfg, t) !== "Transfer" && t.toAccount) out.push("To account set on a non-transfer");
+    const add = (code, value, label) => out.push({ code, value: value || "", label, sig: `${code}:${value || ""}` });
+    if (!t.date) add("no-date", "", "no date");
+    if (!cfg.accountByName.has(t.account)) add("unknown-account", t.account, `unknown account "${t.account || ""}"`);
+    if (!t.category) add("no-category", "", "no category");
+    else if (!cfg.categoryByName.has(t.category)) add("unknown-category", t.category, `unknown category "${t.category}"`);
+    const k = kindOf(cfg, t);
+    if (k === "Transfer" && !t.toAccount) add("transfer-no-to", "", "transfer has no To account");
+    if (k !== "Transfer" && t.toAccount) add("to-on-non-transfer", "", "To account set on a non-transfer");
     return out;
+  }
+  const issues = (cfg, t) => issueList(cfg, t).map((i) => i.label);
+
+  // Problems that still need a person: saved (not in review) and not marked "leave as is"
+  function openIssues(cfg, t) {
+    if (!isPosted(t)) return [];
+    const ack = new Set(t.ackIssues || []);
+    return issueList(cfg, t).filter((i) => !ack.has(i.sig));
+  }
+
+  // Open problems grouped for bulk fixing, most important first: [{ sig, code, value, label, txs }]
+  const ISSUE_ORDER = ["unknown-category", "no-category", "unknown-account", "transfer-no-to", "to-on-non-transfer", "no-date"];
+  function issueGroups(cfg, txs) {
+    const m = new Map();
+    for (const t of txs) for (const i of openIssues(cfg, t)) {
+      if (!m.has(i.sig)) m.set(i.sig, { ...i, txs: [] });
+      m.get(i.sig).txs.push(t);
+    }
+    return [...m.values()].sort((a, b) => ISSUE_ORDER.indexOf(a.code) - ISSUE_ORDER.indexOf(b.code) || b.txs.length - a.txs.length);
   }
 
   // CSV rule matching: first rule whose text appears in the description wins
@@ -377,7 +401,7 @@ const Model = (() => {
   return {
     DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2,
     config, ownerLabel, kindOf, ownerOf, matchesOwner, isPosted, tagList,
-    yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, autoCategory,
+    yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, issueList, openIssues, issueGroups, autoCategory,
     resolveReview, merchantKey, buildGuessIndex, guessCategory, buildMatchIndex, findMatches,
     accountEffect, hasOpening, balanceAt, goalProgress, yearCompare, isRental, rentalSummary, budgetStatus,
   };

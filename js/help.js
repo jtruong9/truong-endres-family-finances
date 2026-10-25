@@ -103,6 +103,7 @@ function renderHelp() {
         <li>Add a <b>tag</b> if it belongs to a goal or project (e.g. <i>honeymoon</i>).</li>
         <li>Click <b>✓</b> to confirm. It moves into the real list and starts counting.</li></ul>`)}
       ${step("!", "Watch for possible duplicates", `<p>Rows marked <span class="pill dup">possible duplicate</span> look like something already saved: for example a paycheck you logged with <b>Distribute paycheck</b>, or the other half of a transfer from another account's statement. If it's the same money, remove it with <b>✕</b> so it isn't counted twice.</p>`)}
+      ${step("⚠", "Fix anything flagged", `<p>If saved transactions have a problem, a <b>⚠ Needs attention</b> box appears at the top of Transactions (and on the Dashboard). Fix each group, or choose <b>Leave as is</b> when it's fine.</p>`)}
       <p class="hint">Shortcuts: tick several rows and use <b>Set category on selected</b> / <b>Confirm selected</b>. Importing the same file twice is safe, since rows already imported are skipped. <b>Settings &rsaquo; CSV rules</b> makes the guesses better (e.g. anything containing "SAFEWAY" = Groceries).</p>
     </div>
 
@@ -159,7 +160,8 @@ function renderHelp() {
       <table class="help-table"><tbody>
         <tr><td>The other person's entries aren't showing</td><td>Wait a minute for Google Drive to sync, then click the <b>&#x21bb;</b> button in the top bar (right side).</td></tr>
         <tr><td>No internet</td><td>Keep working. Open the installed app from its icon; changes save to this computer and Google Drive uploads them once you're online again. The other person sees them after that.</td></tr>
-        <tr><td>A transaction has a red bar on its left</td><td>Something's missing: hover over it to see what. <b>Transactions &rsaquo; Needs attention only</b> lists them all.</td></tr>
+        <tr><td>"⚠ Needs attention" on Transactions</td><td>Some saved transactions have a problem, like an <b>unknown category</b> (often an old name from the spreadsheet), no category, or a transfer with no To account. Each problem is listed with its transactions. Fix the whole group at once (pick the right category or account), click a transaction to fix it alone, or click <b>Leave as is</b> if it's fine. "Leave as is" can be undone with <i>Show them again</i>. The orange number on <b>Transactions</b> in the menu counts what's left.</td></tr>
+        <tr><td>A row has an orange bar on its left</td><td>It's one of the "needs attention" transactions. Hover over it to see the problem.</td></tr>
         <tr><td>"This browser can't open folders"</td><td>Use <b>Google Chrome</b>, not Edge, Firefox or Safari.</td></tr>
         <tr><td>The page looks old after an update</td><td>Press <b>Ctrl + Shift + R</b> to reload the newest version.</td></tr>
         <tr><td>Anything else</td><td>Ask ${p1}.</td></tr>

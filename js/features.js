@@ -125,7 +125,7 @@ function renderCheckin() {
   const y = ui.ciYear, m = ui.ciMonth, key = ymKey(y, m), asOf = lastDayIso(y, m);
   const done = CFG.checkins[key];
   const toReview = txs.filter((t) => t.review).length;
-  const flagged = txs.filter((t) => Model.isPosted(t) && Model.issues(CFG, t).length).length;
+  const flagged = txs.filter((t) => Model.openIssues(CFG, t).length).length;
   const bills = Model.recurringStatus(CFG, txs, y, m);
   const unpaid = bills.filter((b) => b.status !== "Paid");
   const budgets = Model.budgetStatus(CFG, txs, y, m);

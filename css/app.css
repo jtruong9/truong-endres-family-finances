@@ -249,3 +249,22 @@ tr.dup-row td { background: #FFF6EC; }
 .update-bar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 60; background: #3B3838; color: #fff; padding: 10px 14px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.3); font-weight: 600; display: flex; gap: 12px; align-items: center; }
 .update-bar[hidden] { display: none !important; }
 @media (max-width: 900px) { #btn-install { display: none; } }
+
+/* ---- Needs attention (Transactions tab) ---- */
+.attention-card { border: 2px solid #F59E0B; background: #FFFCF5; }
+.attention-title { margin: 0; color: #92400E; }
+.attention-title .count { display: inline-block; background: #F59E0B; color: #fff; border-radius: 999px; padding: 0 10px; font-size: 15px; margin-left: 4px; }
+.at-group { border: 1px solid #FCD9A5; background: #fff; border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
+.at-head { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.at-what { flex: 1 1 280px; }
+.at-what .hint { margin-top: 2px; }
+.at-fix { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.at-fix select { min-width: 190px; padding: 4px 6px; }
+.at-list { margin-top: 8px; max-height: 320px; }
+button.ghost { background: transparent; }
+.banner.warn { border-left-color: #F59E0B; background: #FFFCF5; }
+.sb-badge.warn { background: #F59E0B; }
+tr.flag td:first-child { box-shadow: inset 4px 0 0 #F59E0B; }
+tr.flag td { background: #FFFBEB; }
+
+.at-quiet { color: var(--muted); padding: 10px 16px; }

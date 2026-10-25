@@ -135,11 +135,15 @@ $("#tabs").onclick = (e) => {
 
 // Count of bank rows waiting to be sorted, shown on the Transactions menu item
 function updateMenuBadge() {
-  const n = Store.transactions().filter((t) => t.review).length;
+  const txs = Store.transactions();
+  const review = txs.filter((t) => t.review).length;
+  const flagged = txs.filter((t) => Model.openIssues(CFG, t).length).length;
+  const n = review + flagged;
   const el = $("#sb-review-count");
   el.hidden = !n;
   el.textContent = n > 99 ? "99+" : String(n);
-  el.title = `${n} imported transaction(s) to review`;
+  el.classList.toggle("warn", flagged > 0);
+  el.title = [review && `${review} imported to review`, flagged && `${flagged} need attention`].filter(Boolean).join(" · ");
 }
 
 function render() {
@@ -161,7 +165,7 @@ function renderDashboard() {
   const flows = Model.accountFlows(CFG, txs, y, m);
   const bills = Model.recurringStatus(CFG, txs, y, m);
   const unpaid = bills.filter((b) => b.status !== "Paid");
-  const flagged = txs.filter((t) => Model.isPosted(t) && Model.issues(CFG, t).length).length;
+  const flagged = txs.filter((t) => Model.openIssues(CFG, t).length).length;
   const toReview = txs.filter((t) => t.review).length;
   const personal = flows.filter((f) => f.owner === "p1" || f.owner === "p2");
 
@@ -186,10 +190,10 @@ function renderDashboard() {
       <div class="card"><h2>Account flows · ${Model.MONTHS[m]}</h2>${flowsTable(flows)}
         <p class="hint">The Hub should net to about $0 once each paycheck is distributed.</p></div>
     </div>
-    ${flagged ? `<div class="card"><b>${flagged}</b> transaction(s) need attention (unknown category or account, or a transfer with no To account). <button class="small" id="go-flagged">Show them</button></div>` : ""}`;
+    ${flagged ? `<div class="card banner warn"><b>⚠ ${flagged}</b> transaction(s) need attention (for example an unknown category). They're listed at the top of Transactions, where you can fix them or leave them as they are. <button class="small primary" id="go-flagged">Review them</button></div>` : ""}`;
 
   const go = $("#go-flagged");
-  if (go) go.onclick = () => { ui.tx = { ...ui.tx, flagged: true, page: 0 }; $('#tabs [data-tab="transactions"]').click(); };
+  if (go) go.onclick = () => $('#tabs [data-tab="transactions"]').click();
   const gr = $("#go-review");
   if (gr) gr.onclick = () => $('#tabs [data-tab="transactions"]').click();
 
@@ -242,14 +246,14 @@ function renderTransactions() {
     (!f.year || t.date.startsWith(f.year)) &&
     Model.matchesOwner(CFG, t, f.owner) &&
     (!q || `${t.desc} ${t.notes} ${t.tags} ${t.category} ${t.amount}`.toLowerCase().includes(q)) &&
-    (!f.flagged || Model.issues(CFG, t).length));
+    (!f.flagged || Model.openIssues(CFG, t).length));
   rows.sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? 1 : -1));
   const total = rows.reduce((s, t) => s + (Model.kindOf(CFG, t) === "Transfer" ? 0 : t.amount), 0);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   f.page = Math.min(f.page, pages - 1);
   const shown = rows.slice(f.page * PAGE, (f.page + 1) * PAGE);
 
-  $("#tab-transactions").innerHTML = `${reviewSection()}
+  $("#tab-transactions").innerHTML = `${reviewSection()}${attentionSection()}
     <div class="card">
       <h2>All transactions</h2>
       <div class="filters">
@@ -264,7 +268,7 @@ function renderTransactions() {
       </div>
       <div class="table-wrap"><table id="tx-table"><thead><tr><th>Date</th><th>Description</th><th class="num">Amount</th><th>Category</th><th>Account</th><th>Owner</th><th>Notes / Tags</th></tr></thead><tbody>
         ${shown.map((t) => {
-          const iss = Model.issues(CFG, t), k = Model.kindOf(CFG, t);
+          const iss = Model.openIssues(CFG, t).map((i) => i.label), k = Model.kindOf(CFG, t);
           return `<tr class="clickable${iss.length ? " flag" : ""}" data-id="${esc(t.id)}" title="${esc(iss.join("; "))}">
             <td class="nowrap"><span class="month-dot" style="background:${Model.MONTH_COLORS[+t.date.slice(5, 7) - 1][0]}"></span>${fmtDate(t.date)}</td><td>${esc(t.desc)}</td><td class="num ${t.amount < 0 ? "neg" : ""}">${money(t.amount, false)}</td>
             <td>${k !== "Expense" ? `<span class="pill ${k}">${esc(t.category)}</span>` : esc(t.category)}</td>
@@ -277,6 +281,7 @@ function renderTransactions() {
     </div>`;
 
   wireReview();
+  wireAttention();
   const set = (k, v) => { ui.tx[k] = v; ui.tx.page = 0; renderTransactions(); };
   $("#tf-q").oninput = (e) => { clearTimeout(set.h); set.h = setTimeout(() => { set("q", e.target.value); $("#tf-q").focus(); const el = $("#tf-q"); el.setSelectionRange(el.value.length, el.value.length); }, 250); };
   $("#tf-year").onchange = (e) => set("year", e.target.value);
@@ -332,6 +337,12 @@ async function saveTx(keepOpen) {
     category: formTx.category.value, account: formTx.account.value, toAccount: formTx.toAccount.value,
     notes: formTx.notes.value.trim(), tags: formTx.tags.value.trim(),
   };
+  // Keep "leave as is" marks only for problems the edited transaction still has
+  if (t.ackIssues) {
+    const still = new Set(Model.issueList(CFG, t).map((i) => i.sig));
+    t.ackIssues = t.ackIssues.filter((s) => still.has(s));
+    if (!t.ackIssues.length) delete t.ackIssues;
+  }
   const err = !t.date ? "Pick a date." : !t.desc ? "Enter a description." : isNaN(t.amount) ? "Enter an amount." :
     !t.category ? "Pick a category." : !t.account ? "Pick an account." :
     Model.kindOf(CFG, t) === "Transfer" && !t.toAccount ? "A transfer needs a To account." :

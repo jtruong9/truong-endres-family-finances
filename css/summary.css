@@ -75,11 +75,6 @@
 .fx-table th .fx-now { display: table; margin: 0 0 3px auto; }   /* sits above the month name, doesn't widen the column */
 .fx-now.static { background: #475569; vertical-align: 1px; }
 
-/* How much was spent: a thin blue bar along the bottom of each spending cell (longer = more) */
-.fx-cell { position: relative; }
-.fx-cell[style*="--h"]::after { content: ""; position: absolute; left: 8px; bottom: 3px; height: 3px; border-radius: 2px;
-  width: calc((100% - 16px) * var(--h)); background: rgba(37, 99, 235, .55); }
-.fx-bar-key { display: inline-block; width: 26px; height: 3px; border-radius: 2px; background: rgba(37, 99, 235, .55); vertical-align: middle; }
 
 /* Hover: one even highlight across the whole row (drawn on top of the month tints, so the
    colors stay visible), and the hovered column's header lights up. */

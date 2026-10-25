@@ -100,6 +100,22 @@ t("issues flag bad rows", () => {
   assert.strictEqual(JSON.stringify(Model.issues(CFG, ledger[1])), JSON.stringify([]));
 });
 
+t("needs-attention groups, blank category, and 'leave as is'", () => {
+  const rows = [
+    { id: "a", date: "2026-01-01", amount: 5, category: "Old Thing", account: "Joint Hub", desc: "" },
+    { id: "b", date: "2026-01-02", amount: 7, category: "Old Thing", account: "Joint Hub", desc: "" },
+    { id: "c", date: "2026-01-03", amount: 2, category: "", account: "Joint Hub", desc: "" },
+    { id: "d", date: "2026-01-04", amount: 9, category: "Old Thing", account: "Joint Hub", desc: "", ackIssues: ["unknown-category:Old Thing"] },
+    { id: "e", date: "2026-01-05", amount: 1, category: "Old Thing", account: "Joint Hub", desc: "", review: true },
+  ];
+  const g = Model.issueGroups(CFG, rows);
+  assert.strictEqual(JSON.stringify(g.map((x) => [x.code, x.value, x.txs.map((t) => t.id)])),
+    JSON.stringify([["unknown-category", "Old Thing", ["a", "b"]], ["no-category", "", ["c"]]]));
+  // acknowledged one hides only that problem; a new problem on it still shows
+  const d2 = { ...rows[3], account: "Gone Account" };
+  assert.strictEqual(JSON.stringify(Model.openIssues(CFG, d2).map((i) => i.code)), JSON.stringify(["unknown-account"]));
+});
+
 t("auto category rules", () => {
   assert.strictEqual(Model.autoCategory([{ match: "grocer", category: "Groceries" }], "GROCER #1234 SPRINGFIELD ST"), "Groceries");
   assert.strictEqual(Model.autoCategory([], "x"), "");

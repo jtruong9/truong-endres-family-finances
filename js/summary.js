@@ -25,6 +25,14 @@ function yoy(cur, prev, upIsGood, label) {
 
 ui.sumCollapsed = ui.sumCollapsed || {};
 
+// Categories to draw: the real list, plus "From Justin"-style rows the Joint view adds for savings
+// put into a joint account (Model.ownerParts). Those count as Income and aren't saved anywhere.
+function summaryCategories(keys) {
+  const extra = [...new Set(keys)].filter((k) => k.startsWith(Model.FROM_PREFIX) && !CFG.categoryByName.has(k))
+    .map((name) => ({ name, group: "Income", kind: "Income", budget: null, putIn: true }));
+  return [...CFG.categories, ...extra];
+}
+
 // Month column colors come from Model.MONTH_COLORS (one source). Classes m0..m11 get:
 //   --t   faint tint for the whole column      --mc  the month's color (thin bar on the header)
 const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
@@ -96,8 +104,9 @@ function yearView() {
   const spentLines = [], savedLines = [], incomeLines = [];
 
   let body = "";
+  const allCats = summaryCategories(grid.keys());
   CFG.groups.forEach((g, gi) => {
-    const cats = CFG.categories.filter((c) => c.group === g && c.kind !== "Transfer")
+    const cats = allCats.filter((c) => c.group === g && c.kind !== "Transfer")
       .filter((c) => (grid.get(c.name) || []).some((x) => x !== 0) || +c.budget > 0);
     if (!cats.length) return;
     const mixed = cats.some((c) => c.kind === "Income") && cats.some((c) => c.kind !== "Income");
@@ -138,7 +147,7 @@ function yearView() {
       const yr = sum(vals), avg = yr / n, b = +c.budget > 0 ? +c.budget : null;
       const pct = b ? avg / b : 0;
       body += `<tr class="fx-row" data-key="${catKey(ci)}">
-        <td class="fx-sticky fx-cat"><div class="fx-catname">${esc(c.name)}</div>${sparkline(vals, upto)}</td>
+        <td class="fx-sticky fx-cat"${c.putIn ? ' title="Savings put into a joint account from a personal account. Counted here so the Joint view balances."' : ""}><div class="fx-catname">${esc(c.name)}${c.putIn ? ' <span class="fx-count">put in</span>' : ""}</div>${sparkline(vals, upto)}</td>
         ${vals.map((x, i) => `<td class="num fx-cell ${mc(i)}"${x ? ` title="${Model.MONTHS[i]}: ${money(x, false)}"` : ""}>${x ? kmoney(x) : '<span class="fx-zero">–</span>'}</td>`).join("")}
         <td class="num fx-year" title="${money(yr, false)}">${kmoney(yr)}</td><td class="num" title="${money(avg, false)}">${kmoney(avg)}</td>
         ${showBudget ? `<td class="fx-budget">${b ? `<div class="fx-meter ${pct > 1 && c.kind === "Expense" ? "over" : ""}"><span style="width:${Math.min(100, pct * 100).toFixed(0)}%"></span></div><div class="fx-meter-label">${money(avg, false)} / ${money(b, false)}</div>` : ""}</td>` : ""}
@@ -147,7 +156,7 @@ function yearView() {
   });
 
   // Category names not in the list still count as spending (Model.kindOf defaults to Expense)
-  const unknown = [...grid.keys()].filter((k) => !CFG.categoryByName.has(k) && grid.get(k).some((x) => x !== 0));
+  const unknown = [...grid.keys()].filter((k) => !allCats.some((c) => c.name === k) && grid.get(k).some((x) => x !== 0));
   if (unknown.length) {
     body += `<tr class="fx-group warn" id="fx-unknown"><td class="fx-sticky" colspan="${cols}">${icon("alert")} Uncategorized / unknown categories: <a href="#" id="fx-go-fix">fix them or leave them as is on Transactions</a></td></tr>`;
     const vals = zeros();
@@ -329,8 +338,9 @@ function compareView() {
   const val = (cat, y) => { const v = (c.totals.get(cat) || {})[y] || 0; return perMonth ? v / c.months[y] : v; };
   const last = ys[ys.length - 1], prev = ys[ys.length - 2];
   let body = "";
+  const allCats = summaryCategories(c.totals.keys());
   for (const g of CFG.groups) {
-    const cats = CFG.categories.filter((x) => x.group === g && x.kind !== "Transfer" && ys.some((y) => val(x.name, y)));
+    const cats = allCats.filter((x) => x.group === g && x.kind !== "Transfer" && ys.some((y) => val(x.name, y)));
     if (!cats.length) continue;
     const kind = cats[0].kind;
     const gsum = (y) => cats.reduce((s, x) => s + val(x.name, y), 0);

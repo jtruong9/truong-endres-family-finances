@@ -260,7 +260,7 @@ function renderTransactions() {
     (!f.account || t.account === f.account || t.toAccount === f.account) &&
     (!f.category || t.category === f.category) &&
     (!f.year || t.date.startsWith(f.year)) &&
-    Model.matchesOwner(CFG, t, f.owner) &&
+    (Model.matchesOwner(CFG, t, f.owner) || (f.owner === "joint" && Model.ownerParts(CFG, t, "joint").length > 0)) &&
     (!q || `${t.desc} ${t.notes} ${t.tags} ${t.category} ${t.amount}`.toLowerCase().includes(q)) &&
     (!f.flagged || Model.openIssues(CFG, t).length));
   rows.sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? 1 : -1));

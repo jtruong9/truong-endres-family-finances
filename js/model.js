@@ -77,6 +77,25 @@ const Model = (() => {
   // owner filter: "all" | "joint" | "p1" | "p2"
   const matchesOwner = (cfg, tx, owner) => owner === "all" || ownerOf(cfg, tx) === owner;
 
+  // What one transaction adds to an owner's view, as [{ category, kind, amount }] ([] = nothing).
+  // Savings someone puts into a joint account (Justin Personal -> Joint Savings) count for the payer
+  // AND for Joint. In the Joint view they also count as money in ("From Justin"), because the
+  // paycheck behind them is under the payer; that keeps Joint's Remaining from going negative.
+  // Household ("all") counts everything once.
+  const FROM_PREFIX = "From ";
+  function ownerParts(cfg, t, owner) {
+    const kind = kindOf(cfg, t);
+    if (kind === "Transfer") return [];
+    if (matchesOwner(cfg, t, owner)) return [{ category: t.category, kind, amount: t.amount }];
+    const to = cfg.accountByName.get(t.toAccount);
+    if (kind === "Savings" && owner === "joint" && to && to.owner === "joint") {
+      const who = ownerOf(cfg, t);
+      return [{ category: t.category, kind, amount: t.amount },
+        { category: `${FROM_PREFIX}${cfg.people[who] || "other accounts"}`, kind: "Income", amount: t.amount, putIn: true }];
+    }
+    return [];
+  }
+
   function inYear(tx, y) { return tx.date && +tx.date.slice(0, 4) === y; }
   function monthIdx(tx) { return +tx.date.slice(5, 7) - 1; }
 
@@ -84,10 +103,11 @@ const Model = (() => {
   function yearGrid(cfg, txs, year, owner) {
     const grid = new Map();   // category -> [12]
     for (const t of txs) {
-      if (!isPosted(t) || !inYear(t, year) || !matchesOwner(cfg, t, owner)) continue;
-      if (kindOf(cfg, t) === "Transfer") continue;
-      if (!grid.has(t.category)) grid.set(t.category, Array(12).fill(0));
-      grid.get(t.category)[monthIdx(t)] += t.amount;
+      if (!isPosted(t) || !inYear(t, year)) continue;
+      for (const p of ownerParts(cfg, t, owner)) {
+        if (!grid.has(p.category)) grid.set(p.category, Array(12).fill(0));
+        grid.get(p.category)[monthIdx(t)] += p.amount;
+      }
     }
     for (const row of grid.values()) for (let i = 0; i < 12; i++) row[i] = r2(row[i]);
     return grid;
@@ -105,11 +125,12 @@ const Model = (() => {
   function monthlyTotals(cfg, txs, year, owner) {
     const out = { income: Array(12).fill(0), savings: Array(12).fill(0), spending: Array(12).fill(0) };
     for (const t of txs) {
-      if (!isPosted(t) || !inYear(t, year) || !matchesOwner(cfg, t, owner)) continue;
-      const k = kindOf(cfg, t);
-      if (k === "Income") out.income[monthIdx(t)] += t.amount;
-      else if (k === "Savings") out.savings[monthIdx(t)] += t.amount;
-      else if (k === "Expense") out.spending[monthIdx(t)] += t.amount;
+      if (!isPosted(t) || !inYear(t, year)) continue;
+      for (const p of ownerParts(cfg, t, owner)) {
+        if (p.kind === "Income") out.income[monthIdx(t)] += p.amount;
+        else if (p.kind === "Savings") out.savings[monthIdx(t)] += p.amount;
+        else if (p.kind === "Expense") out.spending[monthIdx(t)] += p.amount;
+      }
     }
     for (const key of Object.keys(out)) out[key] = out[key].map(r2);
     out.remaining = out.income.map((v, i) => r2(v - out.savings[i] - out.spending[i]));
@@ -353,11 +374,13 @@ const Model = (() => {
     const years = [...new Set(txs.filter(isPosted).map((t) => +t.date.slice(0, 4)))].filter(Boolean).sort((a, b) => a - b);
     const totals = new Map();   // category -> { year: total }
     for (const t of txs) {
-      if (!isPosted(t) || kindOf(cfg, t) === "Transfer" || !matchesOwner(cfg, t, owner)) continue;
+      if (!isPosted(t)) continue;
       const y = +t.date.slice(0, 4);
-      if (!totals.has(t.category)) totals.set(t.category, {});
-      const row = totals.get(t.category);
-      row[y] = (row[y] || 0) + t.amount;
+      for (const p of ownerParts(cfg, t, owner)) {
+        if (!totals.has(p.category)) totals.set(p.category, {});
+        const row = totals.get(p.category);
+        row[y] = (row[y] || 0) + p.amount;
+      }
     }
     const months = Object.fromEntries(years.map((y) => [y, monthsElapsed(y, today)]));
     return { years, totals, months };
@@ -524,7 +547,7 @@ const Model = (() => {
   return {
     DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2,
     hubName, incomeOwner, lastPaycheck, planFlow, actualFlow,
-    config, ownerLabel, kindOf, ownerOf, matchesOwner, isPosted, tagList,
+    config, ownerLabel, kindOf, ownerOf, matchesOwner, ownerParts, FROM_PREFIX, isPosted, tagList,
     yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, issueList, openIssues, issueGroups, autoCategory,
     resolveReview, merchantKey, buildGuessIndex, guessCategory, buildMatchIndex, findMatches,
     accountEffect, hasOpening, balanceAt, goalProgress, yearCompare, isRental, rentalSummary, budgetStatus,

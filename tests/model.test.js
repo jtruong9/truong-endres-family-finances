@@ -270,7 +270,15 @@ t("money flow knows whose paycheck it is from the description", () => {
 t("savings put into Joint Savings: payer's savings, and the joint account's balance", () => {
   const c = Model.config((k, d) => (k === "accounts" ? Model.DEFAULT_ACCOUNTS.map((a) => ({ ...a, openingBalance: 0, openingDate: "2026-11-01" })) : d));
   const s = [{ date: "2026-11-10", desc: "Savings", amount: 600, category: "Monthly Saving", account: "Justin Personal", toAccount: "Joint Savings" }];
-  assert.strictEqual(J([Model.monthlyTotals(c, s, 2026, "p1").savings[10], Model.monthlyTotals(c, s, 2026, "joint").savings[10], Model.monthlyTotals(c, s, 2026, "all").savings[10]]), J([600, 0, 600]));
+  assert.strictEqual(J([Model.monthlyTotals(c, s, 2026, "p1").savings[10], Model.monthlyTotals(c, s, 2026, "joint").savings[10], Model.monthlyTotals(c, s, 2026, "all").savings[10]]), J([600, 600, 600]));
+  // Joint also gets a matching "From Justin" line in, so its Remaining stays at 0; Justin and Household are unchanged
+  const jt = Model.monthlyTotals(c, s, 2026, "joint"), all = Model.monthlyTotals(c, s, 2026, "all"), p1 = Model.monthlyTotals(c, s, 2026, "p1");
+  assert.strictEqual(J([jt.income[10], jt.remaining[10], all.income[10], all.remaining[10], p1.remaining[10]]), J([600, 0, 0, -600, -600]));
+  assert.strictEqual(J([...Model.yearGrid(c, s, 2026, "joint").keys()]), J(["Monthly Saving", "From Justin"]));
+  assert.strictEqual(J([...Model.yearGrid(c, s, 2026, "p1").keys()]), J(["Monthly Saving"]));
+  assert.strictEqual(J(Object.values(Model.yearCompare(c, s, "joint").totals.get("From Justin"))), J([600]));
+  // Savings that stay in a personal account, or a savings entry made from a joint account, don't double up
+  assert.strictEqual(J([Model.ownerParts(c, { ...s[0], toAccount: "" }, "joint").length, Model.ownerParts(c, { ...s[0], account: "Joint Hub" }, "joint").length]), J([0, 1]));
   assert.strictEqual(J([Model.balanceAt(c, s, "Justin Personal", "2026-11-30"), Model.balanceAt(c, s, "Joint Savings", "2026-11-30")]), J([-600, 600]));
   const f = new Map(Model.accountFlows(c, s, 2026, 10).map((x) => [x.account, x]));
   assert.strictEqual(J([f.get("Justin Personal").saved, f.get("Joint Savings").transfersIn, f.get("Joint Savings").net]), J([600, 600, 600]));

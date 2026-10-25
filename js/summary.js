@@ -52,14 +52,15 @@ function renderSummary() {
   const actions = `
     <div class="seg"><button data-view="year" class="${v === "year" ? "on" : ""}">Year</button><button data-view="compare" class="${v === "compare" ? "on" : ""}">Compare years</button></div>
     ${v === "year" ? `<select id="sm-year">${opts(years().map(String), String(ui.year))}</select>` : ""}
-    <select id="sm-owner">${opts(ownerChoices(), ui.owner)}</select>
     <button id="sm-export">${icon("download")}Export</button>`;
-  const head = pageHead(v === "year" ? `Summary ${ui.year}` : "Compare years", v === "year" ? "Every category, month by month" : "Every category, year by year", actions);
-  $("#tab-summary").innerHTML = `<div class="fx">${head}${v === "year" ? yearView() : compareView()}</div>`;
+  const who = `<span class="owner-chip">${esc(ownerName(ui.owner))}</span>`;
+  const head = pageHead(v === "year" ? `Summary ${ui.year} ${who}` : `Compare years ${who}`, v === "year" ? "Every category, month by month" : "Every category, year by year", actions);
+  $("#tab-summary").dataset.owner = ui.owner;
+  $("#tab-summary").innerHTML = `<div class="fx">${head}<div class="owner-row">${ownerTabs("sm-owner", ui.owner)}</div>${v === "year" ? yearView() : compareView()}</div>`;
 
   $$("#tab-summary .seg button").forEach((b) => (b.onclick = () => { ui.summaryView = b.dataset.view; renderSummary(); }));
   const ys = $("#sm-year"); if (ys) ys.onchange = (e) => { ui.year = +e.target.value; renderSummary(); };
-  $("#sm-owner").onchange = (e) => { ui.owner = e.target.value; renderSummary(); };
+  wireOwnerTabs("sm-owner", (o) => { ui.owner = o; renderSummary(); });
   $("#sm-export").onclick = () => Importers.exportXlsx(CFG, Store.transactions(), `Truong_Finance_${todayIso()}.xlsx`);
   if (v === "year") wireYearView(); else { const pm = $("#cmp-pm"); if (pm) pm.onchange = (e) => { ui.cmpPerMonth = e.target.checked; renderSummary(); }; }
 }

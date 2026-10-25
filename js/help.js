@@ -87,7 +87,7 @@ function renderHelp() {
         <li>Each <b>month has its own color</b> (a thin bar on top and a faint tint down the column, the same colors as the old spreadsheet), so you can follow a month straight down the page. This month is marked <b>Now</b>.</li>
         <li>From 2026 on, categories are grouped as <b>Income, Savings, Home</b> (where you live), <b>Rental Property</b> (shown as a <b>net</b>: rent in minus its costs), <b>Transportation, Food, Health &amp; Care, Lifestyle, Travel</b> and <b>Other</b>. Older years keep their original groups.</li>
         <li>Each group has a <b>shaded row</b> with its total; click it to fold the group up. <b>Hover any number on a shaded row, or on Spent / Saved / Remaining at the bottom</b>, to see exactly what it adds up: the numbers it uses light up and a small list shows each one.</li>
-        <li>Use <b>Year</b> to change years and <b>Owner</b> to see <b>Household</b> (everything), <b>Joint</b>, <b>${p1}</b> or <b>${p2}</b>.</li>
+        <li>Use the year box to change years, and the buttons under the title to see <b>Household</b> (everything), <b>Joint</b>, <b>${p1}</b> or <b>${p2}</b>. The one you're looking at is filled in its own color (Household dark, Joint blue, ${p1} green, ${p2} purple), the same color is named next to the title and runs along the top of the numbers. Transactions has the same buttons.</li>
         <li><b>Avg/mo</b> divides by the months that have actually passed this year, not always 12.</li>
         <li><b>Remaining</b> at the bottom is green when you came out ahead and red when you spent more than came in.</li>
         <li><b>Account flows</b> shows money in and out of each account for one month. The Joint Hub should end near <b>$0</b> after a paycheck is split.</li>

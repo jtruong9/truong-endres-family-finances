@@ -31,6 +31,17 @@ function toast(msg, ms = 2600) {
 function ownerChoices() {
   return [["all", "Household"], ["joint", CFG.people.joint], ["p1", CFG.people.p1], ["p2", CFG.people.p2]];
 }
+// Household / Joint / each person as buttons; the selected one is filled in that view's color
+// (data-owner sets the color in css). onPick(owner) runs on click.
+function ownerTabs(id, selected) {
+  return `<div class="owner-tabs" id="${id}" role="radiogroup" aria-label="Whose money">${ownerChoices().map(([k, label]) =>
+    `<button type="button" role="radio" data-owner="${k}" aria-checked="${k === selected}" class="${k === selected ? "on" : ""}">${esc(label)}</button>`).join("")}</div>`;
+}
+function wireOwnerTabs(id, onPick) {
+  $$(`#${id} button`).forEach((b) => (b.onclick = () => onPick(b.dataset.owner)));
+}
+const ownerName = (k) => (ownerChoices().find(([v]) => v === k) || [k, k])[1];
+
 function years() {
   const ys = new Set(Store.transactions().map((t) => +t.date.slice(0, 4)));
   ys.add(new Date().getFullYear());
@@ -269,12 +280,13 @@ function renderTransactions() {
   f.page = Math.min(f.page, pages - 1);
   const shown = rows.slice(f.page * PAGE, (f.page + 1) * PAGE);
 
+  $("#tab-transactions").dataset.owner = f.owner;
   $("#tab-transactions").innerHTML = `${pageHead("Transactions", `${Store.transactions().filter(Model.isPosted).length.toLocaleString()} saved`)}${reviewSection()}${attentionSection()}
     <div class="card">
       <div class="filters">
         <input type="search" id="tf-q" placeholder="Search" value="${esc(f.q)}">
         <select id="tf-year">${opts(years().map(String), f.year, "All years")}</select>
-        <select id="tf-owner">${opts(ownerChoices(), f.owner)}</select>
+        ${ownerTabs("tf-owner", f.owner)}
         <select id="tf-account">${opts(CFG.accounts.map((a) => a.name), f.account, "All accounts")}</select>
         <select id="tf-category">${opts(CFG.categories.map((c) => c.name), f.category, "All categories")}</select>
         <label class="muted"><input type="checkbox" id="tf-flagged" ${f.flagged ? "checked" : ""}> Needs attention</label>
@@ -300,7 +312,7 @@ function renderTransactions() {
   const set = (k, v) => { ui.tx[k] = v; ui.tx.page = 0; renderTransactions(); };
   $("#tf-q").oninput = (e) => { clearTimeout(set.h); set.h = setTimeout(() => { set("q", e.target.value); $("#tf-q").focus(); const el = $("#tf-q"); el.setSelectionRange(el.value.length, el.value.length); }, 250); };
   $("#tf-year").onchange = (e) => set("year", e.target.value);
-  $("#tf-owner").onchange = (e) => set("owner", e.target.value);
+  wireOwnerTabs("tf-owner", (o) => set("owner", o));
   $("#tf-account").onchange = (e) => set("account", e.target.value);
   $("#tf-category").onchange = (e) => set("category", e.target.value);
   $("#tf-flagged").onchange = (e) => set("flagged", e.target.checked);

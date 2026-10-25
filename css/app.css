@@ -264,3 +264,23 @@ tr.dup-row td { background: var(--warn-bg); }
 .fl-svg.focus .fl-link.lit { opacity: 1; }
 .fl-svg.focus .fl-link.lit path:first-of-type { stroke-opacity: .55; }
 @media (prefers-reduced-motion: reduce) { .fl-dot { display: none; } }
+
+/* ---- Whose money: Household / Joint / Justin / Kelly ---- */
+/* One color per view. Set on the page section (data-owner) and on each tab button. */
+[data-owner="all"] { --owner: var(--ink); --owner-bg: #F3F4F6; }
+[data-owner="joint"] { --owner: #2563EB; --owner-bg: #EEF3FE; }
+[data-owner="p1"] { --owner: #059669; --owner-bg: #ECFDF5; }
+[data-owner="p2"] { --owner: #9333EA; --owner-bg: #F5EEFE; }
+.owner-tabs { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); padding: 2px; gap: 2px; background: var(--bg); }
+.owner-tabs button { height: 28px; border: none; background: transparent; color: var(--muted); padding: 0 12px; }
+.owner-tabs button:hover { background: var(--hover); color: var(--ink); }
+.owner-tabs button::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--owner); opacity: .55; }
+.owner-tabs button.on { background: var(--owner); color: #fff; font-weight: 600; }
+.owner-tabs button.on::before { background: #fff; opacity: 1; }
+.owner-chip { display: inline-block; vertical-align: 4px; margin-left: 8px; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: 0;
+  color: var(--owner); background: var(--owner-bg); }
+.owner-row { margin: -8px 0 14px; }
+/* The view's color runs along the top of the headline numbers and the table card */
+#tab-summary .fx-kpis { border-top: 3px solid var(--owner); }
+#tab-summary .fx-year-table thead th.fx-sticky, #tab-summary .fx-card > .fx-card-head h2 { color: var(--ink); }
+#tab-transactions .filters .owner-tabs { flex: none; }

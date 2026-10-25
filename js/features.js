@@ -213,36 +213,7 @@ function renderRental() {
   $$("#tab-rental tr[data-id]").forEach((tr) => (tr.onclick = () => openTx(Store.transactions().find((t) => t.id === tr.dataset.id))));
 }
 
-// --------------------------------------------------------------------------------- compare years
-function compareYearsHtml() {
-  const c = Model.yearCompare(CFG, Store.transactions(), ui.owner);
-  const ys = c.years.slice(-6);
-  if (ys.length < 2) return `<div class="card"><p class="muted">Need at least two years of data to compare.</p></div>`;
-  const perMonth = !!ui.cmpPerMonth;
-  const val = (cat, y) => { const v = (c.totals.get(cat) || {})[y] || 0; return perMonth ? v / c.months[y] : v; };
-  const last = ys[ys.length - 1], prev = ys[ys.length - 2];
-  let body = "";
-  for (const g of CFG.groups) {
-    const cats = CFG.categories.filter((x) => x.group === g && x.kind !== "Transfer" && ys.some((y) => val(x.name, y)));
-    if (!cats.length) continue;
-    body += `<tr class="group"><td class="sticky">${esc(g.toUpperCase())}</td>${ys.map(() => "<td></td>").join("")}<td></td></tr>`;
-    const sum = (y) => cats.reduce((s, x) => s + val(x.name, y), 0);
-    for (const x of cats.concat([{ name: `Total ${g}:`, total: true }])) {
-      const v = (y) => (x.total ? sum(y) : val(x.name, y));
-      const a = v(prev), b = v(last);
-      const ch = a ? (b - a) / Math.abs(a) : null;
-      const isExpense = (CFG.categoryByName.get(x.name) || { kind: g === "Income" ? "Income" : g === "Savings" ? "Savings" : "Expense" }).kind;
-      const good = ch == null ? "" : isExpense === "Expense" ? (ch > 0.05 ? "neg" : ch < -0.05 ? "pos" : "") : ch > 0.05 ? "pos" : ch < -0.05 ? "neg" : "";
-      body += `<tr class="${x.total ? "total" : ""}"><td class="sticky label">${esc(x.name)}</td>${ys.map((y) => `<td class="num">${money(Model.r2(v(y)))}</td>`).join("")}
-        <td class="num ${good}">${ch == null ? "" : `${ch > 0 ? "▲" : ch < 0 ? "▼" : ""} ${Math.abs(ch * 100).toFixed(0)}%`}</td></tr>`;
-    }
-    body += `<tr class="gap"><td colspan="${ys.length + 2}"></td></tr>`;
-  }
-  return `<div class="card"><div class="row"><h2 class="sheet-title">Compare years</h2>
-      <label><input type="checkbox" id="cmp-pm" ${perMonth ? "checked" : ""}> Show as average per month</label></div>
-      <p class="hint">${perMonth ? `Per-month averages make a partly finished year (${last}: ${c.months[last]} months) fair to compare.` : `Full-year totals. ${last} only has ${c.months[last]} month(s) so far. Tick "average per month" for a fair comparison.`} The last column is the change from ${prev} to ${last}: red = moving the wrong way.</p></div>
-    <div class="card"><div class="table-wrap summary"><table><thead><tr><th class="sticky">Category</th>${ys.map((y) => `<th class="num">${y}</th>`).join("")}<th class="num">${prev}→${last}</th></tr></thead><tbody>${body}</tbody></table></div></div>`;
-}
+// Compare years lives in js/summary.js
 
 // --------------------------------------------------------------------------------- one-click bills
 const dlgBills = $("#dlg-bills");

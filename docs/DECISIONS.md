@@ -48,3 +48,8 @@ Public file: no amounts, account details or other personal financial data.
 - **Rental:** a transaction counts if its description contains the configured text **or** it carries the rental tag. Shows yearly/monthly income, expenses and net. Labelled "not tax advice".
 - **Compare years:** category totals by year with % change; an "average per month" toggle makes the current partial year fair.
 - **One-click bills:** "Log <month>'s bills" creates the unpaid recurring bills for the month (`t.bill` = bill name, which marks it paid).
+
+## 2026-10 — Summary page gets a modern "fintech" look (changes the look-and-feel decision above)
+- **Decided:** **Only the Summary page** drops the old-workbook styling. New look: white cards, a single blue accent, headline cards (Income / Spent / Saved / Remaining, with change vs. the same months last year and save rate), an income vs. spending chart, and a clean table. That table has a group header row with the group total, collapsible groups, a small trend sparkline per category, and a soft blue tint that's stronger for bigger amounts. Months keep **small color accents** (a thin bar in each month's old color on the header) and the current month is highlighted. Monospace-style tabular numbers.
+- **Why:** The owners asked for the Summary to "look techy and new, not exactly like the old database". The other pages keep the old-workbook palette for now.
+- **Rejected:** A dark dashboard and a terminal-style grid (the owners chose the clean light style). Full-column month tints (too close to the old sheet).

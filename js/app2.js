@@ -191,6 +191,7 @@ function renderSettings() {
   const catOpts = (sel) => opts(CFG.categories.map((c) => c.name), sel, "");
   const del = `<td><button class="small danger" data-del>✕</button></td>`;
   $("#tab-settings").innerHTML = `
+    ${reorgCard()}
     <div class="card"><h2>People</h2><div class="row">
       <label>Person 1 (short) <input id="st-p1" value="${esc(CFG.people.p1)}" size="10"></label>
       <label>Full name <input id="st-p1f" value="${esc(CFG.people.p1Full || "")}"></label>
@@ -251,6 +252,7 @@ function renderSettings() {
     "st-cats": `<tr><td><input data-k="name"></td><td><input data-k="group" list="group-list"></td><td><select data-k="kind">${opts(["Income", "Savings", "Expense", "Transfer"], "Expense")}</select></td><td><input data-k="budget" type="number" step="0.01"></td>${del}</tr>`,
     "st-rules": `<tr><td><input data-k="match"></td><td><select data-k="category">${catOpts("")}</select></td>${del}</tr>`,
   };
+  wireReorg();
   const tab = $("#tab-settings");
   tab.onclick = (e) => {
     if (e.target.dataset.add) $(`#${e.target.dataset.add} tbody`).insertAdjacentHTML("beforeend", templates[e.target.dataset.add]);

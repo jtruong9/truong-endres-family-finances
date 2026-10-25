@@ -32,7 +32,9 @@ const Model = (() => {
     ["Transfer", "Transfer", "Transfer"],
   ].map(([name, group, kind]) => ({ name, group, kind, budget: null }));
 
-  const GROUP_ORDER = ["Income", "Savings", "Bills", "Transportation", "Health", "Food and Drinks", "Entertainment"];
+  // Order groups appear in on the Summary. Older groups (Bills, Entertainment…) stay for past years.
+  const GROUP_ORDER = ["Income", "Savings", "Home", "Rental Property", "Bills", "Transportation", "Food", "Food and Drinks",
+    "Health & Care", "Health", "Lifestyle", "Entertainment", "Travel", "Other"];
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   // Month colors from the old expense database: header color, and the lighter tint used for its cells
   const MONTH_COLORS = [
@@ -58,6 +60,7 @@ const Model = (() => {
       rental: get("rental", { name: "Rental property", match: "", tag: "rental" }),
       balanceChecks: get("balanceChecks", []),   // [{ account, date, bank, app, at }]
       checkins: get("checkins", {}),             // { "YYYY-MM": { at, by, note } }
+      reorgDone: get("reorgDone", {}),           // { year: { at, count } } — "Reorganize a year" history
       accountByName: new Map(accounts.map((a) => [a.name, a])),
       categoryByName: new Map(categories.map((c) => [c.name, c])),
     };

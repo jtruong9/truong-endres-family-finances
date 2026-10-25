@@ -83,6 +83,7 @@ function renderHelp() {
       <div class="help-month-key">${Model.MONTHS.map((m, i) => `<span style="background:${Model.MONTH_COLORS[i][0]}">${m.toUpperCase()}</span>`).join("")}</div>
       <ul>
         <li>Each <b>month has its own color</b>, the same colors as the old spreadsheet, so you can follow a month straight down the page.</li>
+        <li>From 2026 on, categories are grouped as <b>Income, Savings, Home</b> (where you live), <b>Rental Property</b> (shown as a <b>net</b>: rent in minus its costs), <b>Transportation, Food, Health &amp; Care, Lifestyle, Travel</b> and <b>Other</b>. Older years keep their original groups.</li>
         <li>Categories are grouped under <b>dark headers</b> (INCOME, SAVINGS, BILLS…) with a gray <b>Total</b> row under each group.</li>
         <li>Use <b>Year</b> to change years and <b>Owner</b> to see <b>Household</b> (everything), <b>Joint</b>, <b>${p1}</b> or <b>${p2}</b>.</li>
         <li><b>Avg/mo</b> divides by the months that have actually passed this year, not always 12.</li>

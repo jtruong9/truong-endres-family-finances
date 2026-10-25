@@ -102,14 +102,16 @@ function yearView() {
     const cats = CFG.categories.filter((c) => c.group === g && c.kind !== "Transfer")
       .filter((c) => (grid.get(c.name) || []).some((x) => x !== 0) || +c.budget > 0);
     if (!cats.length) continue;
+    const mixed = cats.some((c) => c.kind === "Income") && cats.some((c) => c.kind !== "Income");
     const sub = Array(12).fill(0);
-    cats.forEach((c) => (grid.get(c.name) || []).forEach((x, i) => (sub[i] += x)));
+    cats.forEach((c) => (grid.get(c.name) || []).forEach((x, i) => (sub[i] += mixed && c.kind !== "Income" ? -x : x)));
+    const sign = (x) => (mixed ? (x < -0.005 ? " neg" : x > 0.005 ? " pos" : "") : "");
     const subYear = sum(sub), collapsed = !!ui.sumCollapsed[g];
     const kind = cats[0].kind;
     body += `<tr class="fx-group" data-group="${esc(g)}">
-      <td class="fx-sticky"><div class="fx-catname"><button class="fx-caret" aria-label="Show or hide">${collapsed ? "▸" : "▾"}</button>${esc(g)} <span class="fx-count">${cats.length}</span></div>${sparkline(sub, upto, kind === "Income" ? "#16A34A" : kind === "Savings" ? "#7C3AED" : "#2563EB")}</td>
-      ${sub.map((x, i) => `<td class="num ${mc(i)}">${kmoney(x)}</td>`).join("")}
-      <td class="num fx-year" title="${money(subYear, false)}">${kmoney(subYear)}</td><td class="num" title="${money(subYear / n, false)}">${kmoney(subYear / n)}</td>
+      <td class="fx-sticky"><div class="fx-catname"><button class="fx-caret" aria-label="Show or hide">${collapsed ? "▸" : "▾"}</button>${esc(g)} <span class="fx-count">${cats.length}</span>${mixed ? ' <span class="fx-net" title="Income minus costs">net</span>' : ""}</div>${sparkline(sub, upto, kind === "Income" ? "#16A34A" : kind === "Savings" ? "#7C3AED" : "#2563EB")}</td>
+      ${sub.map((x, i) => `<td class="num ${mc(i)}${sign(x)}">${kmoney(x)}</td>`).join("")}
+      <td class="num fx-year${sign(subYear)}" title="${money(subYear, false)}">${kmoney(subYear)}</td><td class="num${sign(subYear)}" title="${money(subYear / n, false)}">${kmoney(subYear / n)}</td>
       ${showBudget ? "<td></td>" : ""}</tr>`;
     if (collapsed) continue;
     for (const c of cats) {
@@ -125,7 +127,7 @@ function yearView() {
 </tr>`;
     }
   }
-  const unknown = [...grid.keys()].filter((k) => !seen.has(k) && !CFG.categories.some((c) => c.name === k && ui.sumCollapsed[c.group]));
+  const unknown = [...grid.keys()].filter((k) => !CFG.categoryByName.has(k) && grid.get(k).some((x) => x !== 0));
   if (unknown.length) {
     body += `<tr class="fx-group warn" id="fx-unknown"><td class="fx-sticky" colspan="${cols}">⚠ Uncategorized / unknown categories: <a href="#" id="fx-go-fix">fix them or leave them as is on Transactions</a></td></tr>`;
     for (const k of unknown) {

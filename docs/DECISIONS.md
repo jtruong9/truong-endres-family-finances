@@ -68,6 +68,13 @@ Public file: no amounts, account details or other personal financial data.
 - **Why:** imported history can carry old category names; the owners want to see and decide on every one rather than have the app guess.
 - **Rejected:** auto-mapping old names to new categories (silent changes to history).
 
+## 2026-10 — New category layout, applied to 2026 only
+- **Decided (owners' choice: 2026 only):** groups are Income · Savings · **Home** (Rent, Utilities, Internet & Phone, Renters Insurance) · **Rental Property** (Rental Income, Rental Mortgage, Rental Repairs & Maintenance, Rental Utilities, Rental Insurance & Taxes) · Transportation (+ Car Maintenance & Fees, Rideshare & Transit) · **Food** (Groceries, Dining Out) · **Health & Care** (Doctor, Vet, Gym, Personal Care) · **Lifestyle** (Shopping & Clothes, Hobbies & Gear, Fun & Events, Gifts & Giving, Shared Costs, Subscriptions, Wedding) · Travel · Other (Fees, Misc). The old catch-all "Personal" is split up.
+- **How:** Settings › *Reorganize 2026* lists every proposed move grouped "from → to". The owners untick or change any row before applying. Old categories stay in the list so 2021–25 still add up exactly. Unticked rows are remembered and not suggested again. The rental is identified by the Rental tab's text/tag, so no address lives in the code.
+- **Facts from the owners:** the "House Repair – Venmo" payment was for the rental, and "Rental Insurance" in the old sheet is **renters insurance on the apartment** (goes to Home).
+- **Summary:** a group holding both income and costs (Rental Property) shows its **net** (income − costs, labelled "net"), not the sum. Wedding/engagement costs also get a tag so Goals can track them.
+- **Rejected:** re-sorting all years (the owners chose 2026 only), and splitting mortgage principal vs interest (not known yet).
+
 ## 2026-10 — Works offline (installable app)
 - **Decided:** The app is an installable web app. A service worker (`sw.js`) saves a copy of every app file on first visit, and `manifest.webmanifest` + `icon.svg` let Chrome install it with its own icon. Page loads use the network when online (so updates arrive) and the saved copy when offline. Other files come from the saved copy first. A new version downloads in the background and the page shows "Update now"; it only reloads when the user clicks. The data still lives only in the Google Drive folder: nothing financial is cached by the service worker.
 - **Why:** The owners want it to work with no internet. Data was already offline-capable (Drive for desktop keeps a local copy and uploads later); only the app files needed it.

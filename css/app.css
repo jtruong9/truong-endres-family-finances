@@ -268,3 +268,12 @@ tr.flag td:first-child { box-shadow: inset 4px 0 0 #F59E0B; }
 tr.flag td { background: #FFFBEB; }
 
 .at-quiet { color: var(--muted); padding: 10px 16px; }
+
+/* ---- Reorganize a year (Settings) ---- */
+.reorg { border: 2px solid var(--accent); }
+.ro-group { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin-top: 8px; }
+.ro-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ro-move { font-size: 15px; }
+.ro-list { margin-top: 8px; }
+.ro-list td { vertical-align: middle; }
+.ro-list select { min-width: 200px; }

@@ -143,3 +143,5 @@
   .fx-year-table thead th { font-size: 9px; }
   .fx-year-table .fx-count { display: none; }
 }
+
+.fx-net { display: inline-block; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: #E0F2FE; color: #0369A1; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }

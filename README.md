@@ -68,7 +68,7 @@ If Chrome asks again after a restart, click **Reconnect**. That's Chrome confirm
 
 ## For Justin: updating the app
 
-The app is static files (`index.html`, `css/`, `js/`, `vendor/`) on GitHub Pages. Edit, commit, push, and Pages updates in about a minute. Run the logic tests with `node tests/model.test.js`.
+The app is static files (`index.html`, `css/`, `js/`, `vendor/`) on GitHub Pages. Edit, commit, push, and Pages updates in about a minute. Run the tests with `node tests/model.test.js`, `node tests/reorg.test.js` and `node tests/offline.test.js`.
 Libraries are vendored: Chart.js 4.4.7, SheetJS 0.18.5, Barlow font (SIL Open Font License, `vendor/fonts/OFL.txt`).
 After changing any app file, bump the `?v=N` numbers in `index.html` **and** `VERSION` + the file list in `sw.js` (the offline copy). `node tests/offline.test.js` checks they match.
 

@@ -122,7 +122,7 @@ function renderBills() {
           <td><button class="small danger" data-del="${i}">✕</button></td></tr>`).join("")}
       </tbody></table></div>
       <div class="row" style="margin-top:10px"><button id="bl-add">+ Add bill</button><button id="bl-save" class="primary">Save bills</button>
-        ${rec.length ? "" : `<button id="bl-seed">Start from my old recurring bills</button>`}</div>
+        ${rec.length ? "" : `<button id="bl-seed">Start with a basic bill list</button>`}</div>
     </div>`;
   $("#bl-month").onchange = (e) => { ui.billMonth = +e.target.value; renderBills(); };
   const collect = () => $$("#tab-bills tbody tr").map((tr) => {
@@ -133,11 +133,11 @@ function renderBills() {
   $("#bl-save").onclick = async () => { await Store.setCfg("recurring", collect().filter((b) => b.name)); toast("Bills saved."); };
   $("#tab-bills tbody").onclick = (e) => { const i = e.target.dataset.del; if (i !== undefined) Store.setCfg("recurring", collect().filter((_, k) => k !== +i)); };
   const seed = $("#bl-seed");
+  // Starter list only: no amounts here, since this code is public. Fill them in on the page.
   if (seed) seed.onclick = () => Store.setCfg("recurring", [
-    ["Rent", "Rent / Mortgage", 1675.5, "Green Leaf"], ["2626 Mortgage", "Rent / Mortgage", 2592.76, "Mortgage"],
-    ["Utilities", "Electricity / Gas Bill", null, ""], ["Water", "Water Bill", null, ""], ["Internet", "Internet Bill", 33.89, ""],
-    ["Phone", "Phone Bill", null, ""], ["Auto Insurance", "Auto Insurance", null, ""], ["Spotify", "Subscriptions", 20.99, "Spotify"],
-  ].map(([name, category, amount, match]) => ({ name, category, account: "Joint Bills", amount, day: 1, match })));
+    ["Rent / Mortgage", "Rent / Mortgage"], ["Utilities", "Electricity / Gas Bill"], ["Water", "Water Bill"],
+    ["Internet", "Internet Bill"], ["Phone", "Phone Bill"], ["Auto Insurance", "Auto Insurance"], ["Subscriptions", "Subscriptions"],
+  ].map(([name, category]) => ({ name, category, account: "Joint Bills", amount: null, day: 1, match: "" })));
 }
 
 // --------------------------------------------------------------------------------- import

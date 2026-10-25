@@ -22,7 +22,7 @@ const ledger = [
   tx("2026-11-01", 600, "Transfer", "Joint Hub", "Justin Personal"),
   tx("2026-11-01", 600, "Transfer", "Joint Hub", "Spouse Personal"),
   tx("2026-11-01", 300, "Monthly Saving", "Joint Hub"),
-  tx("2026-11-02", 1675.5, "Rent / Mortgage", "Joint Bills"),
+  tx("2026-11-02", 1500, "Rent / Mortgage", "Joint Bills"),
   tx("2026-11-03", 45.25, "Food & Drinks", "Justin Personal"),
   tx("2026-11-04", 20, "Groceries", "Spouse Personal"),
   tx("2026-11-05", -10, "Food & Drinks", "Justin Personal"),   // refund
@@ -32,9 +32,9 @@ const ledger = [
 t("transfers are not income or spending", () => {
   const m = Model.monthlyTotals(CFG, ledger, 2026, "all");
   assert.strictEqual(m.income[10], 4000);
-  assert.strictEqual(m.spending[10], 1675.5 + 45.25 + 20 - 10);
+  assert.strictEqual(m.spending[10], 1500 + 45.25 + 20 - 10);
   assert.strictEqual(m.savings[10], 300);
-  assert.strictEqual(m.remaining[10], Model.r2(4000 - 300 - (1675.5 + 45.25 + 20 - 10)));
+  assert.strictEqual(m.remaining[10], Model.r2(4000 - 300 - (1500 + 45.25 + 20 - 10)));
 });
 
 t("owner filter uses the account's owner", () => {
@@ -42,13 +42,13 @@ t("owner filter uses the account's owner", () => {
   assert.strictEqual(p1.spending[10], 35.25);
   const joint = Model.monthlyTotals(CFG, ledger, 2026, "joint");
   assert.strictEqual(joint.income[10], 4000);
-  assert.strictEqual(joint.spending[10], 1675.5);
+  assert.strictEqual(joint.spending[10], 1500);
 });
 
 t("account flows: hub nets to 0, personal = allowance left", () => {
   const f = Object.fromEntries(Model.accountFlows(CFG, ledger, 2026, 10).map((r) => [r.account, r]));
   assert.strictEqual(f["Joint Hub"].net, 0);
-  assert.strictEqual(f["Joint Bills"].net, Model.r2(2500 - 1675.5));
+  assert.strictEqual(f["Joint Bills"].net, Model.r2(2500 - 1500));
   assert.strictEqual(f["Justin Personal"].net, Model.r2(600 - 35.25));
   assert.strictEqual(f["Spouse Personal"].net, 580);
 });
@@ -86,8 +86,8 @@ t("months elapsed for averages", () => {
 
 t("recurring bill status", () => {
   const c = Model.config((k, d) => (k === "recurring" ? [
-    { name: "Rent", category: "Rent / Mortgage", account: "Joint Bills", amount: 1675.5, day: 1 },
-    { name: "Internet", category: "Internet Bill", account: "Joint Bills", amount: 33.89, day: 1 },
+    { name: "Rent", category: "Rent / Mortgage", account: "Joint Bills", amount: 1500, day: 1 },
+    { name: "Internet", category: "Internet Bill", account: "Joint Bills", amount: 40, day: 1 },
     { name: "Phone", category: "Phone Bill", account: "Joint Bills", amount: 50, day: 28 },
   ] : d));
   const s = Model.recurringStatus(c, ledger, 2026, 10, new Date(2026, 10, 25));

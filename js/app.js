@@ -74,6 +74,9 @@ async function openApp(fn) {
     $("#app").hidden = false;
     if (info.problems.length) toast("Couldn't read: " + info.problems.join("; "), 8000);
     await migrateSpouse();
+    // The data was loaded while the app was still hidden, so render() skipped drawing. Draw now.
+    CFG = Model.config(Store.cfg);
+    render();
     setStatus(info);
   } catch (e) {
     if (e.name !== "AbortError") { $("#setup").hidden = false; $("#setup-msg").textContent = "Couldn't open the folder: " + e.message; }

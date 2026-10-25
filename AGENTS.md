@@ -46,7 +46,8 @@ Paychecks → Joint Hub → Joint Bills (all recurring bills)
 
 | File | Role |
 |---|---|
-| `index.html` | Layout, tabs, dialogs, script order. **Bump every `?v=N` after changing any js/css.** |
+| `index.html` | Layout, menu, dialogs, script order. **Bump every `?v=N` after changing any js/css.** |
+| `sw.js` + `manifest.webmanifest` + `js/offline.js` | Offline/installable app (service worker caches every app file; data is never cached). **Bump `VERSION` and the file list in `sw.js` with every `?v=N` bump.** `node tests/offline.test.js` enforces it. |
 | `js/store.js` | Data layer. Folder handle in IndexedDB; append-only **event log per device** (`ledger-<deviceId>.json`); merges all ledger files. |
 | `js/model.js` | **Pure** calculations (no DOM): config defaults, totals, flows, balances, goals, review-row resolution, guesses, duplicate matching, year compare, rental, budgets. Unit-tested. |
 | `js/importers.js` | Old-spreadsheet (.xlsm) import, bank CSV parsing → review rows, Excel export. Uses SheetJS. |
@@ -57,7 +58,7 @@ Paychecks → Joint Hub → Joint Bills (all recurring bills)
 | `js/app2.js` | Paycheck distribution, Summary (year report), Bills, Import tab, Settings. Calls `start()`. |
 | `css/app.css` | Look and feel (matches the owners' old Excel workbook; see DECISIONS). |
 | `vendor/` | Chart.js 4.4.7, SheetJS 0.18.5, Barlow font (OFL). Vendored on purpose: no CDN at runtime. |
-| `tests/model.test.js` | `node tests/model.test.js`. Must pass before committing. |
+| `tests/` | `node tests/model.test.js` and `node tests/offline.test.js`. Both must pass before committing. |
 
 ### Data format (`ledger-<deviceId>.json`)
 ```json
@@ -81,7 +82,7 @@ Paychecks → Joint Hub → Joint Bills (all recurring bills)
 3. Don't add a build step, framework, server, or runtime CDN dependency without asking.
 4. Don't change the money model, the event-log format, or the file-per-device rule without asking.
    Existing users' data folders must keep working (write a migration like `migrateSpouse()` if needed).
-5. After any js/css change: bump `?v=N` in `index.html` (browsers and GitHub Pages cache hard).
+5. After any js/css change: bump `?v=N` in `index.html` **and** `VERSION` + file list in `sw.js`, then run `node tests/offline.test.js` (the offline cache otherwise keeps serving old code).
 6. UI text is for non-technical users. Short, plain, no jargon. Update `js/help.js` to match.
 7. Test in a real browser (serve the folder with `python -m http.server`; `file://` can't use the folder
    picker). Around file pickers, also fire `window.dispatchEvent(new Event('focus'))`: closing a real

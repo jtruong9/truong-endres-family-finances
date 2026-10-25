@@ -21,7 +21,9 @@ The **How to use** tab inside the app is the main guide for both of us. This fil
 4. **Open the app** in Chrome: **https://jtruong9.github.io/truong-finance/**
    - Click **Choose data folder** and pick `G:\My Drive\Truong Finance Data`.
    - Chrome asks to let the site *view and edit files*. Click **Edit files** (and *Allow on every visit* if offered).
-5. **Bookmark it**, or in Chrome's menu use *Cast, save and share → Install page as app* to get a desktop icon.
+5. **Install it so it works offline:** with internet on, click **⤓ Install app** in the top bar (or Chrome's menu ⋮ → *Cast, save and share* → **Install page as app**). Open it from the new Start-menu/desktop icon from then on.
+   - It now opens and works **with no internet**. Anything you add while offline is saved to this computer, and Google Drive uploads it when you're back online (the yellow **● Offline** badge shows when you're offline).
+   - Updates download by themselves when you're online; click **Update now** when the bar appears at the bottom.
 
 If Chrome asks again after a restart, click **Reconnect**. That's Chrome confirming you still want the site to have folder access.
 
@@ -68,6 +70,6 @@ If Chrome asks again after a restart, click **Reconnect**. That's Chrome confirm
 
 The app is static files (`index.html`, `css/`, `js/`, `vendor/`) on GitHub Pages. Edit, commit, push, and Pages updates in about a minute. Run the logic tests with `node tests/model.test.js`.
 Libraries are vendored: Chart.js 4.4.7, SheetJS 0.18.5, Barlow font (SIL Open Font License, `vendor/fonts/OFL.txt`).
-After changing any file in `js/` or `css/`, bump the `?v=N` numbers in `index.html` so browsers load the new version.
+After changing any app file, bump the `?v=N` numbers in `index.html` **and** `VERSION` + the file list in `sw.js` (the offline copy). `node tests/offline.test.js` checks they match.
 
 **Working with an AI assistant:** start it in this folder. `AGENTS.md` (and `CLAUDE.md`, which points to it) gives any AI the project context, rules and architecture. `docs/DECISIONS.md` and `docs/LESSONS.md` are the shared memory. Ask the assistant to add to them, and never to put real financial data in this public repo.

@@ -243,3 +243,9 @@ tr.dup-row td { background: #FFF6EC; }
 .seg button:first-child { border-radius: 7px 0 0 7px; }
 .seg button:nth-child(2) { border-radius: 0 7px 7px 0; border-right-width: 1px; }
 .seg button.on { background: var(--charcoal); color: #fff; border-color: var(--charcoal); }
+
+/* ---- Offline / install / update ---- */
+.net-pill { align-self: center; font-size: 13px; font-weight: 700; color: #FFD966; background: rgba(255,217,102,.14); border: 1px solid rgba(255,217,102,.45); padding: 4px 10px; border-radius: 999px; }
+.update-bar { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 60; background: #3B3838; color: #fff; padding: 10px 14px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.3); font-weight: 600; display: flex; gap: 12px; align-items: center; }
+.update-bar[hidden] { display: none !important; }
+@media (max-width: 900px) { #btn-install { display: none; } }

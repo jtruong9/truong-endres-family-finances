@@ -46,6 +46,9 @@ function renderHelp() {
         <p class="hint">${p2}: the folder is shared from ${p1}'s Google Drive. Open drive.google.com &rsaquo; <i>Shared with me</i> &rsaquo; right-click <b>Truong Finance Data</b> &rsaquo; <i>Organize &rsaquo; Add shortcut</i> &rsaquo; <i>My Drive</i>. Otherwise it won't show up on your G: drive.</p>`)}
       ${step(3, "Bring in your old spreadsheet", `<p>Go to the <b>Import</b> tab &rsaquo; <b>Old Database</b>. Pick <b>your own</b> personal account (${p1} &rarr; <b>${p1Acct}</b>, ${p2} &rarr; <b>${p2Acct}</b>), then click <b>Choose File</b> and pick your old expense spreadsheet, whatever it's named. Check the preview and click <b>Import</b>.</p>`)}
       ${step(4, "If Chrome asks again later", `<p>Sometimes Chrome asks you to confirm folder access after a restart. Just click <b>Reconnect</b>. Nothing is lost.</p>`)}
+      ${step(5, "Install it so it works without internet", `<p>With internet on, click <b>⤓ Install app</b> in the top bar (or Chrome's menu <b>⋮</b> &rsaquo; <i>Cast, save and share</i> &rsaquo; <b>Install page as app</b>). Truong Finance gets its own icon in the Start menu and on the desktop. Open it from that icon from now on.</p>
+        <p>After that it opens <b>even with no internet</b>. Everything you add while offline is saved to this computer; the yellow <b>● Offline</b> badge just means Google Drive will upload it, and show it on the other computer, once you're back online.</p>
+        <p class="hint">When an update is available you'll see <b>"A new version is ready · Update now"</b> at the bottom. Click it any time.</p>`)}
       ${step("☰", "Getting around", `<p>Every page is in the <b>menu on the left</b>. Click <b>☰</b> (top left) to shrink it to just icons and get more room, and click it again to bring the names back. In a small window the menu hides itself; click <b>☰</b> to slide it out. The number on <b>Transactions</b> is how many imported rows are waiting to be sorted.</p>`)}
     </div>
 
@@ -155,6 +158,7 @@ function renderHelp() {
       <h2 class="cat-bar">If something looks wrong</h2>
       <table class="help-table"><tbody>
         <tr><td>The other person's entries aren't showing</td><td>Wait a minute for Google Drive to sync, then click the <b>&#x21bb;</b> button in the top bar (right side).</td></tr>
+        <tr><td>No internet</td><td>Keep working. Open the installed app from its icon; changes save to this computer and Google Drive uploads them once you're online again. The other person sees them after that.</td></tr>
         <tr><td>A transaction has a red bar on its left</td><td>Something's missing: hover over it to see what. <b>Transactions &rsaquo; Needs attention only</b> lists them all.</td></tr>
         <tr><td>"This browser can't open folders"</td><td>Use <b>Google Chrome</b>, not Edge, Firefox or Safari.</td></tr>
         <tr><td>The page looks old after an update</td><td>Press <b>Ctrl + Shift + R</b> to reload the newest version.</td></tr>

@@ -46,11 +46,12 @@ function renderHelp() {
         <p class="hint">${p2}: the folder is shared from ${p1}'s Google Drive. Open drive.google.com &rsaquo; <i>Shared with me</i> &rsaquo; right-click <b>Truong Finance Data</b> &rsaquo; <i>Organize &rsaquo; Add shortcut</i> &rsaquo; <i>My Drive</i>. Otherwise it won't show up on your G: drive.</p>`)}
       ${step(3, "Bring in your old spreadsheet", `<p>Go to the <b>Import</b> tab &rsaquo; <b>Old Database</b>. Pick <b>your own</b> personal account (${p1} &rarr; <b>${p1Acct}</b>, ${p2} &rarr; <b>${p2Acct}</b>), then click <b>Choose File</b> and pick your old expense spreadsheet, whatever it's named. Check the preview and click <b>Import</b>.</p>`)}
       ${step(4, "If Chrome asks again later", `<p>Sometimes Chrome asks you to confirm folder access after a restart. Just click <b>Reconnect</b>. Nothing is lost.</p>`)}
+      ${step("☰", "Getting around", `<p>Every page is in the <b>menu on the left</b>. Click <b>☰</b> (top left) to shrink it to just icons and get more room, and click it again to bring the names back. In a small window the menu hides itself; click <b>☰</b> to slide it out. The number on <b>Transactions</b> is how many imported rows are waiting to be sorted.</p>`)}
     </div>
 
     <div class="card" id="h-daily">
       <h2 class="cat-bar">Everyday logging</h2>
-      ${step("+", "Add a purchase", `<p>Click <b>+ Add</b> at the top (or press the <b>N</b> key). Fill in:</p>
+      ${step("+", "Add a purchase", `<p>Click <b>+ Add</b> in the top bar (or press the <b>N</b> key). Fill in:</p>
         <table class="help-table"><tbody>
           <tr><td>Date</td><td>When it happened (defaults to today)</td></tr>
           <tr><td>Amount</td><td>How much, e.g. <b>45.20</b></td></tr>
@@ -67,7 +68,7 @@ function renderHelp() {
 
     <div class="card" id="h-paycheck">
       <h2 class="cat-bar">Paychecks</h2>
-      ${step(1, "Log it with one button", `<p>Click <b>Distribute paycheck</b> at the top. Enter the date, the <b>net pay</b> (what actually hit the bank) and whose paycheck it is.</p>`)}
+      ${step(1, "Log it with one button", `<p>Click <b>Distribute paycheck</b> in the top bar. Enter the date, the <b>net pay</b> (what actually hit the bank) and whose paycheck it is.</p>`)}
       ${step(2, "Check the split and save", `<p>The window shows how much goes to Joint Bills, each personal account and savings. Click <b>Save</b>. The app logs the paycheck <i>and</i> every transfer for you.</p>`)}
       <p class="hint">The split is set once under <b>Settings &rsaquo; Paycheck split</b>. Fixed $ amounts and percentages come out first, and "Rest" divides whatever is left. Do the actual transfers in your bank as usual. This only records them.</p>
     </div>
@@ -153,7 +154,7 @@ function renderHelp() {
     <div class="card" id="h-trouble">
       <h2 class="cat-bar">If something looks wrong</h2>
       <table class="help-table"><tbody>
-        <tr><td>The other person's entries aren't showing</td><td>Wait a minute for Google Drive to sync, then click the <b>&#x21bb;</b> button at the top right.</td></tr>
+        <tr><td>The other person's entries aren't showing</td><td>Wait a minute for Google Drive to sync, then click the <b>&#x21bb;</b> button in the top bar (right side).</td></tr>
         <tr><td>A transaction has a red bar on its left</td><td>Something's missing: hover over it to see what. <b>Transactions &rsaquo; Needs attention only</b> lists them all.</td></tr>
         <tr><td>"This browser can't open folders"</td><td>Use <b>Google Chrome</b>, not Edge, Firefox or Safari.</td></tr>
         <tr><td>The page looks old after an update</td><td>Press <b>Ctrl + Shift + R</b> to reload the newest version.</td></tr>

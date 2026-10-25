@@ -96,17 +96,52 @@ window.addEventListener("focus", async () => {
   setStatus(await Store.reload());
 });
 
+// ---- Left pull-out menu ----
+// Wide window: the menu is docked; the ☰ button shrinks it to an icon rail (remembered per computer).
+// Narrow window: the menu is hidden and ☰ slides it out over the page; picking a page closes it.
+const narrow = () => window.matchMedia("(max-width: 900px)").matches;
+function setMenu(open) {
+  const app = $("#app");
+  if (narrow()) {
+    app.classList.toggle("sb-open", open);
+    $("#sb-scrim").hidden = !open;
+  } else {
+    app.classList.toggle("sb-collapsed", !open);
+    try { localStorage.setItem("tf-menu-collapsed", open ? "0" : "1"); } catch { /* private window: just don't remember */ }
+  }
+  $("#btn-menu").setAttribute("aria-expanded", String(open));
+}
+const menuOpen = () => (narrow() ? $("#app").classList.contains("sb-open") : !$("#app").classList.contains("sb-collapsed"));
+$("#btn-menu").onclick = () => setMenu(!menuOpen());
+$("#sb-scrim").onclick = () => setMenu(false);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && narrow() && menuOpen()) setMenu(false); });
+try { if (localStorage.getItem("tf-menu-collapsed") === "1") $("#app").classList.add("sb-collapsed"); } catch { /* ignore */ }
+window.matchMedia("(max-width: 900px)").addEventListener("change", () => { $("#app").classList.remove("sb-open"); $("#sb-scrim").hidden = true; });
+
 $("#tabs").onclick = (e) => {
   const b = e.target.closest("button[data-tab]");
   if (!b) return;
   ui.tab = b.dataset.tab;
   $$("#tabs button").forEach((x) => x.classList.toggle("active", x === b));
   $$(".tab").forEach((s) => (s.hidden = s.id !== "tab-" + ui.tab));
+  $("#page-title").textContent = b.querySelector(".sb-label").textContent;
+  if (narrow()) setMenu(false);
+  window.scrollTo(0, 0);
   render();
 };
 
+// Count of bank rows waiting to be sorted, shown on the Transactions menu item
+function updateMenuBadge() {
+  const n = Store.transactions().filter((t) => t.review).length;
+  const el = $("#sb-review-count");
+  el.hidden = !n;
+  el.textContent = n > 99 ? "99+" : String(n);
+  el.title = `${n} imported transaction(s) to review`;
+}
+
 function render() {
   if (!CFG || $("#app").hidden) return;
+  updateMenuBadge();
   ({ dashboard: renderDashboard, transactions: renderTransactions, summary: renderSummary, checkin: renderCheckin,
      goals: renderGoals, bills: renderBills, rental: renderRental, import: renderImport, settings: renderSettings, help: renderHelp })[ui.tab]();
 }

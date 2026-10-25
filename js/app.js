@@ -71,8 +71,12 @@ function setStatus(info) {
 $("#btn-pick").onclick = () => openApp(() => Store.pickFolder());
 $("#btn-regrant").onclick = () => openApp(() => Store.regrant());
 $("#btn-refresh").onclick = async () => { const info = await Store.reload(); setStatus(info); toast("Reloaded from the data folder."); };
-// Pick up the other computer's edits when the window regains focus
-window.addEventListener("focus", async () => { if (!$("#app").hidden) setStatus(await Store.reload()); });
+// Pick up the other computer's edits when the window regains focus. Skip the Import and Settings
+// tabs: closing a file dialog fires this too, and redrawing those forms mid-use clears what was chosen.
+window.addEventListener("focus", async () => {
+  if ($("#app").hidden || ui.tab === "import" || ui.tab === "settings" || document.querySelector("dialog[open]")) return;
+  setStatus(await Store.reload());
+});
 
 $("#tabs").onclick = (e) => {
   const b = e.target.closest("button[data-tab]");

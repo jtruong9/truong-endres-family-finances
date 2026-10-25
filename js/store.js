@@ -99,9 +99,12 @@ const Store = (() => {
         for (const e of disk) if (!ids.has(e.id)) myEvents.push(e);
       } catch { /* already reported above */ }
     }
+    // Only redraw when something actually changed (reloads happen every time the window regains
+    // focus, including when a file-picker dialog closes; a needless redraw resets form fields)
+    const changed = merged.length !== allEvents.length;
     allEvents = merged;
-    rebuild();
-    return { files: files.map(([n]) => n), problems };
+    if (changed) rebuild();
+    return { files: files.map(([n]) => n), problems, changed };
   }
 
   async function append(events) {
@@ -139,7 +142,10 @@ const Store = (() => {
     async open() {
       const mine = await dir.getFileHandle(myFileName(), { create: true });
       myEvents = await readJson(mine);
-      return reload();
+      allEvents = [];
+      const info = await reload();
+      rebuild();   // always draw once on open, even for an empty folder
+      return info;
     },
     reload,
     folderName: () => (dir ? dir.name : ""),

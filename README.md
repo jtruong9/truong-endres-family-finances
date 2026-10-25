@@ -16,7 +16,7 @@ A household budgeting app for two people with a joint account. It runs in Google
    - On the spouse's computer: open drive.google.com → *Shared with me* → right-click the folder → **Organize → Add shortcut** → *My Drive*.
      Without this step the folder doesn't appear on her computer's G: drive.
 3. **Keep the folder available offline** (recommended): in File Explorer go to `G:\My Drive\Truong Finance Data` → right-click → **Offline access → Available offline**.
-4. **Open the app** in Chrome: `https://<your-github-username>.github.io/truong-finance/`
+4. **Open the app** in Chrome: **https://jtruong9.github.io/truong-finance/**
    - Click **Choose data folder** and pick `G:\My Drive\Truong Finance Data`.
    - Chrome asks to let the site *view and edit files*. Click **Edit files** (and *Allow on every visit* if offered).
 5. **Bookmark it**, or in Chrome's menu use *Cast, save and share → Install page as app* to get a desktop icon.

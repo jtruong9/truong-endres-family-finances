@@ -8,8 +8,8 @@ const kmoney = (n) => (Math.abs(n) < 0.005 ? "–" : `${n < 0 ? "-" : ""}$${Math
 // Tiny inline trend line (12 months). Zero-filled future months are left off.
 function sparkline(vals, upto, color = "#2563EB") {
   const v = vals.slice(0, Math.max(1, upto));
-  const max = Math.max(...v, 0), min = Math.min(...v, 0), w = 84, h = 22, span = max - min || 1;
-  const pts = v.map((x, i) => `${v.length === 1 ? w / 2 : (i * w) / (v.length - 1)},${(h - 2 - ((x - min) / span) * (h - 4)).toFixed(1)}`).join(" ");
+  const max = Math.max(...v, 0), min = Math.min(...v, 0), w = 84, h = 22, span = max - min || 1, pad = 3;
+  const pts = v.map((x, i) => `${v.length === 1 ? w / 2 : pad + (i * (w - 2 * pad)) / (v.length - 1)},${(h - 3 - ((x - min) / span) * (h - 6)).toFixed(1)}`).join(" ");
   const last = pts.split(" ").pop().split(",");
   return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${last[0]}" cy="${last[1]}" r="2.2" fill="${color}"/></svg>`;
 }
@@ -94,7 +94,7 @@ function yearView() {
   ensureMonthStyle();
   const mc = (i) => `mc m${i}${i === curMonth ? " cur" : ""}`;   // month-column classes
   const monthHead = Model.MONTHS.map((m, i) => `<th class="num fx-m ${mc(i)}">${i === curMonth ? '<span class="fx-now" title="This month">Now</span>' : ""}${m}</th>`).join("");
-  const cols = 15 + (showBudget ? 1 : 0);
+  const cols = 15 + (showBudget ? 1 : 0) - 1;
 
   let body = "";
   const seen = new Set();
@@ -107,10 +107,10 @@ function yearView() {
     const subYear = sum(sub), collapsed = !!ui.sumCollapsed[g];
     const kind = cats[0].kind;
     body += `<tr class="fx-group" data-group="${esc(g)}">
-      <td class="fx-sticky"><button class="fx-caret" aria-label="Show or hide">${collapsed ? "▸" : "▾"}</button>${esc(g)} <span class="fx-count">${cats.length}</span></td>
+      <td class="fx-sticky"><div class="fx-catname"><button class="fx-caret" aria-label="Show or hide">${collapsed ? "▸" : "▾"}</button>${esc(g)} <span class="fx-count">${cats.length}</span></div>${sparkline(sub, upto, kind === "Income" ? "#16A34A" : kind === "Savings" ? "#7C3AED" : "#2563EB")}</td>
       ${sub.map((x, i) => `<td class="num ${mc(i)}">${kmoney(x)}</td>`).join("")}
-      <td class="num fx-year">${money(subYear, false)}</td><td class="num">${money(subYear / n, false)}</td>
-      ${showBudget ? "<td></td>" : ""}<td class="fx-trend">${sparkline(sub, upto, kind === "Income" ? "#16A34A" : kind === "Savings" ? "#7C3AED" : "#2563EB")}</td></tr>`;
+      <td class="num fx-year" title="${money(subYear, false)}">${kmoney(subYear)}</td><td class="num" title="${money(subYear / n, false)}">${kmoney(subYear / n)}</td>
+      ${showBudget ? "<td></td>" : ""}</tr>`;
     if (collapsed) continue;
     for (const c of cats) {
       const vals = grid.get(c.name) || Array(12).fill(0);
@@ -118,11 +118,11 @@ function yearView() {
       const yr = sum(vals), avg = yr / n, b = +c.budget > 0 ? +c.budget : null;
       const pct = b ? avg / b : 0;
       body += `<tr class="fx-row">
-        <td class="fx-sticky fx-cat">${esc(c.name)}</td>
-        ${vals.map((x, i) => `<td class="num fx-cell ${mc(i)}">${x ? money(x, false) : '<span class="fx-zero">–</span>'}</td>`).join("")}
-        <td class="num fx-year">${money(yr, false)}</td><td class="num">${money(avg, false)}</td>
+        <td class="fx-sticky fx-cat"><div class="fx-catname">${esc(c.name)}</div>${sparkline(vals, upto)}</td>
+        ${vals.map((x, i) => `<td class="num fx-cell ${mc(i)}"${x ? ` title="${Model.MONTHS[i]}: ${money(x, false)}"` : ""}>${x ? kmoney(x) : '<span class="fx-zero">–</span>'}</td>`).join("")}
+        <td class="num fx-year" title="${money(yr, false)}">${kmoney(yr)}</td><td class="num" title="${money(avg, false)}">${kmoney(avg)}</td>
         ${showBudget ? `<td class="fx-budget">${b ? `<div class="fx-meter ${pct > 1 && c.kind === "Expense" ? "over" : ""}"><span style="width:${Math.min(100, pct * 100).toFixed(0)}%"></span></div><div class="fx-meter-label">${money(avg, false)} / ${money(b, false)}</div>` : ""}</td>` : ""}
-        <td class="fx-trend">${sparkline(vals, upto)}</td></tr>`;
+</tr>`;
     }
   }
   const unknown = [...grid.keys()].filter((k) => !seen.has(k) && !CFG.categories.some((c) => c.name === k && ui.sumCollapsed[c.group]));
@@ -130,20 +130,20 @@ function yearView() {
     body += `<tr class="fx-group warn" id="fx-unknown"><td class="fx-sticky" colspan="${cols}">⚠ Uncategorized / unknown categories: <a href="#" id="fx-go-fix">fix them or leave them as is on Transactions</a></td></tr>`;
     for (const k of unknown) {
       const vals = grid.get(k);
-      body += `<tr class="fx-row"><td class="fx-sticky fx-cat">${esc(k || "(blank)")}</td>${vals.map((x, i) => `<td class="num fx-cell ${mc(i)}">${x ? money(x, false) : '<span class="fx-zero">–</span>'}</td>`).join("")}
-        <td class="num fx-year">${money(sum(vals), false)}</td><td class="num">${money(sum(vals) / n, false)}</td>${showBudget ? "<td></td>" : ""}<td></td></tr>`;
+      body += `<tr class="fx-row"><td class="fx-sticky fx-cat">${esc(k || "(blank)")}</td>${vals.map((x, i) => `<td class="num fx-cell ${mc(i)}">${x ? kmoney(x) : '<span class="fx-zero">–</span>'}</td>`).join("")}
+        <td class="num fx-year">${kmoney(sum(vals))}</td><td class="num">${kmoney(sum(vals) / n)}</td>${showBudget ? "<td></td>" : ""}</tr>`;
     }
   }
   const foot = (label, vals, cls) => `<tr class="fx-total ${cls}"><td class="fx-sticky">${label}</td>
     ${vals.map((x, i) => `<td class="num ${mc(i)} ${cls === "rem" ? (x < -0.005 ? "neg" : x > 0.005 ? "pos" : "") : ""}">${kmoney(x)}</td>`).join("")}
-    <td class="num fx-year ${cls === "rem" ? (sum(vals) < 0 ? "neg" : "pos") : ""}">${money(sum(vals), false)}</td><td class="num">${money(sum(vals) / n, false)}</td>${showBudget ? "<td></td>" : ""}<td></td></tr>`;
+    <td class="num fx-year ${cls === "rem" ? (sum(vals) < 0 ? "neg" : "pos") : ""}" title="${money(sum(vals), false)}">${kmoney(sum(vals))}</td><td class="num" title="${money(sum(vals) / n, false)}">${kmoney(sum(vals) / n)}</td>${showBudget ? "<td></td>" : ""}</tr>`;
 
   const table = `<div class="fx-card">
     <div class="fx-card-head"><h2>By category</h2>
-      <div class="fx-legend">${curMonth >= 0 ? `<span class="fx-now static">Now</span> = this month ·` : ""} averages over ${n} month${n > 1 ? "s" : ""}</div>
+      <div class="fx-legend">${curMonth >= 0 ? `<span class="fx-now static">Now</span> = this month ·` : ""} line under each name = trend · hover a number for the exact amount · averages over ${n} month${n > 1 ? "s" : ""}</div>
       <span class="spacer"></span><button class="fx-btn ghost" id="fx-expand">${Object.values(ui.sumCollapsed).some(Boolean) ? "Expand all" : "Collapse all"}</button></div>
-    <div class="table-wrap"><table class="fx-table">
-      <thead><tr><th class="fx-sticky">Category</th>${monthHead}<th class="num">Year</th><th class="num">Avg / mo</th>${showBudget ? "<th>Budget (avg)</th>" : ""}<th>Trend</th></tr></thead>
+    <div class="fx-tablebox"><table class="fx-table fx-year-table">
+      <thead><tr><th class="fx-sticky">Category</th>${monthHead}<th class="num fx-tot">Year</th><th class="num fx-tot">Avg/mo</th>${showBudget ? '<th class="fx-tot">Budget</th>' : ""}</tr></thead>
       <tbody>${body}</tbody>
       <tfoot>${foot("Spent", tot.spending, "")}${foot("Saved", tot.savings, "")}${foot("Remaining", tot.remaining, "rem")}</tfoot>
     </table></div></div>`;

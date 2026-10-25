@@ -24,6 +24,11 @@ Format: **What didn't work / What worked / Note for next time.** Check here befo
 - **What worked:** cells keep their color in `background-image` layers (month tint, stacked under a hover overlay) and a plain `background-color` base, so hover adds one even layer on top of everything.
 - **Note:** in tables with colored cells, never mix the `background` shorthand with hover rules that set `background-color`.
 
+## Summary still scrolled sideways after the table was made to fit
+- **Cause:** not the table. A CSS grid with `1.6fr 1fr` columns won't shrink below its content, so a chart canvas sized at a wider window held the page wide; and a headline-card sparkline (fixed 84px, `flex: none`) poked out of a narrow card.
+- **What worked:** `minmax(0, …)` grid tracks + `min-width: 0` on cards and chart boxes; sparklines can shrink and are clipped to their box.
+- **Note:** to find what widens a page, list elements whose `getBoundingClientRect().right > innerWidth` and walk up their parents.
+
 ## Compare years crashed with only one year of data
 - **Cause:** The handler for the "average per month" checkbox ran even when that checkbox wasn't rendered.
 - **Note:** guard optional controls (`const el = $(...); if (el) ...`).

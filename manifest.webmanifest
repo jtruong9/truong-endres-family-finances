@@ -1,7 +1,7 @@
 {
-  "name": "Truong Finance",
-  "short_name": "Finance",
-  "description": "Household budgeting for Justin and Kelly. Works offline.",
+  "name": "Truong Endres Family Finances",
+  "short_name": "Family Finances",
+  "description": "Family budgeting for Justin and Kelly. Works offline.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

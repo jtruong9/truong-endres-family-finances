@@ -9,6 +9,8 @@
 "use strict";
 
 const Store = (() => {
+  // Internal names below stay "truong-finance" on purpose (the app's original name): they mark the data
+  // files and this computer's saved folder, so renaming them would make the app forget or reject them.
   const DB_NAME = "truong-finance";
   let dir = null;            // FileSystemDirectoryHandle
   let deviceId = null;

@@ -10,7 +10,7 @@ function renderHelp() {
   $("#tab-help").innerHTML = `
   <div class="help">
     <div class="card help-hero">
-      <h2>How to use Truong Finance</h2>
+      <h2>How to use Truong Endres Family Finances</h2>
       <p>A guide for ${p1} and ${p2}. Everything you enter is saved automatically to your shared Google Drive folder, and it shows up on the other person's computer too.</p>
       <div class="help-toc">
         <a href="#h-flow">How our money flows</a><a href="#h-first">First-time setup</a><a href="#h-daily">Everyday logging</a>
@@ -41,12 +41,12 @@ function renderHelp() {
 
     <div class="card" id="h-first">
       <h2 class="cat-bar">First-time setup (each computer, once)</h2>
-      ${step(1, "Open the app in Google Chrome", `<p>Go to <b>jtruong9.github.io/truong-finance</b> and bookmark it. It only works in <b>Chrome</b>.</p>`)}
-      ${step(2, "Connect the shared folder", `<p>Click <b>Choose data folder</b>, then in the window go to <b>This PC &rsaquo; Google Drive (G:) &rsaquo; My Drive &rsaquo; Truong Finance Data</b>. Click the folder once and press <b>Select Folder</b> (bottom-right). When Chrome asks, click <b>Edit files</b>.</p>
-        <p class="hint">${p2}: the folder is shared from ${p1}'s Google Drive. Open drive.google.com &rsaquo; <i>Shared with me</i> &rsaquo; right-click <b>Truong Finance Data</b> &rsaquo; <i>Organize &rsaquo; Add shortcut</i> &rsaquo; <i>My Drive</i>. Otherwise it won't show up on your G: drive.</p>`)}
+      ${step(1, "Open the app in Google Chrome", `<p>Go to <b>jtruong9.github.io/truong-endres-family-finances</b> and bookmark it. It only works in <b>Chrome</b>.</p>`)}
+      ${step(2, "Connect the shared folder", `<p>Click <b>Choose data folder</b>, then in the window go to <b>This PC &rsaquo; Google Drive (G:) &rsaquo; My Drive &rsaquo; Truong Endres Family Finances Data</b>. Click the folder once and press <b>Select Folder</b> (bottom-right). When Chrome asks, click <b>Edit files</b>.</p>
+        <p class="hint">${p2}: the folder is shared from ${p1}'s Google Drive. Open drive.google.com &rsaquo; <i>Shared with me</i> &rsaquo; right-click <b>Truong Endres Family Finances Data</b> &rsaquo; <i>Organize &rsaquo; Add shortcut</i> &rsaquo; <i>My Drive</i>. Otherwise it won't show up on your G: drive.</p>`)}
       ${step(3, "Bring in your old spreadsheet", `<p>Go to the <b>Import</b> tab &rsaquo; <b>Old database</b>. Pick <b>your own</b> personal account (${p1} &rarr; <b>${p1Acct}</b>, ${p2} &rarr; <b>${p2Acct}</b>), then click <b>Choose File</b> and pick your old expense spreadsheet, whatever it's named. Check the preview and click <b>Import</b>.</p>`)}
       ${step(4, "If Chrome asks again later", `<p>Sometimes Chrome asks you to confirm folder access after a restart. Just click <b>Reconnect</b>. Nothing is lost.</p>`)}
-      ${step(5, "Install it so it works without internet", `<p>With internet on, click <b>Install</b> in the top bar (or Chrome's menu <b>⋮</b> &rsaquo; <i>Cast, save and share</i> &rsaquo; <b>Install page as app</b>). Truong Finance gets its own icon in the Start menu and on the desktop. Open it from that icon from now on.</p>
+      ${step(5, "Install it so it works without internet", `<p>With internet on, click <b>Install</b> in the top bar (or Chrome's menu <b>⋮</b> &rsaquo; <i>Cast, save and share</i> &rsaquo; <b>Install page as app</b>). Truong Endres Family Finances gets its own icon in the Start menu and on the desktop. Open it from that icon from now on.</p>
         <p>After that it opens <b>even with no internet</b>. Everything you add while offline is saved to this computer; the <b>Offline</b> badge in the top bar just means Google Drive will upload it, and show it on the other computer, once you're back online.</p>
         <p class="hint">When an update is available you'll see <b>"A new version is ready"</b> at the bottom. Click <b>Update</b> any time.</p>`)}
       ${step(icon("menu"), "Getting around", `<p>Every page is in the <b>menu on the left</b>. Click the ${icon("menu")} button (top left) to shrink it to just icons and get more room, and click it again to bring the names back. In a small window the menu hides itself; click ${icon("menu")} to slide it out. The number on <b>Transactions</b> is how many rows are waiting for you (imported rows to sort, plus anything that needs attention).</p>`)}

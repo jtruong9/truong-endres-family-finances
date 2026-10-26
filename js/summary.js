@@ -61,7 +61,7 @@ function renderSummary() {
   $$("#tab-summary .seg button").forEach((b) => (b.onclick = () => { ui.summaryView = b.dataset.view; renderSummary(); }));
   const ys = $("#sm-year"); if (ys) ys.onchange = (e) => { ui.year = +e.target.value; renderSummary(); };
   wireOwnerTabs("sm-owner", (o) => { ui.owner = o; renderSummary(); });
-  $("#sm-export").onclick = () => Importers.exportXlsx(CFG, Store.transactions(), `Truong_Finance_${todayIso()}.xlsx`);
+  $("#sm-export").onclick = () => Importers.exportXlsx(CFG, Store.transactions(), `Truong_Endres_Family_Finances_${todayIso()}.xlsx`);
   if (v === "year") wireYearView(); else { const pm = $("#cmp-pm"); if (pm) pm.onchange = (e) => { ui.cmpPerMonth = e.target.checked; renderSummary(); }; }
 }
 

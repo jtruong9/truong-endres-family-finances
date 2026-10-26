@@ -1,4 +1,4 @@
-# Truong Finance
+# Truong Endres Family Finances
 
 A household budgeting app for Justin and Kelly, built around our joint account. It runs in Google Chrome, there's nothing to install, and your data stays in your own Google Drive folder.
 
@@ -13,13 +13,13 @@ The **How to use** tab inside the app is the main guide for both of us. This fil
 1. **Install Google Drive for desktop** (https://www.google.com/drive/download/) and sign in.
    Use your *personal* Google account, not a work one.
 2. **Create the shared data folder** (one person does this once):
-   - Open Google Drive in Chrome → New → New folder → name it `Truong Finance Data`.
+   - Open Google Drive in Chrome → New → New folder → name it `Truong Endres Family Finances Data`.
    - Right-click the folder → Share → add Kelly's Google account as **Editor**.
    - On Kelly's computer: open drive.google.com → *Shared with me* → right-click the folder → **Organize → Add shortcut** → *My Drive*.
      Without this step the folder doesn't appear on her G: drive.
-3. **Keep the folder available offline** (recommended): in File Explorer go to `G:\My Drive\Truong Finance Data` → right-click → **Offline access → Available offline**.
-4. **Open the app** in Chrome: **https://jtruong9.github.io/truong-finance/**
-   - Click **Choose data folder** and pick `G:\My Drive\Truong Finance Data`.
+3. **Keep the folder available offline** (recommended): in File Explorer go to `G:\My Drive\Truong Endres Family Finances Data` → right-click → **Offline access → Available offline**.
+4. **Open the app** in Chrome: **https://jtruong9.github.io/truong-endres-family-finances/**
+   - Click **Choose data folder** and pick `G:\My Drive\Truong Endres Family Finances Data`.
    - Chrome asks to let the site *view and edit files*. Click **Edit files** (and *Allow on every visit* if offered).
 5. **Install it so it works offline:** with internet on, click **Install** in the top bar (or Chrome's menu ⋮ → *Cast, save and share* → **Install page as app**). Open it from the new Start-menu/desktop icon from then on.
    - It now opens and works **with no internet**. Anything you add while offline is saved to this computer, and Google Drive uploads it when you're back online (an **Offline** badge shows in the top bar when you're offline).

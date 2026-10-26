@@ -298,8 +298,8 @@ function renderSettings() {
     for (const s of sugg) $("#st-rules tbody").insertAdjacentHTML("beforeend", `<tr><td><input data-k="match" value="${esc(s.match)}"></td><td><select data-k="category">${catOpts(s.category)}</select></td>${del}</tr>`);
     toast(`Added ${sugg.length} suggested rules. Review them, then Save rules.`);
   };
-  $("#st-backup").onclick = () => Importers.download(`truong-finance-backup-${todayIso()}.json`, new Blob([JSON.stringify(Store.snapshot(), null, 1)], { type: "application/json" }));
-  $("#st-export").onclick = () => Importers.exportXlsx(CFG, Store.transactions(), `Truong_Finance_${todayIso()}.xlsx`);
+  $("#st-backup").onclick = () => Importers.download(`truong-endres-finances-backup-${todayIso()}.json`, new Blob([JSON.stringify(Store.snapshot(), null, 1)], { type: "application/json" }));
+  $("#st-export").onclick = () => Importers.exportXlsx(CFG, Store.transactions(), `Truong_Endres_Family_Finances_${todayIso()}.xlsx`);
   $("#st-restore").onchange = async (e) => {
     const snap = JSON.parse(await e.target.files[0].text());
     const n = (snap.transactions || []).length;

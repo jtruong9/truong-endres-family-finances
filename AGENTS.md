@@ -1,4 +1,4 @@
-# AGENTS.md: context for AI assistants working on Truong Finance
+# AGENTS.md: context for AI assistants working on Truong Endres Family Finances
 
 Read this first, then `docs/DECISIONS.md` (why things are the way they are) and `docs/LESSONS.md`
 (mistakes not to repeat). `CLAUDE.md` points here, so Claude Code, Codex, Cursor and other tools
@@ -14,7 +14,7 @@ all get the same instructions.
 
 A household budgeting web app for a married couple, **Justin** (owner of the repo) and **Kelly**.
 It is a static site (no build step, no server, no backend) served by GitHub Pages at
-`https://jtruong9.github.io/truong-finance/`. It runs in **Chrome on Windows** (desktop only; no phones).
+`https://jtruong9.github.io/truong-endres-family-finances/`. It runs in **Chrome on Windows** (desktop only; no phones).
 Data lives in a **Google Drive folder** the user picks with Chrome's folder picker.
 
 ## The people and how they work

@@ -56,5 +56,5 @@
     deferred = null;
     $("#btn-install").hidden = true;
   };
-  window.addEventListener("appinstalled", () => { $("#btn-install").hidden = true; toast("Installed. Open Truong Finance from its icon, even without internet."); });
+  window.addEventListener("appinstalled", () => { $("#btn-install").hidden = true; toast("Installed. Open Truong Endres Family Finances from its icon, even without internet."); });
 })();

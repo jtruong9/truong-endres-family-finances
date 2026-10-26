@@ -359,4 +359,28 @@ t("categories by year: pickers show this year's + never-used + the row's own", (
   assert.strictEqual(J(Model.currentCategories(c, s, 2026, ["Old Bills"]).map((x) => x.name)), J(["Old Bills", "Rent", "Brand New", "Paychecks"]));
 });
 
+t("money flow plan: split what's in the Hub (paychecks summed, or a typed-in amount)", () => {
+  const c = Model.config((k, d) => (k === "split" ? [{ toAccount: "Joint Savings", mode: "fixed", value: 2500 },
+    { toAccount: "Justin's Spending", mode: "percent", value: 50 }, { toAccount: "Kelly's Spending", mode: "percent", value: 50 }] : d));
+  const pays = [{ who: "p1", amount: 600 }, { who: "p2", amount: 2000 }];
+  const amt = (f, id) => (f.nodes.find((x) => x.id === id) || {}).amount;
+  // Paychecks alone: 2600 in the Hub, 2500 fixed, 50% / 50% of the 100 left
+  const a = Model.planFlow(c, pays);
+  assert.strictEqual(J([a.hubIn, a.paid, a.leftover, amt(a, "acct:Justin's Spending")]), J([2600, 2600, 0, 50]));
+  // More is in the Hub than the paychecks: the extra shows as "Already in Joint Hub" and gets split too
+  const b = Model.planFlow(c, pays, 6000);
+  assert.strictEqual(J([b.hubIn, amt(b, "pay:already"), amt(b, "acct:Joint Savings"), amt(b, "acct:Kelly's Spending"), b.leftover]), J([6000, 3400, 2500, 1750, 0]));
+  // Less in the Hub than the fixed amounts: negative leftover (the warning)
+  assert.strictEqual(Model.planFlow(c, pays, 2000).leftover, -500);
+  // Empty box = use the paychecks
+  assert.strictEqual(Model.planFlow(c, pays, "").hubIn, 2600);
+});
+
+t("last paycheck ignores savings rows like 'Paycheck Saving'", () => {
+  const s = [
+    { date: "2026-10-09", desc: "Paycheck", amount: 3900, category: "Paychecks", account: "Justin Personal" },
+    { date: "2026-10-23", desc: "Paycheck Saving", amount: 600, category: "Monthly Saving", account: "Justin Personal", toAccount: "Joint Savings" }];
+  assert.strictEqual(Model.lastPaycheck(CFG, s, "p1"), 3900);
+});
+
 console.log(`\n${n} tests passed`);

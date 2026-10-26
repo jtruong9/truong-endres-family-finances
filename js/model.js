@@ -546,23 +546,31 @@ const Model = (() => {
   // Plan: one paycheck each, split by Settings › Paycheck split. pays = [{ who: "p1", amount }]
   // Both paychecks land in the Hub; the split is applied ONCE to the total in the Hub
   // (a $2,500 fixed line takes $2,500 per pay period, not $2,500 per person).
-  function planFlow(cfg, pays) {
+  // hubAmount (optional): what's in the Hub to split. Defaults to the sum of the paychecks; when it's
+  // more, the extra (money already there) shows as its own box going into the Hub.
+  function planFlow(cfg, pays, hubAmount) {
     const hub = hubName(cfg), nodes = [], links = [], into = new Map();
-    let hubIn = 0;
+    let paid = 0;
     for (const p of pays) {
       const amt = r2(+p.amount || 0);
       nodes.push({ id: `pay:${p.who}`, level: 0, label: `${cfg.people[p.who]}'s paycheck`, amount: amt, lines: [] });
       links.push({ from: `pay:${p.who}`, to: `acct:${hub}`, amount: amt, kind: "income" });
-      hubIn += amt;
+      paid += amt;
     }
-    hubIn = r2(hubIn);
+    paid = r2(paid);
+    const hubIn = hubAmount === undefined || hubAmount === null || hubAmount === "" || isNaN(+hubAmount) ? paid : r2(+hubAmount);
+    const extra = r2(hubIn - paid);
+    if (extra > 0.005) {
+      nodes.push({ id: "pay:already", level: 0, label: `Already in ${hub}`, amount: extra, lines: [] });
+      links.push({ from: "pay:already", to: `acct:${hub}`, amount: extra, kind: "move" });
+    }
     const d = distribute(cfg.split, hubIn);
     let leftover = d.leftover;
     for (const t of d.transfers) {
       if (t.toAccount === hub) leftover += t.amount;
       else into.set(t.toAccount, (into.get(t.toAccount) || 0) + t.amount);
     }
-    nodes.push({ id: `acct:${hub}`, level: 1, label: hub, amount: r2(hubIn), lines: [], hub: true });
+    nodes.push({ id: `acct:${hub}`, level: 1, label: hub, amount: hubIn, lines: extra < -0.005 ? [["Less than the paychecks by", -extra]] : [], hub: true });
     const accts = flowAccounts(cfg, hub).filter((a) => acctRank(a) < 7 || into.has(a.name));
     for (const name of into.keys()) if (!accts.some((a) => a.name === name)) accts.push({ name, owner: "", type: "" });
     for (const a of accts) {
@@ -578,7 +586,7 @@ const Model = (() => {
       nodes.push({ id: "left:hub", level: 2, label: `Stays in ${hub}`, amount: leftover, lines: [] });
       links.push({ from: `acct:${hub}`, to: "left:hub", amount: leftover, kind: "move" });
     }
-    return { hub, nodes, links, leftover };
+    return { hub, nodes, links, leftover, hubIn, paid };
   }
 
   // Actual: what really moved in one month, from saved transactions (all owners)

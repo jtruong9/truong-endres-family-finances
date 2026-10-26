@@ -142,3 +142,8 @@ Public file: no amounts, account details or other personal financial data.
 - **Rejected:** a manual "Retired" flag per category.
 - **Transactions total:** Income − Spent − Saved = net, for the filtered rows; transfers excluded. Replaces the plain sum. Rejected: Income − Spent only.
 - **Reorder (owners' choice, changed the same day from ▲ ▼ to drag and drop):** Bills, Goals, Accounts and Categories have a drag handle (six dots). Only the handle starts a drag, so inputs in a row still work; pointer events, so mouse and touch both work; the page scrolls when dragging near an edge. Bills/Accounts/Categories save with their table's Save button (a "click Save" hint appears after a move); Goals save on drop. List order drives the Dashboard/Check-in bills, every account drop-down, and the order within a group on the Summary and pickers. Shared helper: `makeSortable` + `dragHandle` in app.js.
+
+## 2026-10 — Money flow Plan splits what's in the Joint Hub
+- **Decided (owners' choice):** the Plan keeps both paycheck boxes and adds a **Joint Hub** box. It starts as the sum of the paychecks; typing an amount overrides it (money already in the Hub, or one paycheck so far), and *use both paychecks* resets it. The split, and the "fixed amounts are more than…" warning, use the **Hub amount**. Extra money beyond the paychecks shows as an "Already in Joint Hub" box feeding the Hub. `Model.planFlow(cfg, pays, hubAmount)`.
+- **Why:** the owner got "fixed amounts are more than the paychecks" although the split is taken from the Hub. The warning now names both numbers.
+- **Rejected:** a Hub amount only (no paycheck boxes); only fixing the prefill.

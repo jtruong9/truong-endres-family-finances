@@ -109,7 +109,7 @@ function renderHelp() {
       <h2 class="cat-bar">Money flow</h2>
       <p>The <b>Money flow</b> page draws our money as boxes from top to bottom: paychecks &rarr; the <b>Joint Hub</b> &rarr; Joint Savings, Joint Bills and the three spending pots (shown together in a dashed box, because their money stays in the Hub) &rarr; where it leaves them. A <b>thicker arrow means more money</b>, and the moving dots show which way it goes. Hover a box to light up its arrows; hover an arrow for the exact amount.</p>
       <ul>
-        <li><b>Plan</b>: type each person's paycheck (it starts with your last logged paycheck). Both are <b>added together in the Joint Hub</b>, and the split is taken <b>once</b> from that total, using <b>Settings &rsaquo; Paycheck split</b>. So $2,500 fixed to Joint Savings shows as $2,500, not $2,500 per person. Anything the split doesn't send out shows as "Stays in Joint Hub".</li>
+        <li><b>Plan</b>: type each person's paycheck (it starts with your last logged paycheck). They're added up in the <b>Joint Hub</b> box, and the split is taken <b>once</b> from what's in the Hub, using <b>Settings &rsaquo; Paycheck split</b>. If the Hub holds a different amount (money already sitting there, or only one paycheck so far), type it into the <b>Joint Hub</b> box; <i>use both paychecks</i> puts it back. A $2,500 fixed line shows as $2,500. Anything the split doesn't send out shows as "Stays in Joint Hub".</li>
         <li><b>Actual month</b>: what really moved that month, from saved transactions. Each account shows what came in and what's <b>left</b>, and the bottom row shows what was spent, saved or paid as bills. It fills in once paychecks are logged with the <b>Paycheck</b> button.</li>
       </ul>
     </div>

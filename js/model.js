@@ -184,10 +184,16 @@ const Model = (() => {
       if (v > 0) { out.push({ toAccount: s.toAccount, amount: v }); left = r2(left - v); }
     }
     const afterFixed = Math.max(0, left);
-    for (const s of split.filter((s) => s.mode === "percent")) {
-      const v = r2((afterFixed * s.value) / 100);
-      if (v > 0) { out.push({ toAccount: s.toAccount, amount: v }); left = r2(left - v); }
-    }
+    // Rounding each share to cents can take a cent more than there is (50% / 50% of an odd cent amount
+    // rounds both up). Shares are rounded down to the cent, then the leftover cents go to the largest
+    // shares, so they never add up to more than their total percent of what's left.
+    const pct = split.filter((s) => s.mode === "percent" && +s.value > 0);
+    const totalPct = Math.min(100, pct.reduce((t, s) => t + +s.value, 0));
+    const target = Math.round(afterFixed * totalPct);   // cents, = afterFixed * totalPct / 100 * 100
+    const shares = pct.map((s) => Math.floor(Math.round(afterFixed * 100 * s.value) / 100));   // cents, rounded down
+    let spare = target - shares.reduce((t, c) => t + c, 0);
+    for (const i of shares.map((_, i) => i).sort((a, b) => +pct[b].value - +pct[a].value || a - b)) { if (spare <= 0) break; shares[i]++; spare--; }
+    pct.forEach((s, i) => { const v = shares[i] / 100; if (v > 0) { out.push({ toAccount: s.toAccount, amount: v }); left = r2(left - v); } });
     const rest = split.filter((s) => s.mode === "rest");
     if (rest.length && left > 0) {
       const each = r2(left / rest.length);
@@ -526,6 +532,14 @@ const Model = (() => {
     .sort((x, y) => acctRank(x.a) - acctRank(y.a) || x.i - y.i).map(({ a }) => a);
   const outLabel = (cfg, a, role) => (role === "save" ? "Savings" : role === "bills" ? "Recurring bills" : a.owner === "p1" || a.owner === "p2" ? `${cfg.people[a.owner]}'s spending` : a.owner === "joint" ? "Joint spending" : "Spending");
   const acctRole = (cfg, a) => (a.type === "Savings" ? "save" : cfg.recurring.some((b) => b.account === a.name) || /bill/i.test(a.name) ? "bills" : "spend");
+  const rentalLabel = (cfg) => "Rental income";
+  // Most recent rent received (Income on a rental transaction), or null: prefills the Plan
+  function lastRentalIncome(cfg, txs) {
+    if (!(cfg.rental.match || cfg.rental.tag)) return null;
+    let best = null;
+    for (const t of txs) if (isPosted(t) && kindOf(cfg, t) === "Income" && isRental(cfg.rental, t) && (!best || t.date > best.date)) best = t;
+    return best ? r2(best.amount) : null;
+  }
   // Whose income: a name in the description ("Paycheck – Kelly"), else the account's owner
   function incomeOwner(cfg, t) {
     const d = String(t.desc || "").toLowerCase();
@@ -543,7 +557,7 @@ const Model = (() => {
     return best ? r2(best.amount) : null;
   }
 
-  // Plan: one paycheck each, split by Settings › Paycheck split. pays = [{ who: "p1", amount }]
+  // Plan: one paycheck each (+ rent, who: "rental"), split by Settings › Paycheck split. pays = [{ who: "p1", amount }]
   // Both paychecks land in the Hub; the split is applied ONCE to the total in the Hub
   // (a $2,500 fixed line takes $2,500 per pay period, not $2,500 per person).
   // hubAmount (optional): what's in the Hub to split. Defaults to the sum of the paychecks; when it's
@@ -553,7 +567,10 @@ const Model = (() => {
     let paid = 0;
     for (const p of pays) {
       const amt = r2(+p.amount || 0);
-      nodes.push({ id: `pay:${p.who}`, level: 0, label: `${cfg.people[p.who]}'s paycheck`, amount: amt, lines: [] });
+      // who = "rental": rent from the rental property, which also goes straight into the Hub
+      if (p.who === "rental" && !(amt > 0.005)) continue;
+      const label = p.who === "rental" ? rentalLabel(cfg) : `${cfg.people[p.who]}'s paycheck`;
+      nodes.push({ id: `pay:${p.who}`, level: 0, label, amount: amt, lines: [] });
       links.push({ from: `pay:${p.who}`, to: `acct:${hub}`, amount: amt, kind: "income" });
       paid += amt;
     }
@@ -570,7 +587,7 @@ const Model = (() => {
       if (t.toAccount === hub) leftover += t.amount;
       else into.set(t.toAccount, (into.get(t.toAccount) || 0) + t.amount);
     }
-    nodes.push({ id: `acct:${hub}`, level: 1, label: hub, amount: hubIn, lines: extra < -0.005 ? [["Less than the paychecks by", -extra]] : [], hub: true });
+    nodes.push({ id: `acct:${hub}`, level: 1, label: hub, amount: hubIn, lines: extra < -0.005 ? [["Less than what came in by", -extra]] : [], hub: true });
     const accts = flowAccounts(cfg, hub).filter((a) => acctRank(a) < 7 || into.has(a.name));
     for (const name of into.keys()) if (!accts.some((a) => a.name === name)) accts.push({ name, owner: "", type: "" });
     for (const a of accts) {
@@ -598,14 +615,15 @@ const Model = (() => {
     for (const t of txs) {
       if (!isPosted(t) || !inYear(t, year) || monthIdx(t) !== month) continue;
       const k = kindOf(cfg, t);
-      if (k === "Income") add(income, `${incomeOwner(cfg, t)}|${t.account}`, t.amount);
+      if (k === "Income") add(income, `${isRental(cfg.rental, t) ? "rental" : incomeOwner(cfg, t)}|${t.account}`, t.amount);
       else if (k === "Transfer" && t.toAccount) (t.account === hub ? add(hubTo, t.toAccount, t.amount) : add(moved, t.account, t.amount));
       else if (k === "Savings" && t.toAccount && t.account === hub) add(hubSaved, t.toAccount, t.amount);
     }
     // Row 0: whose income, and the account it landed in
-    const who = [...new Set([...income.keys()].map((k) => k.split("|")[0]))].sort();
+    const order = (w) => ({ p1: 0, p2: 1, rental: 2, other: 3 }[w] ?? 4);
+    const who = [...new Set([...income.keys()].map((k) => k.split("|")[0]))].sort((a, b) => order(a) - order(b));
     for (const w of who) {
-      nodes.push({ id: `src:${w}`, level: 0, label: w === "other" ? "Other income" : `${cfg.people[w]}'s income`, amount: r2([...income].filter(([k]) => k.startsWith(`${w}|`)).reduce((s, [, v]) => s + v, 0)), lines: [] });
+      nodes.push({ id: `src:${w}`, level: 0, label: w === "other" ? "Other income" : w === "rental" ? rentalLabel(cfg) : `${cfg.people[w]}'s income`, amount: r2([...income].filter(([k]) => k.startsWith(`${w}|`)).reduce((s, [, v]) => s + v, 0)), lines: [] });
     }
     let notHub = 0;
     for (const [k, v] of income) {
@@ -648,7 +666,7 @@ const Model = (() => {
 
   return {
     DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2, POT, isPot, openAccounts, bankBalanceAt, potBalanceAt, batchEdit, batchProblem, categoriesByYear, currentCategories,
-    hubName, incomeOwner, lastPaycheck, planFlow, actualFlow,
+    hubName, incomeOwner, lastPaycheck, lastRentalIncome, planFlow, actualFlow,
     config, ownerLabel, kindOf, ownerOf, matchesOwner, ownerParts, FROM_PREFIX, isPosted, tagList,
     yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, issueList, openIssues, issueGroups, autoCategory,
     resolveReview, merchantKey, buildGuessIndex, guessCategory, buildMatchIndex, findMatches,

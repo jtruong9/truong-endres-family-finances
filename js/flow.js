@@ -13,29 +13,34 @@ const FLOW_LABEL = { income: "Income", move: "Transfer", spent: "Spent / bills",
 function renderFlow() {
   const plan = flowUi.view === "plan";
   if (plan) for (const p of ["p1", "p2"]) if (!(p in flowUi.pay)) flowUi.pay[p] = Model.lastPaycheck(CFG, Store.transactions(), p) ?? "";
-  const pays = ["p1", "p2"].map((who) => ({ who, amount: +flowUi.pay[who] || 0 }));
+  if (plan && !("rental" in flowUi.pay)) flowUi.pay.rental = Model.lastRentalIncome(CFG, Store.transactions()) ?? "";
+  const pays = ["p1", "p2", "rental"].map((who) => ({ who, amount: +flowUi.pay[who] || 0 }));
   const f = plan ? Model.planFlow(CFG, pays, flowUi.hub) : Model.actualFlow(CFG, Store.transactions(), flowUi.year, flowUi.month);
 
   const hubName = esc(Model.hubName(CFG));
   const controls = plan
     ? ["p1", "p2"].map((p) => `<label class="fl-pay">${esc(CFG.people[p])}'s paycheck <input type="number" min="0" step="0.01" data-pay="${p}" value="${flowUi.pay[p]}" placeholder="0.00"></label>`).join("") +
-      `<label class="fl-pay fl-hub">${hubName} <input type="number" min="0" step="0.01" id="fl-hub" value="${flowUi.hub === "" ? f.paid : flowUi.hub}" title="What's in the ${hubName} to split. Starts as both paychecks added up; type your own amount if it's different.">
-        ${flowUi.hub === "" ? `<span class="muted">= both paychecks</span>` : `<a href="#" id="fl-hub-reset">use both paychecks</a>`}</label>`
+      `<label class="fl-pay">Rental income <input type="number" min="0" step="0.01" data-pay="rental" value="${flowUi.pay.rental}" placeholder="0.00" title="Rent from the rental property. It goes straight into the ${hubName}."></label>` +
+      `<label class="fl-pay fl-hub">${hubName} <input type="number" min="0" step="0.01" id="fl-hub" value="${flowUi.hub === "" ? f.paid : flowUi.hub}" title="What's in the ${hubName} to split. Starts as everything above added up; type your own amount if it's different.">
+        ${flowUi.hub === "" ? `<span class="muted">= all of the above</span>` : `<a href="#" id="fl-hub-reset">add up the above</a>`}</label>`
     : `<select id="fl-month">${opts(Model.MONTHS.map((m, i) => [String(i), m]), String(flowUi.month))}</select><select id="fl-year">${opts(years().map(String), String(flowUi.year))}</select>`;
   const actions = `<div class="seg"><button data-view="plan" class="${plan ? "on" : ""}">Plan</button><button data-view="actual" class="${plan ? "" : "on"}">Actual month</button></div>`;
   const moved = f.links.some((l) => l.kind === "move" && l.amount > 0);
 
+  // The warning only compares the FIXED amounts with what's in the Hub (percents never overspend)
+  const fixedTotal = Model.r2(CFG.split.filter((s) => s.mode === "fixed").reduce((t, s) => t + (+s.value || 0), 0));
   // Split lines still pointing at a closed account (e.g. the old personal accounts)
   const stale = CFG.split.filter((s) => (CFG.accountByName.get(s.toAccount) || {}).closed);
   let note = "";
   if (plan && stale.length) note = notice(`The paycheck split still sends money to ${stale.map((s) => esc(s.toAccount)).join(" and ")}, which ${stale.length > 1 ? "are" : "is"} closed. Move ${stale.length > 1 ? "them" : "it"} to the matching spending pot in the Hub?`, "Move to the pots", "fl-fix-split", true);
   else if (plan && !CFG.split.length) note = notice("No paycheck split set up yet, so everything stays in the Hub.", "Set up the split", "fl-go-split");
-  else if (plan && f.leftover < -0.005) note = notice(`The fixed amounts in the paycheck split (${money(CFG.split.filter((s) => s.mode === "fixed").reduce((t, s) => t + (+s.value || 0), 0), false)}) are more than the ${money(f.hubIn, false)} in the ${hubName}.`, "Check the split", "fl-go-split", true);
+  else if (plan && fixedTotal > f.hubIn + 0.005) note = notice(`The fixed amounts in the paycheck split (${money(fixedTotal, false)}) are more than the ${money(f.hubIn, false)} in the ${hubName}.`, "Check the split", "fl-go-split", true);
+  else if (plan && f.leftover < -0.005) note = notice(`The percentages in the paycheck split add up to more than 100%.`, "Check the split", "fl-go-split", true);
   else if (!plan && !moved) note = notice(`No transfers out of the ${esc(f.hub)} logged for ${Model.MONTHS[flowUi.month]} ${flowUi.year}. Log paychecks with the Paycheck button and they'll show here.`, "Log a paycheck", "fl-go-pay");
   else if (!plan && f.notHub > 0.005) note = `<p class="hint">${money(f.notHub, false)} of income went straight into other accounts, not the ${esc(f.hub)}.</p>`;
 
   $("#tab-flow").innerHTML = `
-    ${pageHead("Money flow", plan ? "Where one paycheck each goes, using your paycheck split" : "What really moved between accounts that month", actions)}
+    ${pageHead("Money flow", plan ? "Paychecks and rent go into the Joint Hub, then your paycheck split divides it" : "What really moved between accounts that month", actions)}
     <div class="fl-controls row">${controls}<span class="spacer"></span>
       <div class="fl-key">${["income", "move", "saved", "spent"].map((k) => `<span><i style="background:${FLOW_COLOR[k]}"></i>${FLOW_LABEL[k]}</span>`).join("")}</div></div>
     ${note}

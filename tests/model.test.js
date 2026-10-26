@@ -383,4 +383,37 @@ t("last paycheck ignores savings rows like 'Paycheck Saving'", () => {
   assert.strictEqual(Model.lastPaycheck(CFG, s, "p1"), 3900);
 });
 
+t("money flow: rental income is its own block going straight into the Hub", () => {
+  const c = Model.config((k, d) => (k === "rental" ? { name: "Main St", match: "123 main", tag: "rental" }
+    : k === "split" ? [{ toAccount: "Joint Savings", mode: "fixed", value: 1000 }, { toAccount: "Joint Bills", mode: "rest" }] : d));
+  const s = [
+    { date: "2026-10-01", desc: "123 Main rent", amount: 1800, category: "Other Income Sources", account: "Justin Personal" },
+    { date: "2026-11-01", desc: "123 Main rent", amount: 1850, category: "Other Income Sources", account: "Joint Hub" },
+    { date: "2026-11-01", desc: "Paycheck – Justin", amount: 4000, category: "Paychecks", account: "Joint Hub" }];
+  assert.strictEqual(Model.lastRentalIncome(c, s), 1850);
+  // Plan: paychecks + rent are summed at the Hub and split once
+  const p = Model.planFlow(c, [{ who: "p1", amount: 4000 }, { who: "p2", amount: 0 }, { who: "rental", amount: 1850 }]);
+  const node = (f, id) => f.nodes.find((x) => x.id === id);
+  assert.strictEqual(J([node(p, "pay:rental").label, node(p, "pay:rental").amount, p.hubIn, node(p, "acct:Joint Bills").amount]), J(["Rental income", 1850, 5850, 4850]));
+  assert.strictEqual(node(Model.planFlow(c, [{ who: "p1", amount: 4000 }, { who: "rental", amount: 0 }]), "pay:rental"), undefined);   // no rent, no box
+  // Actual: November rent shows as Rental income into the Hub, not as Justin's income
+  const a = Model.actualFlow(c, s, 2026, 10);
+  assert.strictEqual(J([node(a, "src:rental").amount, node(a, "src:p1").amount, a.links.find((l) => l.from === "src:rental").to]), J([1850, 4000, "acct:Joint Hub"]));
+  // October rent (old row, in a personal account) still gets the Rental block
+  const o = Model.actualFlow(c, s, 2026, 9);
+  assert.strictEqual(J([node(o, "src:rental").amount, node(o, "src:p1"), o.links.find((l) => l.from === "src:rental").to]), J([1800, undefined, "acct:Justin Personal"]));
+});
+
+t("paycheck split: 50% / 50% of an odd cent amount never adds up to more than the Hub", () => {
+  const split = [{ toAccount: "Joint Savings", mode: "fixed", value: 2500 },
+    { toAccount: "Justin's Spending", mode: "percent", value: 50 }, { toAccount: "Kelly's Spending", mode: "percent", value: 50 }];
+  // 2944.31 - 2500 = 444.31: halves are 222.155, which used to round up to 222.16 twice (1 cent too much)
+  const d = Model.distribute(split, 2944.31);
+  assert.strictEqual(J([d.transfers.map((x) => x.amount), d.leftover]), J([[2500, 222.16, 222.15], 0]));
+  for (let c = 0; c < 500; c++) assert.ok(Model.distribute(split, 2500 + c / 100 + 0.01).leftover >= 0, `leftover at ${2500 + c / 100 + 0.01}`);
+  // Uneven percents still add up exactly to their share
+  const p3 = Model.distribute([{ toAccount: "A", mode: "percent", value: 33.33 }, { toAccount: "B", mode: "percent", value: 33.33 }, { toAccount: "C", mode: "percent", value: 33.34 }], 100.01);
+  assert.strictEqual(Model.r2(p3.transfers.reduce((t, x) => t + x.amount, 0)), 100.01);
+});
+
 console.log(`\n${n} tests passed`);

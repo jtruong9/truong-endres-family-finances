@@ -17,7 +17,8 @@ function payPreview() {
     ? `<table><tbody>${transfers.map((t) => `<tr><td>${esc(formPay.account.value)} &rarr; ${esc(t.toAccount)}</td><td class="num">${money(t.amount, false)}</td></tr>`).join("")}
        <tr class="total"><td>Left in ${esc(formPay.account.value)}</td><td class="num ${leftover < 0 ? "neg" : ""}">${money(leftover, false)}</td></tr></tbody></table>`
     : `<p class="muted">No split set up yet: only the paycheck will be logged. Set one up under Settings &rsaquo; Paycheck split.</p>`;
-  $("#pay-error").textContent = leftover < 0 ? "The fixed amounts add up to more than the paychecks." : "";
+  const fixed = CFG.split.filter((s) => s.mode === "fixed").reduce((t, s) => t + (+s.value || 0), 0);
+  $("#pay-error").textContent = leftover < -0.005 ? (fixed > amt + 0.005 ? `The fixed amounts (${money(fixed, false)}) are more than the ${money(amt, false)} coming in.` : "The percentages in the split add up to more than 100%.") : "";
   return { transfers, leftover };
 }
 $("#btn-paycheck").onclick = () => {
@@ -40,7 +41,7 @@ formPay.onsubmit = async (e) => {
   const a = payAmounts();
   if (!(a.p1 > 0 || a.p2 > 0)) { $("#pay-error").textContent = "Enter at least one net pay."; return; }
   const { transfers, leftover } = payPreview();
-  if (leftover < 0) return;
+  if (leftover < -0.005) return;
   const paid = ["p1", "p2"].filter((p) => a[p] > 0);
   const who = paid.map((p) => CFG.people[p]).join(" + ");
   const date = formPay.date.value, from = formPay.account.value;

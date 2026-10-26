@@ -40,3 +40,7 @@ Format: **What didn't work / What worked / Note for next time.** Check here befo
 ## Drag to reorder: nothing moved
 - **Cause:** the pointer listeners were on the drag handle with `setPointerCapture`. Moving the row in the page (to show the new spot) drops pointer capture, so the handle stopped getting `pointermove` / `pointerup` after the first step.
 - **Fix:** listen on `window` for `pointermove` / `pointerup` / `pointercancel`, filtered by `pointerId`. Test with real mouse moves, and scroll the rows into view first.
+
+## Money: split percentages must add up to the cent
+- **Cause:** rounding each percent share on its own (`r2(x * 50 / 100)` twice) can produce 1 cent more than the amount being split, e.g. 444.31 → 222.16 + 222.16.
+- **Fix:** work in cents, round each share down, and hand the leftover cents to the largest shares. Check by sweeping thousands of amounts, not one example.

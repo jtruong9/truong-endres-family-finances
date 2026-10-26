@@ -18,7 +18,7 @@ function reviewSection() {
   const shown = reviewUi.showDupOnly ? rows.filter((r) => matches.has(r.id)) : rows;
   const accts = [...new Set(all.map((t) => t.account))];
   const catOpts = (sel) => opts(CFG.categories.map((c) => c.name), sel, "Choose category…");
-  const acctOpts = (sel, not) => opts(CFG.accounts.map((a) => a.name).filter((n) => n !== not), sel, "Which account?");
+  const acctOpts = (sel, not) => opts(Model.openAccounts(CFG).map((a) => a.name).filter((n) => n !== not), sel, "Which account?");
   const isTransfer = (c) => (CFG.categoryByName.get(c) || {}).kind === "Transfer";
   const isSavings = (c) => (CFG.categoryByName.get(c) || {}).kind === "Savings";
   reviewUi.selected = new Set([...reviewUi.selected].filter((id) => rows.some((r) => r.id === id)));
@@ -48,7 +48,7 @@ function reviewSection() {
           <td class="muted">${esc(r.account)}</td>
           <td><select class="rv-cat${r.guess ? " guess" : ""}">${catOpts(r.category)}</select></td>
           <td>${tr ? `<select class="rv-other" title="${r.dir === "in" ? "Money came FROM" : "Money went TO"}">${acctOpts(r.toAccount, r.account)}</select>`
-                   : isSavings(r.category) ? `<select class="rv-other" title="Which of our accounts the savings went into (optional)">${opts(CFG.accounts.map((a) => a.name).filter((n) => n !== r.account), r.toAccount, "Put into (optional)")}</select>`
+                   : isSavings(r.category) ? `<select class="rv-other" title="Which of our accounts the savings went into (optional)">${opts(Model.openAccounts(CFG).map((a) => a.name).filter((n) => n !== r.account), r.toAccount, "Put into (optional)")}</select>`
                    : `<input class="rv-tags" placeholder="tags (optional)" value="${esc(r.tags || "")}">`}</td>
           <td class="nowrap"><button class="small primary rv-ok" title="Confirm">${icon("check")}</button> <button class="small ghost rv-del" title="Remove (duplicate or not needed)">${icon("x")}</button></td></tr>`;
       }).join("") || `<tr><td colspan="9" class="muted">Nothing here with this filter.</td></tr>`}

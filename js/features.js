@@ -12,8 +12,12 @@ function balancesTable(asOf, withEntry) {
   const checks = CFG.balanceChecks;
   return `<div class="table-wrap"><table class="bal-table"><thead><tr><th>Account</th><th>Owner</th><th class="num">App balance</th>
     ${withEntry ? `<th class="num">Bank says</th><th class="num">Difference</th>` : `<th>Last bank check</th>`}</tr></thead><tbody>
-    ${CFG.accounts.map((a) => {
-      const bal = Model.balanceAt(CFG, txs, a.name, asOf);
+    ${CFG.accounts.filter((a) => !a.closed || Model.hasOpening(a)).map((a) => {
+      // A pot inside the Hub: show what's in it; the bank only sees it as part of the Hub
+      if (Model.isPot(a)) return `<tr class="pot-row"><td>${esc(a.name)}</td><td class="muted">${esc(Model.ownerLabel(CFG, a.owner))}</td>
+        <td class="num">${money(Model.potBalanceAt(CFG, txs, a.name, asOf), false)}</td><td colspan="${withEntry ? 2 : 1}" class="muted">inside ${esc(a.in || "")}</td></tr>`;
+      // A bank account: what the bank should show (its own money + any pots inside it)
+      const bal = Model.bankBalanceAt(CFG, txs, a.name, asOf);
       const last = checks.filter((c) => c.account === a.name).sort((x, y) => (x.date < y.date ? 1 : -1))[0];
       const lastLine = last ? `${fmtDate(last.date)} · ${Math.abs(last.bank - last.app) < 0.005 ? '<span class="pos">Matched</span>' : `<span class="neg">off by ${money(Model.r2(last.app - last.bank), false)}</span>`}` : '<span class="muted">never</span>';
       if (bal === null) return `<tr><td>${esc(a.name)}</td><td class="muted">${esc(Model.ownerLabel(CFG, a.owner))}</td><td colspan="3" class="muted">Set a starting balance in Settings &rsaquo; Accounts</td></tr>`;
@@ -29,7 +33,7 @@ function balancesMatched(asOf) {
   const accts = CFG.accounts.filter(Model.hasOpening);
   return accts.length > 0 && accts.every((a) => {
     const c = CFG.balanceChecks.find((x) => x.account === a.name && x.date === asOf);
-    const bal = Model.balanceAt(CFG, txs, a.name, asOf);
+    const bal = Model.bankBalanceAt(CFG, txs, a.name, asOf);
     return c && bal !== null && Math.abs(c.bank - bal) < 0.005;
   });
 }

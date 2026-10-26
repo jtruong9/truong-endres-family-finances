@@ -186,12 +186,14 @@ function renderDashboard() {
   const txs = Store.transactions();
   const now = new Date(), y = now.getFullYear(), m = now.getMonth();
   const tot = Model.monthlyTotals(CFG, txs, y, "all");
-  const flows = Model.accountFlows(CFG, txs, y, m);
+  // Closed accounts drop off once nothing moves in them
+  const flows = Model.accountFlows(CFG, txs, y, m).filter((f) => !(CFG.accountByName.get(f.account) || {}).closed || f.income || f.transfersIn || f.spent || f.saved || f.transfersOut);
   const bills = Model.recurringStatus(CFG, txs, y, m);
   const unpaid = bills.filter((b) => b.status !== "Paid");
   const flagged = txs.filter((t) => Model.openIssues(CFG, t).length).length;
   const toReview = txs.filter((t) => t.review).length;
-  const personal = flows.filter((f) => f.owner === "p1" || f.owner === "p2");
+  // Each person's allowance = their open pot or account (closed old accounts left out)
+  const personal = flows.filter((f) => (f.owner === "p1" || f.owner === "p2") && !(CFG.accountByName.get(f.account) || {}).closed);
   const M = Model.MONTHS[m];
 
   const stat = (label, value, sub, cls = "") => `<div class="stat"><div class="label">${label}</div><div class="value ${cls}">${value}</div><div class="sub">${sub}</div></div>`;
@@ -333,8 +335,9 @@ function openTx(tx) {
   const t = tx || { date: todayIso(), desc: "", amount: "", category: "", account: ui.lastAccount || "", toAccount: "", notes: "", tags: "" };
   $("#tx-title").textContent = tx ? "Edit transaction" : "Add transaction";
   formTx.category.innerHTML = opts(CFG.categories.map((c) => c.name), t.category, "Choose…");
-  formTx.account.innerHTML = opts(CFG.accounts.map((a) => a.name), t.account, "Choose…");
-  formTx.toAccount.innerHTML = opts(CFG.accounts.map((a) => a.name), t.toAccount, "Choose…");
+  const pick = (keep) => [...new Set([...Model.openAccounts(CFG).map((a) => a.name), ...(keep ? [keep] : [])])];
+  formTx.account.innerHTML = opts(pick(t.account), t.account, "Choose…");
+  formTx.toAccount.innerHTML = opts(pick(t.toAccount), t.toAccount, "Choose…");
   for (const k of ["date", "desc", "amount", "notes", "tags"]) formTx[k].value = t[k] ?? "";
   $("#desc-list").innerHTML = [...new Set(Store.transactions().map((x) => x.desc))].slice(-400).map((d) => `<option value="${esc(d)}">`).join("");
   $("#tx-delete").hidden = !tx;

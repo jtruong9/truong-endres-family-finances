@@ -20,8 +20,11 @@ function renderFlow() {
   const actions = `<div class="seg"><button data-view="plan" class="${plan ? "on" : ""}">Plan</button><button data-view="actual" class="${plan ? "" : "on"}">Actual month</button></div>`;
   const moved = f.links.some((l) => l.kind === "move" && l.amount > 0);
 
+  // Split lines still pointing at a closed account (e.g. the old personal accounts)
+  const stale = CFG.split.filter((s) => (CFG.accountByName.get(s.toAccount) || {}).closed);
   let note = "";
-  if (plan && !CFG.split.length) note = notice("No paycheck split set up yet, so everything stays in the Hub.", "Set up the split", "fl-go-split");
+  if (plan && stale.length) note = notice(`The paycheck split still sends money to ${stale.map((s) => esc(s.toAccount)).join(" and ")}, which ${stale.length > 1 ? "are" : "is"} closed. Move ${stale.length > 1 ? "them" : "it"} to the matching spending pot in the Hub?`, "Move to the pots", "fl-fix-split", true);
+  else if (plan && !CFG.split.length) note = notice("No paycheck split set up yet, so everything stays in the Hub.", "Set up the split", "fl-go-split");
   else if (plan && f.leftover < -0.005) note = notice("The fixed amounts in the paycheck split add up to more than the paychecks.", "Check the split", "fl-go-split", true);
   else if (!plan && !moved) note = notice(`No transfers out of the ${esc(f.hub)} logged for ${Model.MONTHS[flowUi.month]} ${flowUi.year}. Log paychecks with the Paycheck button and they'll show here.`, "Log a paycheck", "fl-go-pay");
   else if (!plan && f.notHub > 0.005) note = `<p class="hint">${money(f.notHub, false)} of income went straight into other accounts, not the ${esc(f.hub)}.</p>`;
@@ -41,6 +44,16 @@ function renderFlow() {
   const m = $("#fl-month"); if (m) m.onchange = (e) => { flowUi.month = +e.target.value; renderFlow(); };
   const y = $("#fl-year"); if (y) y.onchange = (e) => { flowUi.year = +e.target.value; renderFlow(); };
   const gs = $("#fl-go-split"); if (gs) gs.onclick = () => $('#tabs [data-tab="settings"]').click();
+  const fx = $("#fl-fix-split"); if (fx) fx.onclick = async () => {
+    // Same owner, open, inside the Hub: Justin Personal -> Justin's Spending, Kelly Personal -> Kelly's Spending
+    const potFor = (name) => { const o = (CFG.accountByName.get(name) || {}).owner; return CFG.accounts.find((a) => Model.isPot(a) && !a.closed && a.owner === o); };
+    const moves = stale.map((s) => [s.toAccount, potFor(s.toAccount)]).filter(([, p]) => p);
+    if (!moves.length) { toast("No matching spending pot found. Set the split in Settings."); return; }
+    const list = moves.map(([a, p]) => `${a} → ${p.name}`).join("\n");
+    if (!confirm(`Change the paycheck split:\n${list}\n\nAmounts and order stay the same.`)) return;
+    await Store.setCfg("split", CFG.split.map((s) => { const m = moves.find(([a]) => a === s.toAccount); return m ? { ...s, toAccount: m[1].name } : s; }));
+    toast("Paycheck split updated.");
+  };
   const gp = $("#fl-go-pay"); if (gp) gp.onclick = () => $("#btn-paycheck").click();
 }
 
@@ -103,7 +116,16 @@ function drawFlow(box, f) {
       ${sub ? `<text x="${BW / 2}" y="${BH - 8}" class="fl-sub">${esc(fitText(sub, BW, 6.2))}</text>` : ""}</g>`;
   }).join("");
 
-  box.innerHTML = `<svg class="fl-svg" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Money flow diagram">${paths}${boxes}</svg>`;
+  // Dashed frame around the spending pots: their money stays in the Hub's bank account
+  const pots = [...pos.values()].filter((p) => p.n.pot);
+  let frame = "";
+  if (pots.length) {
+    // Label sits on the frame's bottom edge, between the pots and their arrows down, clear of arrows coming in
+    const x1 = Math.min(...pots.map((p) => p.x)) - 8, x2 = Math.max(...pots.map((p) => p.x)) + BW + 8, y = pots[0].y - 8, h = BH + 30;
+    frame = `<g class="fl-frame"><rect x="${x1.toFixed(1)}" y="${y}" width="${(x2 - x1).toFixed(1)}" height="${h}" rx="12"/>
+      <text x="${(pots.length > 1 ? (pots[0].x + BW + pots[1].x) / 2 : x1 + 12).toFixed(1)}" y="${y + h - 8}" text-anchor="${pots.length > 1 ? "middle" : "start"}">Stays in ${esc(f.hub)}</text></g>`;
+  }
+  box.innerHTML = `<svg class="fl-svg" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Money flow diagram">${frame}${paths}${boxes}</svg>`;
 
   // Hovering a box lights up its arrows and dims the rest
   const svg = box.querySelector("svg");

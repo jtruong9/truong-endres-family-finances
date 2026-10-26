@@ -60,14 +60,15 @@ t("year grid excludes transfers and other years", () => {
   assert.strictEqual(g.get("Food & Drinks")[10], 35.25);
 });
 
-t("paycheck split: fixed + percent + rest", () => {
+t("paycheck split: fixed first, percent of what's left, then rest", () => {
   const { transfers, leftover } = Model.distribute([
+    { toAccount: "Joint Savings", mode: "percent", value: 10 },   // listed first, still applied after the fixed amount
     { toAccount: "Joint Bills", mode: "fixed", value: 2500 },
-    { toAccount: "Joint Savings", mode: "percent", value: 10 },
     { toAccount: "Justin Personal", mode: "rest" },
     { toAccount: "Kelly Personal", mode: "rest" },
   ], 4000.01);
-  assert.strictEqual(JSON.stringify(transfers.map((x) => x.amount)), JSON.stringify([2500, 400, 550.01, 550]));
+  // 2500 fixed; 10% of the 1500.01 left = 150; the 1350.01 remaining splits in two
+  assert.strictEqual(JSON.stringify(transfers.map((x) => [x.toAccount, x.amount])), JSON.stringify([["Joint Bills", 2500], ["Joint Savings", 150], ["Justin Personal", 675.01], ["Kelly Personal", 675]]));
   assert.strictEqual(leftover, 0);
   assert.strictEqual(Model.r2(transfers.reduce((s, x) => s + x.amount, 0)), 4000.01);
 });
@@ -234,13 +235,16 @@ t("budget status flags overspending", () => {
 
 t("money flow plan splits each paycheck through the hub", () => {
   const c = Model.config((k, d) => (k === "split" ? [{ toAccount: "Joint Savings", mode: "fixed", value: 500 }, { toAccount: "Joint Bills", mode: "percent", value: 50 },
-    { toAccount: "Justin Personal", mode: "rest" }, { toAccount: "Kelly Personal", mode: "rest" }] : d));
+    { toAccount: "Justin's Spending", mode: "rest" }, { toAccount: "Kelly's Spending", mode: "rest" }] : d));
   const f = Model.planFlow(c, [{ who: "p1", amount: 4000 }, { who: "p2", amount: 3000 }]);
   const amt = (id) => f.nodes.find((x) => x.id === id).amount;
-  assert.strictEqual(J([amt("acct:Joint Hub"), amt("acct:Joint Savings"), amt("acct:Joint Bills"), amt("acct:Justin Personal"), amt("acct:Kelly Personal")]),
-    J([7000, 1000, 3500, 1250, 1250]));
+  // per paycheck: 500 fixed, then 50% of the rest (1750 / 1250), then the remainder split in two
+  assert.strictEqual(J([amt("acct:Joint Hub"), amt("acct:Joint Savings"), amt("acct:Joint Bills"), amt("acct:Justin's Spending"), amt("acct:Kelly's Spending")]),
+    J([7000, 1000, 3000, 1500, 1500]));
   assert.strictEqual(f.leftover, 0);
-  assert.strictEqual(J(f.nodes.filter((x) => x.level === 2).map((x) => x.label)), J(["Joint Savings", "Joint Bills", "Justin Personal", "Kelly Personal"]));
+  // savings, bills, then the three pots inside the Hub; the closed old personal accounts are left out
+  assert.strictEqual(J(f.nodes.filter((x) => x.level === 2).map((x) => [x.label, !!x.pot])),
+    J([["Joint Savings", false], ["Joint Bills", false], ["Justin's Spending", true], ["Kelly's Spending", true], ["Joint Spending", true]]));
   assert.strictEqual(f.links.find((l) => l.to === "out:Joint Savings").kind, "saved");
 });
 
@@ -302,6 +306,23 @@ t("money flow: hub's split into savings is a savings arrow (joint), and hub savi
     { date: "2026-11-01", desc: "Save", amount: 500, category: "Monthly Saving", account: "Joint Hub", toAccount: "Joint Savings" }], 2026, 10);
   const l = a.links.filter((x) => x.to === "acct:Joint Savings");
   assert.strictEqual(J([l.map((x) => [x.kind, x.amount]), a.nodes.find((x) => x.id === "acct:Joint Savings").amount, !!a.nodes.find((x) => x.id === "out:hub")]), J([[["saved", 500]], 500, false]));
+});
+
+t("spending pots live inside the Joint Hub: bank balance = Hub + its pots", () => {
+  const c = Model.config((k, d) => (k === "accounts" ? Model.DEFAULT_ACCOUNTS.map((a) => (a.name === "Joint Hub" ? { ...a, openingBalance: 100, openingDate: "2026-11-01" } : a)) : d));
+  const s = [
+    { date: "2026-11-01", desc: "Paycheck", amount: 4000, category: "Paychecks", account: "Joint Hub" },
+    { date: "2026-11-01", desc: "Split", amount: 800, category: "Transfer", account: "Joint Hub", toAccount: "Justin's Spending" },
+    { date: "2026-11-01", desc: "Split", amount: 600, category: "Transfer", account: "Joint Hub", toAccount: "Joint Spending" },
+    { date: "2026-11-01", desc: "Split", amount: 2000, category: "Transfer", account: "Joint Hub", toAccount: "Joint Bills" },
+    { date: "2026-11-03", desc: "Lunch", amount: 25, category: "Food & Drinks", account: "Justin's Spending" },
+    { date: "2026-11-04", desc: "Groceries", amount: 140, category: "Groceries", account: "Joint Spending" }];
+  // Hub on its own: 100 + 4000 - 3400 = 700; the pots hold 775 + 460; the bank sees 700 + 1235
+  assert.strictEqual(J([Model.balanceAt(c, s, "Joint Hub", "2026-11-30"), Model.potBalanceAt(c, s, "Justin's Spending", "2026-11-30"),
+    Model.potBalanceAt(c, s, "Joint Spending", "2026-11-30"), Model.bankBalanceAt(c, s, "Joint Hub", "2026-11-30")]), J([700, 775, 460, 1935]));
+  // Whose: Justin's pot counts as Justin's spending, Joint Spending as Joint
+  assert.strictEqual(J([Model.monthlyTotals(c, s, 2026, "p1").spending[10], Model.monthlyTotals(c, s, 2026, "joint").spending[10]]), J([25, 140]));
+  assert.strictEqual(J(Model.openAccounts(c).map((a) => a.name).filter((n) => /Personal/.test(n))), J([]));
 });
 
 console.log(`\n${n} tests passed`);

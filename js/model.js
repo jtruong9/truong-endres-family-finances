@@ -8,13 +8,23 @@
 const Model = (() => {
   const DEFAULT_PEOPLE = { p1: "Justin", p2: "Kelly", joint: "Joint", p1Full: "Justin Truong", p2Full: "Kelly Endres" };
 
+  // Three real bank accounts. The Hub's money is also split, on paper, into three spending pots
+  // (type "Inside Joint Hub", in: the bank account that holds it). Justin/Kelly Personal are the old
+  // personal accounts: kept, closed, so past years still add up.
+  const POT = "Inside Joint Hub";
   const DEFAULT_ACCOUNTS = [
     { name: "Joint Hub", owner: "joint", type: "Checking", note: "Every paycheck lands here, then gets distributed" },
-    { name: "Joint Bills", owner: "joint", type: "Checking", note: "Pays all recurring bills" },
     { name: "Joint Savings", owner: "joint", type: "Savings", note: "Shared savings" },
-    { name: "Justin Personal", owner: "p1", type: "Checking", note: "Justin's spending" },
-    { name: "Kelly Personal", owner: "p2", type: "Checking", note: "Kelly's spending" },
+    { name: "Joint Bills", owner: "joint", type: "Checking", note: "Pays all recurring bills" },
+    { name: "Justin's Spending", owner: "p1", type: POT, in: "Joint Hub", note: "Justin's money to spend" },
+    { name: "Kelly's Spending", owner: "p2", type: POT, in: "Joint Hub", note: "Kelly's money to spend" },
+    { name: "Joint Spending", owner: "joint", type: POT, in: "Joint Hub", note: "Eating out together, groceries, other shared costs" },
+    { name: "Justin Personal", owner: "p1", type: "Checking", closed: true, note: "Old personal account (history)" },
+    { name: "Kelly Personal", owner: "p2", type: "Checking", closed: true, note: "Old personal account (history)" },
   ];
+  const isPot = (a) => !!a && a.type === POT;
+  // Accounts to offer when entering something new (closed ones stay only for history)
+  const openAccounts = (cfg) => cfg.accounts.filter((a) => !a.closed);
 
   const DEFAULT_CATEGORIES = [
     ["Paychecks", "Income", "Income"], ["Other Income Sources", "Income", "Income"],
@@ -164,11 +174,18 @@ const Model = (() => {
   }
 
   // Build the transfers that distribute one paycheck from the Hub
+  // Order: every fixed $ amount first, then each percent OF WHAT'S LEFT after the fixed amounts,
+  // then "Rest" lines share whatever remains. Results come back in that order.
   function distribute(split, amount) {
     const out = [];
     let left = amount;
-    for (const s of split.filter((s) => s.mode !== "rest")) {
-      const v = s.mode === "percent" ? r2((amount * s.value) / 100) : r2(+s.value);
+    for (const s of split.filter((s) => s.mode === "fixed")) {
+      const v = r2(+s.value);
+      if (v > 0) { out.push({ toAccount: s.toAccount, amount: v }); left = r2(left - v); }
+    }
+    const afterFixed = Math.max(0, left);
+    for (const s of split.filter((s) => s.mode === "percent")) {
+      const v = r2((afterFixed * s.value) / 100);
       if (v > 0) { out.push({ toAccount: s.toAccount, amount: v }); left = r2(left - v); }
     }
     const rest = split.filter((s) => s.mode === "rest");
@@ -341,6 +358,25 @@ const Model = (() => {
     for (const t of txs) if (isPosted(t) && t.date >= a.openingDate && t.date <= iso) b += accountEffect(cfg, t, name);
     return r2(b);
   }
+  // What the bank shows for a real account = its own balance + every pot inside it. Pots have no
+  // starting balance of their own (they start at 0 on the account's starting date).
+  function bankBalanceAt(cfg, txs, name, iso) {
+    const a = cfg.accountByName.get(name);
+    const own = balanceAt(cfg, txs, name, iso);
+    if (own === null) return null;
+    let b = own;
+    for (const p of cfg.accounts.filter((x) => isPot(x) && x.in === name))
+      for (const t of txs) if (isPosted(t) && t.date >= a.openingDate && t.date <= iso) b += accountEffect(cfg, t, p.name);
+    return r2(b);
+  }
+  // A pot's money so far (from the holding account's starting date, else from the beginning)
+  function potBalanceAt(cfg, txs, name, iso) {
+    const p = cfg.accountByName.get(name), host = p && cfg.accountByName.get(p.in);
+    const from = hasOpening(host) ? host.openingDate : "";
+    let b = 0;
+    for (const t of txs) if (isPosted(t) && t.date >= from && t.date <= iso) b += accountEffect(cfg, t, name);
+    return r2(b);
+  }
 
   // ------------------------------------------------------------------ goals (tracked by tag)
   function monthsBetween(fromDate, dueYm) {
@@ -429,11 +465,13 @@ const Model = (() => {
   // → where it leaves them. Both functions return { hub, nodes: [{ id, level, label, amount, lines }],
   // links: [{ from, to, amount, kind: "income"|"move"|"spent"|"saved" }] }. A link of 0 is a placeholder.
   const hubName = (cfg) => (cfg.accounts.find((a) => /hub/i.test(a.name)) || cfg.accounts[0] || {}).name;
-  // Order of the accounts row: joint savings, other joint (bills), then each person, then anything else
-  const acctRank = (a) => (a.owner === "joint" ? (a.type === "Savings" ? 0 : 1) : a.owner === "p1" ? 2 : a.owner === "p2" ? 3 : 4);
+  // Order of the accounts row: savings, bills, then the Hub's pots (each person, then joint), then
+  // anything else. Closed accounts only show when money moved in them.
+  const acctRank = (a) => (isPot(a) ? (a.owner === "p1" ? 2 : a.owner === "p2" ? 3 : 4)
+    : a.closed ? 9 : a.owner === "joint" ? (a.type === "Savings" ? 0 : 1) : a.owner === "p1" ? 5 : a.owner === "p2" ? 6 : 7);
   const flowAccounts = (cfg, hub) => cfg.accounts.map((a, i) => ({ a, i })).filter(({ a }) => a.name !== hub)
     .sort((x, y) => acctRank(x.a) - acctRank(y.a) || x.i - y.i).map(({ a }) => a);
-  const outLabel = (cfg, a, role) => (role === "save" ? "Savings" : role === "bills" ? "Recurring bills" : a.owner === "p1" || a.owner === "p2" ? `${cfg.people[a.owner]}'s spending` : "Spending");
+  const outLabel = (cfg, a, role) => (role === "save" ? "Savings" : role === "bills" ? "Recurring bills" : a.owner === "p1" || a.owner === "p2" ? `${cfg.people[a.owner]}'s spending` : a.owner === "joint" ? "Joint spending" : "Spending");
   const acctRole = (cfg, a) => (a.type === "Savings" ? "save" : cfg.recurring.some((b) => b.account === a.name) || /bill/i.test(a.name) ? "bills" : "spend");
   // Whose income: a name in the description ("Paycheck – Kelly"), else the account's owner
   function incomeOwner(cfg, t) {
@@ -469,11 +507,11 @@ const Model = (() => {
       }
     }
     nodes.push({ id: `acct:${hub}`, level: 1, label: hub, amount: r2(hubIn), lines: [], hub: true });
-    const accts = flowAccounts(cfg, hub).filter((a) => acctRank(a) < 4 || into.has(a.name));
+    const accts = flowAccounts(cfg, hub).filter((a) => acctRank(a) < 7 || into.has(a.name));
     for (const name of into.keys()) if (!accts.some((a) => a.name === name)) accts.push({ name, owner: "", type: "" });
     for (const a of accts) {
       const amt = r2(into.get(a.name) || 0), role = acctRole(cfg, a);
-      nodes.push({ id: `acct:${a.name}`, level: 2, label: a.name, amount: amt, lines: [] });
+      nodes.push({ id: `acct:${a.name}`, level: 2, label: a.name, amount: amt, lines: [], pot: isPot(a) && a.in === hub });
       links.push({ from: `acct:${hub}`, to: `acct:${a.name}`, amount: amt, kind: role === "save" ? "saved" : "move" });
       const billsListed = r2(cfg.recurring.filter((b) => b.account === a.name).reduce((s, b) => s + (+b.amount || 0), 0));
       nodes.push({ id: `out:${a.name}`, level: 3, label: outLabel(cfg, a, role), amount: amt, lines: billsListed ? [["Bills listed", billsListed]] : [] });
@@ -524,9 +562,9 @@ const Model = (() => {
     for (const a of flowAccounts(cfg, hub)) {
       const f = flows.get(a.name);
       const active = f && (f.income || f.transfersIn || f.spent || f.saved || f.transfersOut);
-      if (acctRank(a) >= 4 && !active) continue;
+      if (acctRank(a) >= 7 && !active) continue;
       const z = f || { income: 0, transfersIn: 0, spent: 0, saved: 0, transfersOut: 0, net: 0 };
-      nodes.push({ id: `acct:${a.name}`, level: 2, label: a.name, amount: r2(z.income + z.transfersIn), lines: [["Left", z.net]] });
+      nodes.push({ id: `acct:${a.name}`, level: 2, label: a.name, amount: r2(z.income + z.transfersIn), lines: [["Left", z.net]], pot: isPot(a) && a.in === hub });
       const sv = r2(hubSaved.get(a.name) || 0), tr = r2(hubTo.get(a.name) || 0);
       if (tr || !sv) links.push({ from: `acct:${hub}`, to: `acct:${a.name}`, amount: tr, kind: "move" });
       if (sv) links.push({ from: `acct:${hub}`, to: `acct:${a.name}`, amount: sv, kind: "saved" });
@@ -545,7 +583,7 @@ const Model = (() => {
   }
 
   return {
-    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2,
+    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2, POT, isPot, openAccounts, bankBalanceAt, potBalanceAt,
     hubName, incomeOwner, lastPaycheck, planFlow, actualFlow,
     config, ownerLabel, kindOf, ownerOf, matchesOwner, ownerParts, FROM_PREFIX, isPosted, tagList,
     yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, issueList, openIssues, issueGroups, autoCategory,

@@ -18,7 +18,7 @@ function attentionSection() {
   if (!groups.length) return ackedCount() ? `<div class="at-quiet" id="attention-quiet">${ackedCount()} transaction(s) marked "leave as is". <a href="#" id="at-unack">Show again</a></div>` : "";
   const total = new Set(groups.flatMap((g) => g.txs.map((t) => t.id))).size;
   const catOpts = opts(CFG.categories.filter((c) => c.kind !== "Transfer").map((c) => c.name), "", "Choose a category…");
-  const acctOpts = (not) => opts(CFG.accounts.map((a) => a.name).filter((n) => n !== not), "", "Choose an account…");
+  const acctOpts = (not) => opts(Model.openAccounts(CFG).map((a) => a.name).filter((n) => n !== not), "", "Choose an account…");
 
   const fixer = (g, i) => {
     switch (g.code) {

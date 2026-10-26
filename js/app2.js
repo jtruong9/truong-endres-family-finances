@@ -1,6 +1,8 @@
 // UI part 2: paycheck distribution, summary, bills, import, settings. Loaded after app.js.
 "use strict";
 
+const ACCT_TYPES = ["Checking", "Savings", Model.POT, "Credit Card", "Investment", "Cash"];
+
 // --------------------------------------------------------------------------------- paycheck
 const dlgPay = $("#dlg-pay"), formPay = $("#form-pay");
 function payPreview() {
@@ -18,7 +20,7 @@ $("#btn-paycheck").onclick = () => {
   formPay.amount.value = "";
   formPay.who.innerHTML = opts([["p1", CFG.people.p1], ["p2", CFG.people.p2]], "p1");
   const hub = CFG.accounts.find((a) => /hub/i.test(a.name)) || CFG.accounts[0];
-  formPay.account.innerHTML = opts(CFG.accounts.map((a) => a.name), hub && hub.name);
+  formPay.account.innerHTML = opts(Model.openAccounts(CFG).map((a) => a.name), hub && hub.name);
   payPreview();
   dlgPay.showModal();
   formPay.amount.focus();
@@ -63,7 +65,7 @@ function renderBills() {
         ${st.map((b, i) => `<tr data-i="${i}">
           <td><input data-k="name" value="${esc(b.name)}"></td>
           <td><select data-k="category">${opts(CFG.categories.map((c) => c.name), b.category, "")}</select></td>
-          <td><select data-k="account">${opts(CFG.accounts.map((a) => a.name), b.account, "")}</select></td>
+          <td><select data-k="account">${opts([...new Set([...Model.openAccounts(CFG).map((a) => a.name), b.account].filter(Boolean))], b.account, "")}</select></td>
           <td><input data-k="amount" type="number" step="0.01" value="${b.amount ?? ""}" placeholder="varies"></td>
           <td><input data-k="day" type="number" min="1" max="31" value="${b.day}"></td>
           <td><input data-k="match" value="${esc(b.match || "")}" placeholder="e.g. Spotify"></td>
@@ -94,7 +96,7 @@ function renderBills() {
 // --------------------------------------------------------------------------------- import
 let pending = null;   // { rows, source }
 function renderImport() {
-  const accts = opts(CFG.accounts.map((a) => a.name), "", "Choose account…");
+  const accts = opts(Model.openAccounts(CFG).map((a) => a.name), "", "Choose account…");
   $("#tab-import").innerHTML = `
     ${pageHead("Import", "Bring in bank statements or your old spreadsheet")}
     <div class="two">
@@ -190,7 +192,7 @@ function drawPreview() {
 // --------------------------------------------------------------------------------- settings
 function renderSettings() {
   const ownerOpts = (sel) => opts([["joint", CFG.people.joint], ["p1", CFG.people.p1], ["p2", CFG.people.p2]], sel);
-  const acctOpts = (sel) => opts(CFG.accounts.map((a) => a.name), sel, "");
+  const acctOpts = (sel) => opts([...new Set([...Model.openAccounts(CFG).map((a) => a.name), sel].filter(Boolean))], sel, "");
   const catOpts = (sel) => opts(CFG.categories.map((c) => c.name), sel, "");
   const del = `<td><button class="small ghost" data-del title="Remove">Remove</button></td>`;
   $("#tab-settings").innerHTML = `
@@ -208,16 +210,17 @@ function renderSettings() {
     <div class="card"><h2>Balances today</h2>${balancesTable(todayIso(), false)}</div>
 
     <div class="card"><h2>Accounts</h2>
-      <p class="hint">Starting balance is the bank balance at the start of that date. Enter a credit card balance as a negative number.</p>
-      <table class="edit-table" id="st-accts"><thead><tr><th>Name</th><th>Owner</th><th>Type</th><th>Starting balance</th><th>…as of date</th><th>Note</th><th></th></tr></thead><tbody>
+      <p class="hint">Starting balance is the bank balance at the start of that date. Enter a credit card balance as a negative number. <b>${esc(Model.POT)}</b> = a spending pot whose money sits in that bank account (it has no bank balance of its own). <b>Closed</b> accounts keep their history but aren't offered for new entries.</p>
+      <table class="edit-table" id="st-accts"><thead><tr><th>Name</th><th>Owner</th><th>Type</th><th>In account</th><th>Starting balance</th><th>…as of date</th><th>Closed</th><th>Note</th><th></th></tr></thead><tbody>
       ${CFG.accounts.map((a) => `<tr data-orig="${esc(a.name)}"><td><input data-k="name" value="${esc(a.name)}"></td><td><select data-k="owner">${ownerOpts(a.owner)}</select></td>
-        <td><select data-k="type">${opts(["Checking", "Savings", "Credit Card", "Investment", "Cash"], a.type)}</select></td>
+        <td><select data-k="type">${opts(ACCT_TYPES, a.type)}</select></td>
+        <td><select data-k="in">${opts(CFG.accounts.filter((x) => !Model.isPot(x) && x.name !== a.name).map((x) => x.name), a.in || "", "—")}</select></td>
         <td><input data-k="openingBalance" type="number" step="0.01" value="${a.openingBalance ?? ""}" placeholder="balance" style="width:110px"></td>
-        <td><input data-k="openingDate" type="date" value="${esc(a.openingDate || "")}"></td><td><input data-k="note" value="${esc(a.note || "")}"></td>${del}</tr>`).join("")}
+        <td><input data-k="openingDate" type="date" value="${esc(a.openingDate || "")}"></td><td><input data-k="closed" type="checkbox" ${a.closed ? "checked" : ""}></td><td><input data-k="note" value="${esc(a.note || "")}"></td>${del}</tr>`).join("")}
       </tbody></table><div class="row" style="margin-top:8px"><button data-add="st-accts">${icon("plus")}Add account</button><button id="st-accts-save" class="primary">Save accounts</button></div></div>
 
     <div class="card"><h2>Paycheck split</h2>
-      <p class="hint">Fixed amounts and percents come out first; Rest splits what's left.</p>
+      <p class="hint">Fixed $ amounts come out first. Each percent is a percent of what's left after the fixed amounts. Rest lines share whatever remains.</p>
       <table class="edit-table" id="st-split"><thead><tr><th>To account</th><th>How</th><th>Value</th><th></th></tr></thead><tbody>
       ${CFG.split.map((s) => `<tr><td><select data-k="toAccount">${acctOpts(s.toAccount)}</select></td><td><select data-k="mode">${opts([["fixed", "Fixed $"], ["percent", "Percent %"], ["rest", "Rest"]], s.mode)}</select></td>
         <td><input data-k="value" type="number" step="0.01" value="${s.value ?? ""}"></td>${del}</tr>`).join("")}
@@ -244,11 +247,11 @@ function renderSettings() {
 
   const rowsOf = (id) => $$(`#${id} tbody tr`).map((tr) => {
     const o = { _orig: tr.dataset.orig };
-    for (const el of tr.querySelectorAll("[data-k]")) o[el.dataset.k] = el.value;
+    for (const el of tr.querySelectorAll("[data-k]")) o[el.dataset.k] = el.type === "checkbox" ? el.checked : el.value;
     return o;
   });
   const templates = {
-    "st-accts": `<tr><td><input data-k="name" value=""></td><td><select data-k="owner">${ownerOpts("joint")}</select></td><td><select data-k="type">${opts(["Checking", "Savings", "Credit Card", "Investment", "Cash"], "Checking")}</select></td><td><input data-k="openingBalance" type="number" step="0.01" style="width:110px"></td><td><input data-k="openingDate" type="date"></td><td><input data-k="note"></td>${del}</tr>`,
+    "st-accts": `<tr><td><input data-k="name" value=""></td><td><select data-k="owner">${ownerOpts("joint")}</select></td><td><select data-k="type">${opts(ACCT_TYPES, "Checking")}</select></td><td><select data-k="in">${opts(CFG.accounts.filter((x) => !Model.isPot(x)).map((x) => x.name), "", "—")}</select></td><td><input data-k="openingBalance" type="number" step="0.01" style="width:110px"></td><td><input data-k="openingDate" type="date"></td><td><input data-k="closed" type="checkbox"></td><td><input data-k="note"></td>${del}</tr>`,
     "st-split": `<tr><td><select data-k="toAccount">${acctOpts("")}</select></td><td><select data-k="mode">${opts([["fixed", "Fixed $"], ["percent", "Percent %"], ["rest", "Rest"]], "fixed")}</select></td><td><input data-k="value" type="number" step="0.01"></td>${del}</tr>`,
     "st-cats": `<tr><td><input data-k="name"></td><td><input data-k="group" list="group-list"></td><td><select data-k="kind">${opts(["Income", "Savings", "Expense", "Transfer"], "Expense")}</select></td><td><input data-k="budget" type="number" step="0.01"></td>${del}</tr>`,
     "st-rules": `<tr><td><input data-k="match"></td><td><select data-k="category">${catOpts("")}</select></td>${del}</tr>`,
@@ -278,7 +281,8 @@ function renderSettings() {
     toast("Saved.");
   }
   $("#st-accts-save").onclick = () => saveRenamable("accounts", rowsOf("st-accts"), (r) => ({ name: r.name.trim(), owner: r.owner, type: r.type, note: r.note.trim(),
-    openingBalance: r.openingBalance === "" ? null : Model.r2(+r.openingBalance), openingDate: r.openingDate || "" }), ["account", "toAccount"]);
+    ...(r.type === Model.POT ? { in: r.in || Model.hubName(CFG) } : {}), ...(r.closed ? { closed: true } : {}),
+    openingBalance: r.type === Model.POT || r.openingBalance === "" ? null : Model.r2(+r.openingBalance), openingDate: r.type === Model.POT ? "" : r.openingDate || "" }), ["account", "toAccount"]);
   $("#st-cats-save").onclick = () => saveRenamable("categories", rowsOf("st-cats"), (r) => ({ name: r.name.trim(), group: r.group.trim() || "Other", kind: r.kind, budget: r.budget === "" ? null : +r.budget }), ["category"]);
   $("#st-split-save").onclick = async () => { await Store.setCfg("split", rowsOf("st-split").filter((s) => s.toAccount).map((s) => ({ toAccount: s.toAccount, mode: s.mode, value: s.value === "" ? 0 : +s.value }))); toast("Split saved."); };
   $("#st-rules-save").onclick = async () => { await Store.setCfg("rules", rowsOf("st-rules").filter((r) => r.match.trim() && r.category).map((r) => ({ match: r.match.trim(), category: r.category }))); toast("Rules saved."); };

@@ -3,8 +3,13 @@
 
 function renderHelp() {
   const p1 = esc(CFG.people.p1), p2 = esc(CFG.people.p2);
-  const p1Acct = esc((CFG.accounts.find((a) => a.owner === "p1") || { name: `${CFG.people.p1} Personal` }).name);
-  const p2Acct = esc((CFG.accounts.find((a) => a.owner === "p2") || { name: `${CFG.people.p2} Personal` }).name);
+  // Each person's spending pot inside the Hub, and the shared one
+  const potOf = (o) => CFG.accounts.find((a) => Model.isPot(a) && !a.closed && a.owner === o);
+  const p1Acct = esc((potOf("p1") || { name: `${CFG.people.p1}'s Spending` }).name);
+  const p2Acct = esc((potOf("p2") || { name: `${CFG.people.p2}'s Spending` }).name);
+  const jAcct = esc((potOf("joint") || { name: "Joint Spending" }).name);
+  // The old personal accounts (closed, history only), used for importing the old spreadsheet
+  const oldOf = (o) => esc((CFG.accounts.find((a) => a.closed && a.owner === o) || { name: `${CFG.people[o]} Personal` }).name);
   const step = (n, title, body) => `<div class="help-step"><div class="help-num">${n}</div><div><h3>${title}</h3>${body}</div></div>`;
 
   $("#tab-help").innerHTML = `
@@ -26,14 +31,17 @@ function renderHelp() {
         <div class="flow-box in">Paychecks</div><div class="flow-arrow">&rarr;</div>
         <div class="flow-box hub">Joint Hub</div><div class="flow-arrow">&rarr;</div>
         <div class="flow-col">
-          <div class="flow-box">Joint Bills <span>rent, utilities, insurance, subscriptions</span></div>
-          <div class="flow-box">${p1Acct} <span>${p1}'s spending</span></div>
-          <div class="flow-box">${p2Acct} <span>${p2}'s spending</span></div>
-          <div class="flow-box">Joint Savings <span>shared savings</span></div>
+          <div class="flow-box">Joint Savings <span>bank account · all our savings</span></div>
+          <div class="flow-box">Joint Bills <span>bank account · rent, utilities, insurance, subscriptions</span></div>
+          <div class="flow-box">${p1Acct} <span>stays in the Hub · ${p1}'s money to spend</span></div>
+          <div class="flow-box">${p2Acct} <span>stays in the Hub · ${p2}'s money to spend</span></div>
+          <div class="flow-box">${jAcct} <span>stays in the Hub · eating out together, groceries, other shared costs</span></div>
         </div>
       </div>
       <ul>
-        <li><b>Every paycheck goes into the Joint Hub</b>, then gets split out to the other accounts.</li>
+        <li>We have <b>three bank accounts</b>: the <b>Joint Hub</b>, <b>Joint Savings</b> and <b>Joint Bills</b>. <b>Every paycheck goes into the Joint Hub</b>.</li>
+        <li>The paycheck split sends some to Joint Savings and Joint Bills. The rest <b>stays in the Hub</b>, split into three <b>spending pots</b>: <b>${p1Acct}</b>, <b>${p2Acct}</b> and <b>${jAcct}</b>. The pots aren't bank accounts; they're how much of the Hub's money each of us (and both of us together) can spend.</li>
+        <li>When you buy something with the Hub's card, log it from <b>your pot</b> (or <b>${jAcct}</b> for something shared). That's how the app knows whose spending is whose, and how much is left in each pot.</li>
         <li>Moving money between our own accounts is a <b>Transfer</b>. Transfers are never counted as income or spending, so nothing gets counted twice.</li>
         <li>Each account belongs to someone: <b>Joint</b>, <b>${p1}</b>, or <b>${p2}</b>. That's how the app knows whose spending is whose.</li>
       </ul>
@@ -44,7 +52,7 @@ function renderHelp() {
       ${step(1, "Open the app in Google Chrome", `<p>Go to <b>jtruong9.github.io/truong-endres-family-finances</b> and bookmark it. It only works in <b>Chrome</b>.</p>`)}
       ${step(2, "Connect the shared folder", `<p>Click <b>Choose data folder</b>, then in the window go to <b>This PC &rsaquo; Google Drive (G:) &rsaquo; My Drive &rsaquo; Truong Endres Family Finances Data</b>. Click the folder once and press <b>Select Folder</b> (bottom-right). When Chrome asks, click <b>Edit files</b>.</p>
         <p class="hint">${p2}: the folder is shared from ${p1}'s Google Drive. Open drive.google.com &rsaquo; <i>Shared with me</i> &rsaquo; right-click <b>Truong Endres Family Finances Data</b> &rsaquo; <i>Organize &rsaquo; Add shortcut</i> &rsaquo; <i>My Drive</i>. Otherwise it won't show up on your G: drive.</p>`)}
-      ${step(3, "Bring in your old spreadsheet", `<p>Go to the <b>Import</b> tab &rsaquo; <b>Old database</b>. Pick <b>your own</b> personal account (${p1} &rarr; <b>${p1Acct}</b>, ${p2} &rarr; <b>${p2Acct}</b>), then click <b>Choose File</b> and pick your old expense spreadsheet, whatever it's named. Check the preview and click <b>Import</b>.</p>`)}
+      ${step(3, "Bring in your old spreadsheet", `<p>Go to the <b>Import</b> tab &rsaquo; <b>Old database</b>. Pick <b>your own old personal account</b> (${p1} &rarr; <b>${oldOf("p1")}</b>, ${p2} &rarr; <b>${oldOf("p2")}</b>; they're kept, closed, for history), then click <b>Choose File</b> and pick your old expense spreadsheet, whatever it's named. Check the preview and click <b>Import</b>.</p>`)}
       ${step(4, "If Chrome asks again later", `<p>Sometimes Chrome asks you to confirm folder access after a restart. Just click <b>Reconnect</b>. Nothing is lost.</p>`)}
       ${step(5, "Install it so it works without internet", `<p>With internet on, click <b>Install</b> in the top bar (or Chrome's menu <b>⋮</b> &rsaquo; <i>Cast, save and share</i> &rsaquo; <b>Install page as app</b>). Truong Endres Family Finances gets its own icon in the Start menu and on the desktop. Open it from that icon from now on.</p>
         <p>After that it opens <b>even with no internet</b>. Everything you add while offline is saved to this computer; the <b>Offline</b> badge in the top bar just means Google Drive will upload it, and show it on the other computer, once you're back online.</p>
@@ -60,7 +68,7 @@ function renderHelp() {
           <tr><td>Amount</td><td>How much, e.g. <b>45.20</b></td></tr>
           <tr><td>Description</td><td>The store or what it was. Start typing a place you've used before and it fills in the rest.</td></tr>
           <tr><td>Category</td><td>Groceries, Gas, Food &amp; Drinks…</td></tr>
-          <tr><td>Account</td><td>Which account paid. Usually your own personal account, or <b>Joint Bills</b> for a bill.</td></tr>
+          <tr><td>Account</td><td>Which pot or account paid: your own pot (<b>${p1Acct}</b> / <b>${p2Acct}</b>), <b>${jAcct}</b> for something shared, or <b>Joint Bills</b> for a bill.</td></tr>
           <tr><td>Notes / Tags</td><td>Optional. Use tags like <b>wedding</b> or <b>honeymoon</b> to group a project.</td></tr>
         </tbody></table>
         <p>Click <b>Save</b>, or <b>Save &amp; add another</b> to enter several in a row.</p>`)}
@@ -74,8 +82,8 @@ function renderHelp() {
     <div class="card" id="h-paycheck">
       <h2 class="cat-bar">Paychecks</h2>
       ${step(1, "Log it with one button", `<p>Click <b>Paycheck</b> in the top bar. Enter the date, the <b>net pay</b> (what actually hit the bank) and whose paycheck it is.</p>`)}
-      ${step(2, "Check the split and save", `<p>The window shows how much goes to Joint Bills, each personal account and savings. Click <b>Save</b>. The app logs the paycheck <i>and</i> every transfer for you.</p>`)}
-      <p class="hint">The split is set once under <b>Settings &rsaquo; Paycheck split</b>. Fixed $ amounts and percentages come out first, and "Rest" divides whatever is left. Do the actual transfers in your bank as usual. This only records them.</p>
+      ${step(2, "Check the split and save", `<p>The window shows how much goes to Joint Savings, Joint Bills and each spending pot. Click <b>Save</b>. The app logs the paycheck <i>and</i> every transfer for you.</p>`)}
+      <p class="hint">The split is set once under <b>Settings &rsaquo; Paycheck split</b>, in this order: <b>fixed $ amounts</b> come out first; then each <b>percent</b> is a percent <b>of what's left after the fixed amounts</b>; then <b>Rest</b> lines share whatever remains. Example: $4,000 paycheck, $600 fixed to Savings, 50% to Bills, Rest to the pots: Savings $600, Bills 50% of $3,400 = $1,700, and $1,700 left for the pots. Move money to Savings and Bills in your bank as usual; the pots' money just stays in the Hub. This only records it.</p>
     </div>
 
     <div class="card" id="h-read">
@@ -97,7 +105,7 @@ function renderHelp() {
 
     <div class="card" id="h-moneyflow">
       <h2 class="cat-bar">Money flow</h2>
-      <p>The <b>Money flow</b> page draws our money as boxes from top to bottom: paychecks &rarr; the <b>Joint Hub</b> &rarr; savings, bills and each personal account &rarr; where it leaves them. A <b>thicker arrow means more money</b>, and the moving dots show which way it goes. Hover a box to light up its arrows; hover an arrow for the exact amount.</p>
+      <p>The <b>Money flow</b> page draws our money as boxes from top to bottom: paychecks &rarr; the <b>Joint Hub</b> &rarr; Joint Savings, Joint Bills and the three spending pots (shown together in a dashed box, because their money stays in the Hub) &rarr; where it leaves them. A <b>thicker arrow means more money</b>, and the moving dots show which way it goes. Hover a box to light up its arrows; hover an arrow for the exact amount.</p>
       <ul>
         <li><b>Plan</b>: type one paycheck each (it starts with your last logged paycheck) to see how it splits, using <b>Settings &rsaquo; Paycheck split</b>. Anything the split doesn't send out shows as "Stays in Joint Hub".</li>
         <li><b>Actual month</b>: what really moved that month, from saved transactions. Each account shows what came in and what's <b>left</b>, and the bottom row shows what was spent, saved or paid as bills. It fills in once paychecks are logged with the <b>Paycheck</b> button.</li>

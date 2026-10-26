@@ -298,10 +298,14 @@ tr.dup-row td { background: var(--warn-bg); }
 .batch-fields .bx-note { grid-column: span 2; }
 .bx-mode { display: flex; align-items: center; gap: 6px; font-weight: 400; }
 
-/* ---- Reorder (▲ ▼) ---- */
-td.mv { width: 1%; padding-right: 2px; }
-.mv button, .goal [data-move] { height: 22px; min-width: 22px; padding: 0 4px; font-size: 9px; color: var(--faint); }
-.mv button:hover, .goal [data-move]:hover:not(:disabled) { color: var(--ink); }
+/* ---- Drag to reorder ---- */
+td.mv { width: 1%; padding-right: 0; }
+.drag { display: inline-grid; place-items: center; width: 22px; height: 26px; border-radius: 6px; color: #C4C8CF; cursor: grab; touch-action: none; user-select: none; flex: none; }
+.drag:hover { color: var(--ink-2); background: var(--hover); }
+.drag .ico { width: 16px; height: 16px; }
+.ico.inline { width: 14px; height: 14px; vertical-align: -3px; }
+body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select: none; }
+tr.dragging td, .goal.dragging { background: var(--accent-bg) !important; box-shadow: 0 1px 0 var(--accent) inset, 0 -1px 0 var(--accent) inset; }
+.goal.dragging { border-radius: 8px; opacity: .9; }
 tr.moved td { background: var(--accent-bg); }
-tbody tr:first-child .mv-up, tbody tr:last-child .mv-dn { visibility: hidden; }
 .tx-sums b { font-weight: 600; }

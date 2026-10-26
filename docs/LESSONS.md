@@ -36,3 +36,7 @@ Format: **What didn't work / What worked / Note for next time.** Check here befo
 ## Testing an edit: the browser kept the old CSS
 - **Cause:** the service worker serves files from its saved copy first. Editing a file without bumping `?v=N` means a browser that already has the app keeps the old version, even on reload.
 - **Note:** after editing js/css, bump `?v=N` (index.html) and `VERSION` + the list in `sw.js` before testing, or unregister the service worker and clear `caches` in the test browser.
+
+## Drag to reorder: nothing moved
+- **Cause:** the pointer listeners were on the drag handle with `setPointerCapture`. Moving the row in the page (to show the new spot) drops pointer capture, so the handle stopped getting `pointermove` / `pointerup` after the first step.
+- **Fix:** listen on `window` for `pointermove` / `pointerup` / `pointercancel`, filtered by `pointerId`. Test with real mouse moves, and scroll the rows into view first.

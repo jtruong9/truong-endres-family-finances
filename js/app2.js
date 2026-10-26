@@ -2,16 +2,8 @@
 "use strict";
 
 const ACCT_TYPES = ["Checking", "Savings", Model.POT, "Credit Card", "Investment", "Cash"];
-// ▲ ▼ buttons that move a table row up or down one place (the new order is saved with the table)
-const moveBtns = `<td class="mv nowrap"><button type="button" class="small ghost mv-up" title="Move up" aria-label="Move up">▲</button><button type="button" class="small ghost mv-dn" title="Move down" aria-label="Move down">▼</button></td>`;
-function moveRow(btn) {
-  const tr = btn.closest("tr"), up = btn.classList.contains("mv-up");
-  const to = up ? tr.previousElementSibling : tr.nextElementSibling;
-  if (!to) return false;
-  up ? to.before(tr) : to.after(tr);
-  tr.classList.add("moved");
-  return true;
-}
+// Drag handle cell for a reorderable table row (the new order is saved with the table's Save button)
+const moveBtns = `<td class="mv">${dragHandle()}</td>`;
 
 // --------------------------------------------------------------------------------- paycheck
 const dlgPay = $("#dlg-pay"), formPay = $("#form-pay");
@@ -95,6 +87,7 @@ function renderBills() {
     </div>`;
   $("#bl-month").onchange = (e) => { ui.billMonth = +e.target.value; renderBills(); };
   catPickerWire($("#tab-bills"), 'select[data-k="category"]');
+  makeSortable($("#bl-table tbody"), "tr", () => ($("#bl-moved").hidden = false));
   const collect = () => $$("#tab-bills tbody tr").map((tr) => {
     const g = (k) => tr.querySelector(`[data-k="${k}"]`).value;
     return { name: g("name").trim(), category: g("category"), account: g("account"), amount: g("amount") === "" ? null : +g("amount"), day: Math.min(31, Math.max(1, +g("day") || 1)), match: g("match").trim() };
@@ -104,8 +97,6 @@ function renderBills() {
   $("#bl-add").onclick = () => Store.setCfg("recurring", [...collect(), { name: "New bill", category: "", account: "Joint Bills", amount: null, day: 1, match: "" }]);
   $("#bl-save").onclick = async () => { await Store.setCfg("recurring", collect().filter((b) => b.name)); toast("Bills saved."); };
   $("#tab-bills tbody").onclick = (e) => {
-    const mv = e.target.closest(".mv-up, .mv-dn");
-    if (mv) { if (moveRow(mv)) $("#bl-moved").hidden = false; return; }
     const i = e.target.dataset.del;
     if (i !== undefined) Store.setCfg("recurring", collect().filter((_, k) => k !== +e.target.closest("tr").sectionRowIndex));
   };
@@ -251,7 +242,7 @@ function renderSettings() {
         <td><select data-k="in">${opts(CFG.accounts.filter((x) => !Model.isPot(x) && x.name !== a.name).map((x) => x.name), a.in || "", "—")}</select></td>
         <td><input data-k="openingBalance" type="number" step="0.01" value="${a.openingBalance ?? ""}" placeholder="balance" style="width:110px"></td>
         <td><input data-k="openingDate" type="date" value="${esc(a.openingDate || "")}"></td><td><input data-k="closed" type="checkbox" ${a.closed ? "checked" : ""}></td><td><input data-k="note" value="${esc(a.note || "")}"></td>${del}</tr>`).join("")}
-      </tbody></table><div class="row" style="margin-top:8px"><button data-add="st-accts">${icon("plus")}Add account</button><button id="st-accts-save" class="primary">Save accounts</button></div></div>
+      </tbody></table><div class="row" style="margin-top:8px"><button data-add="st-accts">${icon("plus")}Add account</button><button id="st-accts-save" class="primary">Save accounts</button><span class="hint" id="st-accts-moved" hidden>Order changed. Click Save accounts to keep it.</span></div></div>
 
     <div class="card"><h2>Paycheck split</h2>
       <p class="hint">Fixed $ amounts come out first. Each percent is a percent of what's left after the fixed amounts. Rest lines share whatever remains.</p>
@@ -262,13 +253,13 @@ function renderSettings() {
 
     <div class="card"><div class="row"><h2>Categories &amp; budgets</h2><span class="spacer"></span>
         <label class="muted row">Show <select id="st-cat-year">${opts([...years().map((y) => [String(y), y === new Date().getFullYear() ? `${y} (this year)` : String(y)]), ["all", "All years"]], catYear)}</select></label></div>
-      <p class="hint">${catYear === "all" ? "Every category, from every year." : `Categories used in ${catYear}${+catYear === new Date().getFullYear() ? ", plus new ones not used yet" : ""}. The number is how many ${catYear} transactions use it.`} ▲ ▼ change the order (within a group it's the order on the Summary and in every list).</p>
+      <p class="hint">${catYear === "all" ? "Every category, from every year." : `Categories used in ${catYear}${+catYear === new Date().getFullYear() ? ", plus new ones not used yet" : ""}. The number is how many ${catYear} transactions use it.`} Drag ${icon("grip", "inline")} to change the order (within a group it's the order on the Summary and in every list).</p>
       <div class="table-wrap" style="max-height:520px"><table class="edit-table" id="st-cats"><thead><tr><th></th><th>Name</th><th>Group</th><th>Kind</th><th>Monthly budget</th><th class="num">${catYear === "all" ? "Uses" : catYear}</th><th></th></tr></thead><tbody>
       ${shownCats.map((c) => `<tr data-orig="${esc(c.name)}">${moveBtns}<td><input data-k="name" value="${esc(c.name)}"></td><td><input data-k="group" value="${esc(c.group)}" list="group-list"></td>
         <td><select data-k="kind">${opts(["Income", "Savings", "Expense", "Transfer"], c.kind)}</select></td><td><input data-k="budget" type="number" step="0.01" value="${c.budget ?? ""}"></td>
         <td class="num muted">${(catUses.get(c.name) || 0).toLocaleString()}</td>${del}</tr>`).join("") || `<tr><td colspan="7" class="muted">No categories used in ${catYear}.</td></tr>`}
       </tbody></table></div><datalist id="group-list">${CFG.groups.map((g) => `<option value="${esc(g)}">`).join("")}</datalist>
-      <div class="row" style="margin-top:8px"><button data-add="st-cats">${icon("plus")}Add category</button><button id="st-cats-save" class="primary">Save categories</button></div></div>
+      <div class="row" style="margin-top:8px"><button data-add="st-cats">${icon("plus")}Add category</button><button id="st-cats-save" class="primary">Save categories</button><span class="hint" id="st-cats-moved" hidden>Order changed. Click Save categories to keep it.</span></div></div>
 
     <div class="card"><h2>Import rules</h2>
       <p class="hint">If an imported description contains this text, it gets this category.</p>
@@ -297,9 +288,10 @@ function renderSettings() {
   tab.onclick = (e) => {
     if (e.target.dataset.add) $(`#${e.target.dataset.add} tbody`).insertAdjacentHTML("beforeend", templates[e.target.dataset.add]);
     if (e.target.hasAttribute("data-del")) e.target.closest("tr").remove();
-    const mv = e.target.closest(".mv-up, .mv-dn");
-    if (mv) moveRow(mv);
   };
+  const movedHint = (id) => () => { const h = $(`#${id}`); if (h) h.hidden = false; };
+  makeSortable($("#st-accts tbody"), "tr", movedHint("st-accts-moved"));
+  makeSortable($("#st-cats tbody"), "tr", movedHint("st-cats-moved"));
   $("#st-cat-year").onchange = (e) => { ui.catYear = e.target.value; const y = window.scrollY; renderSettings(); window.scrollTo(0, y); };
 
   $("#st-people").onclick = async () => { await Store.setCfg("people", { p1: $("#st-p1").value.trim() || "Person 1", p1Full: $("#st-p1f").value.trim(), p2: $("#st-p2").value.trim() || "Person 2", p2Full: $("#st-p2f").value.trim(), joint: $("#st-joint").value.trim() || "Joint" }); toast("Names saved."); };
@@ -324,7 +316,7 @@ function renderSettings() {
     openingBalance: r.type === Model.POT || r.openingBalance === "" ? null : Model.r2(+r.openingBalance), openingDate: r.type === Model.POT ? "" : r.openingDate || "" }), ["account", "toAccount"]);
   $("#st-cats-save").onclick = () => {
     // The table may show only one year's categories. Hidden ones keep their exact spots; the shown spots
-    // are refilled, in order, with the table's rows (so ▲ ▼ reorders among them). Extra rows go at the end.
+    // are refilled, in order, with the table's rows (so dragging reorders among them). Extra rows go at the end.
     const shown = new Set(shownCats.map((c) => c.name));
     const rows = rowsOf("st-cats").filter((r) => r.name !== undefined);   // skips the "no categories" row
     const queue = rows.slice(), merged = [];

@@ -60,6 +60,48 @@ function filterCategories(year, keep) {
   if (keep && !names.includes(keep)) names.push(keep);
   return names;
 }
+// ---- Drag to reorder ----
+// The handle to put on a row or card. Only the handle starts a drag, so inputs in the row still work.
+const dragHandle = (cls = "") => `<span class="drag ${cls}" title="Drag to reorder" aria-label="Drag to reorder">${icon("grip")}</span>`;
+// Lets the children of `list` (matching itemSel) be dragged into a new order by their .drag handle.
+// onDrop(fromIndex, toIndex) runs after a move. Works with mouse and touch (pointer events).
+function makeSortable(list, itemSel, onDrop) {
+  if (!list || list.dataset.sortable) return;
+  list.dataset.sortable = "1";
+  list.addEventListener("pointerdown", (e) => {
+    const handle = e.target.closest(".drag");
+    const item = handle && handle.closest(itemSel);
+    if (!item || e.button !== 0 || !list.contains(item)) return;
+    e.preventDefault();
+    const items = () => [...list.querySelectorAll(`:scope > ${itemSel}`)];
+    const from = items().indexOf(item);
+    item.classList.add("dragging");
+    document.body.classList.add("is-dragging");
+    // Listen on the window, not the handle: moving the row in the page drops pointer capture
+    const move = (ev) => {
+      if (ev.pointerId !== e.pointerId) return;
+      // Put the item before the first sibling whose middle is below the pointer
+      const after = items().filter((x) => x !== item).find((x) => { const r = x.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
+      after ? after.before(item) : list.append(item);
+      // Keep the page scrolling when dragging near the top or bottom edge
+      if (ev.clientY < 80) window.scrollBy(0, -12); else if (ev.clientY > innerHeight - 60) window.scrollBy(0, 12);
+    };
+    const up = (ev) => {
+      if (ev.pointerId !== e.pointerId) return;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      item.classList.remove("dragging");
+      document.body.classList.remove("is-dragging");
+      const to = items().indexOf(item);
+      if (to !== from) { item.classList.add("moved"); onDrop(from, to); }
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  });
+}
+
 // Make every category <select> under root (matching sel) expand to all categories when "older" is picked
 function catPickerWire(root, sel, filter = () => true) {
   root.addEventListener("change", (e) => {

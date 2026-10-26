@@ -145,7 +145,7 @@ function renderHelp() {
 
     <div class="card" id="h-goals">
       <h2 class="cat-bar">Goals</h2>
-      <p>On the <b>Goals</b> tab, click <b>New goal</b>. Every goal follows a <b>tag</b>: put the tag on any transaction that belongs to it. Use ▲ ▼ on a goal to move it up or down.</p>
+      <p>On the <b>Goals</b> tab, click <b>New goal</b>. Every goal follows a <b>tag</b>: put the tag on any transaction that belongs to it. Drag a goal by its handle (the dots on the left) to change the order.</p>
       <ul>
         <li><b>Savings goal</b> (emergency fund, car, house, yearly car tabs): money you save or transfer with the tag adds up, and tagged spending takes away. With a "reach it by" date it tells you how much to save each month.</li>
         <li><b>Project budget</b> (a trip, a wedding, a remodel): adds up tagged spending against the budget and turns red if you go over.</li>
@@ -154,7 +154,7 @@ function renderHelp() {
 
     <div class="card" id="h-bills">
       <h2 class="cat-bar">Bills</h2>
-      <p>On the <b>Bills</b> tab, list each recurring bill: name, category, which account pays it (normally <b>Joint Bills</b>), the amount and the day it's due. Use ▲ ▼ to change their order, then click <b>Save bills</b>.</p>
+      <p>On the <b>Bills</b> tab, list each recurring bill: name, category, which account pays it (normally <b>Joint Bills</b>), the amount and the day it's due. Drag a bill by its handle (the dots on the left) to change the order, then click <b>Save bills</b>.</p>
       <p>Each month, click <b>Log … bills</b> to enter all of that month's bills in one step. Fixed amounts are filled in; type the amount for ones that vary.</p>
       <p>A bill shows <span class="pill Paid">Paid</span> once it's logged, <span class="pill Due">Due soon</span> in the 5 days before it's due, or <span class="pill Overdue">Overdue</span> after the due day. Unpaid bills also show on the Dashboard and in the Check-in.</p>
       <p class="hint">If you import the bank statement too, the bill will show as a <i>possible duplicate</i> in the review list. Remove it there.</p>

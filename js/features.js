@@ -72,9 +72,8 @@ function goalsTab() {
       ? `<b>${money(p.spent, false)}</b> spent of ${money(p.target, false)} · <span class="${p.over ? "neg" : "pos"}">${p.over ? `${money(-p.left, false)} over budget` : `${money(p.left, false)} left`}</span>`
       : `<b>${money(p.saved, false)}</b> saved of ${money(p.target, false)}${p.done ? ' · <span class="pos">Reached</span>' : p.perMonth != null ? ` · save <b>${money(p.perMonth, false)}/month</b> to reach it by ${esc(fmtYm(g.due))}` : ""}${p.pastDue ? ' · <span class="neg">past its date</span>' : ""}`;
     return `<div class="goal" data-i="${i}">
-      <div class="row"><h3 style="margin:0">${esc(g.name)}</h3><span class="pill">${p.type === "budget" ? "Project budget" : "Savings goal"}</span>
+      <div class="row">${dragHandle()}<h3 style="margin:0">${esc(g.name)}</h3><span class="pill">${p.type === "budget" ? "Project budget" : "Savings goal"}</span>
         <span class="pill">tag: ${esc(p.tag)}</span><span class="spacer"></span>
-        <button class="small ghost" data-move="-1" data-i="${i}" title="Move up" aria-label="Move up" ${i === 0 ? "disabled" : ""}>▲</button><button class="small ghost" data-move="1" data-i="${i}" title="Move down" aria-label="Move down" ${i === goals.length - 1 ? "disabled" : ""}>▼</button>
         <button class="small" data-edit="${i}">Edit</button> <button class="small" data-show="${i}">${p.items.length} transaction(s)</button></div>
       <div class="bar ${p.type === "budget" && p.over ? "over" : ""}"><span style="width:${(pct * 100).toFixed(1)}%"></span></div>
       <div>${line}</div>${g.note ? `<div class="hint">${esc(g.note)}</div>` : ""}
@@ -83,7 +82,7 @@ function goalsTab() {
   return `
     ${pageHead("Goals", "Savings goals and project budgets, tracked by tag", `<button id="gl-add" class="primary">${icon("plus")}New goal</button>`)}
     <div class="card">
-      ${goals.length ? goals.map(card).join("") : `<p class="muted">No goals yet. A goal adds up every transaction with its tag.</p>`}
+      ${goals.length ? `<div id="gl-list">${goals.map(card).join("")}</div>` : `<p class="muted">No goals yet. A goal adds up every transaction with its tag.</p>`}
       <div id="gl-form"></div></div>`;
 }
 const fmtYm = (ym) => (ym ? `${Model.MONTHS[+ym.slice(5, 7) - 1]} ${ym.slice(0, 4)}` : "");
@@ -113,15 +112,13 @@ function wireGoals(root) {
     $("#gf-name").focus();
   };
   $("#gl-add").onclick = () => form({}, null);
+  // Drag a goal by its handle; the new order is saved as soon as it's dropped
+  makeSortable($("#gl-list"), ".goal", (from, to) => {
+    const list = CFG.goals.slice();
+    list.splice(to, 0, list.splice(from, 1)[0]);
+    Store.setCfg("goals", list);
+  });
   root.onclick = async (e) => {
-    const mv = e.target.closest("[data-move]");
-    if (mv) {   // reorder: saved straight away
-      const i = +mv.dataset.i, j = i + +mv.dataset.move, list = CFG.goals.slice();
-      if (j < 0 || j >= list.length) return;
-      [list[i], list[j]] = [list[j], list[i]];
-      await Store.setCfg("goals", list);
-      return;
-    }
     const ed = e.target.dataset.edit, sh = e.target.dataset.show;
     if (ed !== undefined) form(CFG.goals[+ed], +ed);
     if (sh !== undefined) { ui.tx = { ...ui.tx, q: CFG.goals[+sh].tag, year: "", account: "", category: "", owner: "all", flagged: false, page: 0 }; $('#tabs [data-tab="transactions"]').click(); }

@@ -67,7 +67,7 @@ function renderHelp() {
           <tr><td>Date</td><td>When it happened (defaults to today)</td></tr>
           <tr><td>Amount</td><td>How much, e.g. <b>45.20</b></td></tr>
           <tr><td>Description</td><td>The store or what it was. Start typing a place you've used before and it fills in the rest.</td></tr>
-          <tr><td>Category</td><td>Groceries, Gas, Food &amp; Drinks…</td></tr>
+          <tr><td>Category</td><td>Groceries, Gas, Dining Out… The list shows <b>this year's</b> categories (plus any you just added). To use an older one, pick <b>Show older categories…</b> at the bottom of the list.</td></tr>
           <tr><td>Account</td><td>Which pot or account paid: your own pot (<b>${p1Acct}</b> / <b>${p2Acct}</b>), <b>${jAcct}</b> for something shared, or <b>Joint Bills</b> for a bill.</td></tr>
           <tr><td>Notes / Tags</td><td>Optional. Use tags like <b>wedding</b> or <b>honeymoon</b> to group a project.</td></tr>
         </tbody></table>
@@ -89,6 +89,8 @@ function renderHelp() {
     <div class="card" id="h-read">
       <h2 class="cat-bar">Reading the numbers</h2>
       <p><b>Dashboard</b>: this month at a glance. Income, spending, savings, what's left, and each person's <b>allowance left</b> (what was moved into your personal account minus what you've spent from it).</p>
+      <p><b>Transactions</b>: the line above the list adds up the rows you're looking at: <b>Income − Spent − Saved = what's left</b>. Transfers aren't counted, since they're just money moving between our accounts.</p>
+      <p><b>Settings &rsaquo; Categories &amp; budgets</b> shows this year's categories. Use the <b>Show</b> box to see another year's, or All years.</p>
       <p><b>Summary</b>: the whole year, every category month by month:</p>
       <div class="help-month-key">${Model.MONTHS.map((m, i) => `<span style="--mc:${Model.MONTH_COLORS[i][0]}">${m}</span>`).join("")}</div>
       <ul>
@@ -143,7 +145,7 @@ function renderHelp() {
 
     <div class="card" id="h-goals">
       <h2 class="cat-bar">Goals</h2>
-      <p>On the <b>Goals</b> tab, click <b>New goal</b>. Every goal follows a <b>tag</b>: put the tag on any transaction that belongs to it.</p>
+      <p>On the <b>Goals</b> tab, click <b>New goal</b>. Every goal follows a <b>tag</b>: put the tag on any transaction that belongs to it. Use ▲ ▼ on a goal to move it up or down.</p>
       <ul>
         <li><b>Savings goal</b> (emergency fund, car, house, yearly car tabs): money you save or transfer with the tag adds up, and tagged spending takes away. With a "reach it by" date it tells you how much to save each month.</li>
         <li><b>Project budget</b> (a trip, a wedding, a remodel): adds up tagged spending against the budget and turns red if you go over.</li>
@@ -152,7 +154,7 @@ function renderHelp() {
 
     <div class="card" id="h-bills">
       <h2 class="cat-bar">Bills</h2>
-      <p>On the <b>Bills</b> tab, list each recurring bill: name, category, which account pays it (normally <b>Joint Bills</b>), the amount and the day it's due. Click <b>Save bills</b>.</p>
+      <p>On the <b>Bills</b> tab, list each recurring bill: name, category, which account pays it (normally <b>Joint Bills</b>), the amount and the day it's due. Use ▲ ▼ to change their order, then click <b>Save bills</b>.</p>
       <p>Each month, click <b>Log … bills</b> to enter all of that month's bills in one step. Fixed amounts are filled in; type the amount for ones that vary.</p>
       <p>A bill shows <span class="pill Paid">Paid</span> once it's logged, <span class="pill Due">Due soon</span> in the 5 days before it's due, or <span class="pill Overdue">Overdue</span> after the due day. Unpaid bills also show on the Dashboard and in the Check-in.</p>
       <p class="hint">If you import the bank statement too, the bill will show as a <i>possible duplicate</i> in the review list. Remove it there.</p>

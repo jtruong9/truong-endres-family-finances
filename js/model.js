@@ -338,6 +338,26 @@ const Model = (() => {
     return out;
   }
 
+  // ------------------------------------------------------------------ categories by year
+  // Which categories each year's saved transactions use: Map(year -> Set(name))
+  function categoriesByYear(txs) {
+    const m = new Map();
+    for (const t of txs) {
+      if (!isPosted(t) || !t.date || !t.category) continue;
+      const y = +t.date.slice(0, 4);
+      if (!m.has(y)) m.set(y, new Set());
+      m.get(y).add(t.category);
+    }
+    return m;
+  }
+  // Categories to offer when entering something in `year`: the ones that year used, plus any never
+  // used in any year (just added), plus `keep` (what the row being edited already has). In list order.
+  function currentCategories(cfg, txs, year, keep = []) {
+    const by = categoriesByYear(txs), thisYear = by.get(year) || new Set(), ever = new Set([...by.values()].flatMap((s) => [...s]));
+    const keepSet = new Set(keep.filter(Boolean));
+    return cfg.categories.filter((c) => thisYear.has(c.name) || !ever.has(c.name) || keepSet.has(c.name));
+  }
+
   // ------------------------------------------------------------------ batch edit (Transactions)
   // Apply one set of changes to a transaction. Only the fields given change:
   //   { category, account, toAccount, date, addTags: "a, b", removeTags: "c", note, noteMode: "add"|"replace" }
@@ -619,7 +639,7 @@ const Model = (() => {
   }
 
   return {
-    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2, POT, isPot, openAccounts, bankBalanceAt, potBalanceAt, batchEdit, batchProblem,
+    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2, POT, isPot, openAccounts, bankBalanceAt, potBalanceAt, batchEdit, batchProblem, categoriesByYear, currentCategories,
     hubName, incomeOwner, lastPaycheck, planFlow, actualFlow,
     config, ownerLabel, kindOf, ownerOf, matchesOwner, ownerParts, FROM_PREFIX, isPosted, tagList,
     yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, issueList, openIssues, issueGroups, autoCategory,

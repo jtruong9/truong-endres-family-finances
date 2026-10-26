@@ -25,7 +25,7 @@ function batchBar(rows, shown) {
       <span class="spacer"></span><button class="small ghost" id="bx-clear">Clear selection</button>
     </div>
     <div class="batch-fields">
-      <label>Category<select id="bx-cat">${opts(CFG.categories.map((c) => c.name), "", "Keep")}</select></label>
+      <label>Category<select id="bx-cat">${catOptions("", "Keep")}</select></label>
       <label>Account<select id="bx-acct">${opts(accts, "", "Keep")}</select></label>
       <label>To / Put into<select id="bx-to">${opts([["", "Keep"], ["-", "(none)"], ...accts.map((a) => [a, a])], "")}</select></label>
       <label>Date<input type="date" id="bx-date"></label>
@@ -64,6 +64,7 @@ function wireBatch(rows, shown) {
   });
   const bar = $("#batch-bar");
   if (!bar) return;
+  catPickerWire(bar, "#bx-cat");
   const all = $("#bx-all");
   if (all) all.onclick = (e) => { e.preventDefault(); batchUi.allMatching = true; redraw(); };
   $("#bx-clear").onclick = () => { batchUi.sel.clear(); batchUi.allMatching = false; redraw(); };

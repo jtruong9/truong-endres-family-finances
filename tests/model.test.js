@@ -344,4 +344,19 @@ t("batch edit: To account only on transfers / savings, never the same as the acc
   assert.strictEqual(Model.batchProblem(CFG, [sav], { category: "Transfer", toAccount: "Joint Hub" }), "");
 });
 
+t("categories by year: pickers show this year's + never-used + the row's own", () => {
+  const c = Model.config((k, d) => (k === "categories" ? [
+    { name: "Old Bills", group: "Bills", kind: "Expense" }, { name: "Rent", group: "Home", kind: "Expense" },
+    { name: "Brand New", group: "Other", kind: "Expense" }, { name: "Paychecks", group: "Income", kind: "Income" }] : d));
+  const s = [
+    { date: "2025-03-01", amount: 10, category: "Old Bills", account: "Joint Hub" },
+    { date: "2026-03-01", amount: 20, category: "Rent", account: "Joint Hub" },
+    { date: "2026-03-02", amount: 30, category: "Paychecks", account: "Joint Hub" },
+    { date: "2026-04-01", amount: 5, category: "Old Bills", account: "Joint Hub", review: true }];   // review rows don't count
+  const by = Model.categoriesByYear(s);
+  assert.strictEqual(J([[...by.get(2025)], [...by.get(2026)].sort()]), J([["Old Bills"], ["Paychecks", "Rent"]]));
+  assert.strictEqual(J(Model.currentCategories(c, s, 2026).map((x) => x.name)), J(["Rent", "Brand New", "Paychecks"]));
+  assert.strictEqual(J(Model.currentCategories(c, s, 2026, ["Old Bills"]).map((x) => x.name)), J(["Old Bills", "Rent", "Brand New", "Paychecks"]));
+});
+
 console.log(`\n${n} tests passed`);

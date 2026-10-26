@@ -42,6 +42,37 @@ function wireOwnerTabs(id, onPick) {
 }
 const ownerName = (k) => (ownerChoices().find(([v]) => v === k) || [k, k])[1];
 
+// Category <option>s for a picker: this year's categories (plus new ones and `sel`), then a
+// "Show older categories…" entry. Picking that entry swaps the list for every category (catPickerWire).
+// filter(c) narrows the list (e.g. no transfers). blank = text of the empty first option, if any.
+const OLDER = "__older__";
+function catOptions(sel, blank, filter = () => true, all = false) {
+  const list = (all ? CFG.categories : Model.currentCategories(CFG, Store.transactions(), new Date().getFullYear(), [sel])).filter(filter);
+  const hidden = CFG.categories.filter(filter).length - list.length;
+  return opts(list.map((c) => c.name), sel, blank) + (!all && hidden > 0 ? `<option value="${OLDER}">Show older categories… (${hidden})</option>` : "");
+}
+// Categories for the Transactions filter: the picked year's categories (list order), or all of them
+function filterCategories(year, keep) {
+  if (!year) return CFG.categories.map((c) => c.name);
+  const used = Model.categoriesByYear(Store.transactions()).get(+year) || new Set();
+  const names = CFG.categories.map((c) => c.name).filter((n) => used.has(n));
+  for (const n of used) if (!names.includes(n)) names.push(n);   // names not in the list (old spreadsheet)
+  if (keep && !names.includes(keep)) names.push(keep);
+  return names;
+}
+// Make every category <select> under root (matching sel) expand to all categories when "older" is picked
+function catPickerWire(root, sel, filter = () => true) {
+  root.addEventListener("change", (e) => {
+    const s = e.target;
+    if (!s.matches || !s.matches(sel) || s.value !== OLDER) return;
+    e.stopImmediatePropagation();
+    const keepBlank = s.options[0] && s.options[0].value === "" ? s.options[0].textContent : undefined;
+    s.innerHTML = catOptions("", keepBlank, filter, true);
+    s.value = "";
+    s.focus();
+  }, true);
+}
+
 function years() {
   const ys = new Set(Store.transactions().map((t) => +t.date.slice(0, 4)));
   ys.add(new Date().getFullYear());
@@ -277,7 +308,10 @@ function renderTransactions() {
     (!q || `${t.desc} ${t.notes} ${t.tags} ${t.category} ${t.amount}`.toLowerCase().includes(q)) &&
     (!f.flagged || Model.openIssues(CFG, t).length));
   rows.sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? 1 : -1));
-  const total = rows.reduce((s, t) => s + (Model.kindOf(CFG, t) === "Transfer" ? 0 : t.amount), 0);
+  // Totals for the rows shown: income in, spending and savings out (transfers are just money moving)
+  const sums = { Income: 0, Expense: 0, Savings: 0 };
+  for (const t of rows) { const k = Model.kindOf(CFG, t); if (k in sums) sums[k] += t.amount; }
+  const net = sums.Income - sums.Expense - sums.Savings;
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   f.page = Math.min(f.page, pages - 1);
   const shown = rows.slice(f.page * PAGE, (f.page + 1) * PAGE);
@@ -293,10 +327,10 @@ function renderTransactions() {
         <select id="tf-year">${opts(years().map(String), f.year, "All years")}</select>
         ${ownerTabs("tf-owner", f.owner)}
         <select id="tf-account">${opts(CFG.accounts.map((a) => a.name), f.account, "All accounts")}</select>
-        <select id="tf-category">${opts(CFG.categories.map((c) => c.name), f.category, "All categories")}</select>
+        <select id="tf-category">${opts(filterCategories(f.year, f.category), f.category, f.year ? `All ${f.year} categories` : "All categories")}</select>
         <label class="muted"><input type="checkbox" id="tf-flagged" ${f.flagged ? "checked" : ""}> Needs attention</label>
         <span class="spacer"></span>
-        <span class="muted">${rows.length.toLocaleString()} rows · total (excl. transfers) <b>${money(total, false)}</b></span>
+        <span class="tx-sums muted">${rows.length.toLocaleString()} rows · Income <b class="pos">${money(sums.Income, false)}</b> − Spent <b>${money(sums.Expense, false)}</b> − Saved <b>${money(sums.Savings, false)}</b> = <b class="${net < -0.005 ? "neg" : "pos"}" title="Income minus spending and savings. Transfers aren't counted.">${money(net, false)}</b></span>
       </div>
       ${batchBar(rows, shown)}
       <div class="table-wrap"><table id="tx-table"><thead><tr>${batchHead(shown)}<th>Date</th><th>Description</th><th class="num">Amount</th><th>Category</th><th>Account</th><th>Owner</th><th>Notes / Tags</th></tr></thead><tbody>
@@ -341,7 +375,7 @@ function openTx(tx) {
   editing = tx || null;
   const t = tx || { date: todayIso(), desc: "", amount: "", category: "", account: ui.lastAccount || "", toAccount: "", notes: "", tags: "" };
   $("#tx-title").textContent = tx ? "Edit transaction" : "Add transaction";
-  formTx.category.innerHTML = opts(CFG.categories.map((c) => c.name), t.category, "Choose…");
+  formTx.category.innerHTML = catOptions(t.category, "Choose…");
   const pick = (keep) => [...new Set([...Model.openAccounts(CFG).map((a) => a.name), ...(keep ? [keep] : [])])];
   formTx.account.innerHTML = opts(pick(t.account), t.account, "Choose…");
   formTx.toAccount.innerHTML = opts(pick(t.toAccount), t.toAccount, "Choose…");
@@ -370,6 +404,7 @@ function toggleTo() {
 }
 formTx.account.addEventListener("change", toggleTo);
 formTx.category.onchange = toggleTo;
+catPickerWire(formTx, 'select[name="category"]');
 // Typing a description you've used before pre-fills its last category/account
 formTx.desc.onchange = () => {
   if (editing || formTx.category.value) return;

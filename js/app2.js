@@ -2,6 +2,16 @@
 "use strict";
 
 const ACCT_TYPES = ["Checking", "Savings", Model.POT, "Credit Card", "Investment", "Cash"];
+// ▲ ▼ buttons that move a table row up or down one place (the new order is saved with the table)
+const moveBtns = `<td class="mv nowrap"><button type="button" class="small ghost mv-up" title="Move up" aria-label="Move up">▲</button><button type="button" class="small ghost mv-dn" title="Move down" aria-label="Move down">▼</button></td>`;
+function moveRow(btn) {
+  const tr = btn.closest("tr"), up = btn.classList.contains("mv-up");
+  const to = up ? tr.previousElementSibling : tr.nextElementSibling;
+  if (!to) return false;
+  up ? to.before(tr) : to.after(tr);
+  tr.classList.add("moved");
+  return true;
+}
 
 // --------------------------------------------------------------------------------- paycheck
 const dlgPay = $("#dlg-pay"), formPay = $("#form-pay");
@@ -68,10 +78,10 @@ function renderBills() {
     ${pageHead("Bills", `${money(fixed, false)} a month in fixed bills`,
       `<select id="bl-month">${opts(Model.MONTHS.map((m, i) => [String(i), `${m} ${y}`]), String(ui.billMonth))}</select>${rec.length ? `<button id="bl-log" class="primary">Log ${Model.MONTHS[ui.billMonth]} bills</button>` : ""}`)}
     <div class="card">
-      <div class="table-wrap"><table class="edit-table"><thead><tr><th>Bill</th><th>Category</th><th>Paid from</th><th class="num">Amount</th><th>Due day</th><th>Match text (optional)</th><th>Status</th><th></th></tr></thead><tbody>
-        ${st.map((b, i) => `<tr data-i="${i}">
+      <div class="table-wrap"><table class="edit-table" id="bl-table"><thead><tr><th></th><th>Bill</th><th>Category</th><th>Paid from</th><th class="num">Amount</th><th>Due day</th><th>Match text (optional)</th><th>Status</th><th></th></tr></thead><tbody>
+        ${st.map((b, i) => `<tr data-i="${i}">${moveBtns}
           <td><input data-k="name" value="${esc(b.name)}"></td>
-          <td><select data-k="category">${opts(CFG.categories.map((c) => c.name), b.category, "")}</select></td>
+          <td><select data-k="category">${catOptions(b.category, "")}</select></td>
           <td><select data-k="account">${opts([...new Set([...Model.openAccounts(CFG).map((a) => a.name), b.account].filter(Boolean))], b.account, "")}</select></td>
           <td><input data-k="amount" type="number" step="0.01" value="${b.amount ?? ""}" placeholder="varies"></td>
           <td><input data-k="day" type="number" min="1" max="31" value="${b.day}"></td>
@@ -79,10 +89,12 @@ function renderBills() {
           <td><span class="pill ${b.status.split(" ")[0]}">${b.status}</span>${b.paidAmount ? ` <span class="muted">${money(b.paidAmount, false)}</span>` : ""}</td>
           <td><button class="small ghost" data-del="${i}" title="Remove">Remove</button></td></tr>`).join("")}
       </tbody></table></div>
+      <p class="hint" id="bl-moved" hidden>Order changed. Click <b>Save bills</b> to keep it.</p>
       <div class="row" style="margin-top:10px"><button id="bl-add">${icon("plus")}Add bill</button><button id="bl-save" class="primary">Save bills</button>
         ${rec.length ? "" : `<button id="bl-seed">Start with a basic bill list</button>`}</div>
     </div>`;
   $("#bl-month").onchange = (e) => { ui.billMonth = +e.target.value; renderBills(); };
+  catPickerWire($("#tab-bills"), 'select[data-k="category"]');
   const collect = () => $$("#tab-bills tbody tr").map((tr) => {
     const g = (k) => tr.querySelector(`[data-k="${k}"]`).value;
     return { name: g("name").trim(), category: g("category"), account: g("account"), amount: g("amount") === "" ? null : +g("amount"), day: Math.min(31, Math.max(1, +g("day") || 1)), match: g("match").trim() };
@@ -91,7 +103,12 @@ function renderBills() {
   if (lg) lg.onclick = () => openLogBills(y, ui.billMonth);
   $("#bl-add").onclick = () => Store.setCfg("recurring", [...collect(), { name: "New bill", category: "", account: "Joint Bills", amount: null, day: 1, match: "" }]);
   $("#bl-save").onclick = async () => { await Store.setCfg("recurring", collect().filter((b) => b.name)); toast("Bills saved."); };
-  $("#tab-bills tbody").onclick = (e) => { const i = e.target.dataset.del; if (i !== undefined) Store.setCfg("recurring", collect().filter((_, k) => k !== +i)); };
+  $("#tab-bills tbody").onclick = (e) => {
+    const mv = e.target.closest(".mv-up, .mv-dn");
+    if (mv) { if (moveRow(mv)) $("#bl-moved").hidden = false; return; }
+    const i = e.target.dataset.del;
+    if (i !== undefined) Store.setCfg("recurring", collect().filter((_, k) => k !== +e.target.closest("tr").sectionRowIndex));
+  };
   const seed = $("#bl-seed");
   // Starter list only: no amounts here, since this code is public. Fill them in on the page.
   if (seed) seed.onclick = () => Store.setCfg("recurring", [
@@ -180,10 +197,11 @@ function drawPreview() {
     <p class="hint">You can fix categories here before importing. Blank categories can be filled in later from Transactions › Needs attention.</p>
     <div class="table-wrap" style="max-height:480px"><table class="edit-table"><thead><tr><th>Date</th><th>Description</th><th class="num">Amount</th><th>Category</th><th>Account</th><th></th></tr></thead><tbody>
       ${rows.slice(0, 500).map((r, i) => `<tr${r._dup ? ' class="muted"' : ""}><td>${r.date}</td><td>${esc(r.desc)}</td><td class="num">${money(r.amount, false)}</td>
-        <td>${r._dup ? esc(r.category) : `<select data-i="${i}">${opts(CFG.categories.map((c) => c.name), r.category, r.category && !CFG.categoryByName.has(r.category) ? r.category : "(blank)")}</select>`}</td>
+        <td>${r._dup ? esc(r.category) : `<select data-i="${i}">${catOptions(r.category, r.category && !CFG.categoryByName.has(r.category) ? r.category : "(blank)")}</select>`}</td>
         <td>${esc(r.account)}</td><td>${r._dup ? "already saved" : ""}</td></tr>`).join("")}
       ${rows.length > 500 ? `<tr><td colspan="6" class="muted">…and ${rows.length - 500} more (all will import).</td></tr>` : ""}
     </tbody></table></div></div>`;
+  catPickerWire($("#im-preview"), "select[data-i]");
   $("#im-preview tbody").onchange = (e) => { const i = e.target.dataset.i; if (i !== undefined && e.target.value) pending.rows[+i].category = e.target.value; };
   $("#pv-cancel").onclick = () => { pending = null; $("#im-preview").innerHTML = ""; };
   $("#pv-save").onclick = async () => {
@@ -202,6 +220,15 @@ function renderSettings() {
   const acctOpts = (sel) => opts([...new Set([...Model.openAccounts(CFG).map((a) => a.name), sel].filter(Boolean))], sel, "");
   const catOpts = (sel) => opts(CFG.categories.map((c) => c.name), sel, "");
   const del = `<td><button class="small ghost" data-del title="Remove">Remove</button></td>`;
+  // Categories & budgets shows one year's categories (this year by default) or all of them
+  const thisYear = new Date().getFullYear();
+  const catYear = ui.catYear || String(thisYear);
+  const txs = Store.transactions();
+  // This year: used this year + not used yet. A past year: only what that year used.
+  const shownCats = catYear === "all" ? CFG.categories : Model.currentCategories(CFG, txs, +catYear)
+    .filter((c) => catYear === String(thisYear) || (Model.categoriesByYear(txs).get(+catYear) || new Set()).has(c.name));
+  const catUses = new Map();
+  for (const t of txs) if (Model.isPosted(t) && (catYear === "all" || t.date.startsWith(catYear))) catUses.set(t.category, (catUses.get(t.category) || 0) + 1);
   $("#tab-settings").innerHTML = `
     ${pageHead("Settings")}
     ${reorgCard()}
@@ -218,8 +245,8 @@ function renderSettings() {
 
     <div class="card"><h2>Accounts</h2>
       <p class="hint">Starting balance is the bank balance at the start of that date. Enter a credit card balance as a negative number. <b>${esc(Model.POT)}</b> = a spending pot whose money sits in that bank account (it has no bank balance of its own). <b>Closed</b> accounts keep their history but aren't offered for new entries.</p>
-      <table class="edit-table" id="st-accts"><thead><tr><th>Name</th><th>Owner</th><th>Type</th><th>In account</th><th>Starting balance</th><th>…as of date</th><th>Closed</th><th>Note</th><th></th></tr></thead><tbody>
-      ${CFG.accounts.map((a) => `<tr data-orig="${esc(a.name)}"><td><input data-k="name" value="${esc(a.name)}"></td><td><select data-k="owner">${ownerOpts(a.owner)}</select></td>
+      <table class="edit-table" id="st-accts"><thead><tr><th></th><th>Name</th><th>Owner</th><th>Type</th><th>In account</th><th>Starting balance</th><th>…as of date</th><th>Closed</th><th>Note</th><th></th></tr></thead><tbody>
+      ${CFG.accounts.map((a) => `<tr data-orig="${esc(a.name)}">${moveBtns}<td><input data-k="name" value="${esc(a.name)}"></td><td><select data-k="owner">${ownerOpts(a.owner)}</select></td>
         <td><select data-k="type">${opts(ACCT_TYPES, a.type)}</select></td>
         <td><select data-k="in">${opts(CFG.accounts.filter((x) => !Model.isPot(x) && x.name !== a.name).map((x) => x.name), a.in || "", "—")}</select></td>
         <td><input data-k="openingBalance" type="number" step="0.01" value="${a.openingBalance ?? ""}" placeholder="balance" style="width:110px"></td>
@@ -233,11 +260,13 @@ function renderSettings() {
         <td><input data-k="value" type="number" step="0.01" value="${s.value ?? ""}"></td>${del}</tr>`).join("")}
       </tbody></table><div class="row" style="margin-top:8px"><button data-add="st-split">${icon("plus")}Add line</button><button id="st-split-save" class="primary">Save split</button></div></div>
 
-    <div class="card"><h2>Categories &amp; budgets</h2>
-
-      <div class="table-wrap" style="max-height:520px"><table class="edit-table" id="st-cats"><thead><tr><th>Name</th><th>Group</th><th>Kind</th><th>Monthly budget</th><th></th></tr></thead><tbody>
-      ${CFG.categories.map((c) => `<tr data-orig="${esc(c.name)}"><td><input data-k="name" value="${esc(c.name)}"></td><td><input data-k="group" value="${esc(c.group)}" list="group-list"></td>
-        <td><select data-k="kind">${opts(["Income", "Savings", "Expense", "Transfer"], c.kind)}</select></td><td><input data-k="budget" type="number" step="0.01" value="${c.budget ?? ""}"></td>${del}</tr>`).join("")}
+    <div class="card"><div class="row"><h2>Categories &amp; budgets</h2><span class="spacer"></span>
+        <label class="muted row">Show <select id="st-cat-year">${opts([...years().map((y) => [String(y), y === new Date().getFullYear() ? `${y} (this year)` : String(y)]), ["all", "All years"]], catYear)}</select></label></div>
+      <p class="hint">${catYear === "all" ? "Every category, from every year." : `Categories used in ${catYear}${+catYear === new Date().getFullYear() ? ", plus new ones not used yet" : ""}. The number is how many ${catYear} transactions use it.`} ▲ ▼ change the order (within a group it's the order on the Summary and in every list).</p>
+      <div class="table-wrap" style="max-height:520px"><table class="edit-table" id="st-cats"><thead><tr><th></th><th>Name</th><th>Group</th><th>Kind</th><th>Monthly budget</th><th class="num">${catYear === "all" ? "Uses" : catYear}</th><th></th></tr></thead><tbody>
+      ${shownCats.map((c) => `<tr data-orig="${esc(c.name)}">${moveBtns}<td><input data-k="name" value="${esc(c.name)}"></td><td><input data-k="group" value="${esc(c.group)}" list="group-list"></td>
+        <td><select data-k="kind">${opts(["Income", "Savings", "Expense", "Transfer"], c.kind)}</select></td><td><input data-k="budget" type="number" step="0.01" value="${c.budget ?? ""}"></td>
+        <td class="num muted">${(catUses.get(c.name) || 0).toLocaleString()}</td>${del}</tr>`).join("") || `<tr><td colspan="7" class="muted">No categories used in ${catYear}.</td></tr>`}
       </tbody></table></div><datalist id="group-list">${CFG.groups.map((g) => `<option value="${esc(g)}">`).join("")}</datalist>
       <div class="row" style="margin-top:8px"><button data-add="st-cats">${icon("plus")}Add category</button><button id="st-cats-save" class="primary">Save categories</button></div></div>
 
@@ -258,9 +287,9 @@ function renderSettings() {
     return o;
   });
   const templates = {
-    "st-accts": `<tr><td><input data-k="name" value=""></td><td><select data-k="owner">${ownerOpts("joint")}</select></td><td><select data-k="type">${opts(ACCT_TYPES, "Checking")}</select></td><td><select data-k="in">${opts(CFG.accounts.filter((x) => !Model.isPot(x)).map((x) => x.name), "", "—")}</select></td><td><input data-k="openingBalance" type="number" step="0.01" style="width:110px"></td><td><input data-k="openingDate" type="date"></td><td><input data-k="closed" type="checkbox"></td><td><input data-k="note"></td>${del}</tr>`,
+    "st-accts": `<tr>${moveBtns}<td><input data-k="name" value=""></td><td><select data-k="owner">${ownerOpts("joint")}</select></td><td><select data-k="type">${opts(ACCT_TYPES, "Checking")}</select></td><td><select data-k="in">${opts(CFG.accounts.filter((x) => !Model.isPot(x)).map((x) => x.name), "", "—")}</select></td><td><input data-k="openingBalance" type="number" step="0.01" style="width:110px"></td><td><input data-k="openingDate" type="date"></td><td><input data-k="closed" type="checkbox"></td><td><input data-k="note"></td>${del}</tr>`,
     "st-split": `<tr><td><select data-k="toAccount">${acctOpts("")}</select></td><td><select data-k="mode">${opts([["fixed", "Fixed $"], ["percent", "Percent %"], ["rest", "Rest"]], "fixed")}</select></td><td><input data-k="value" type="number" step="0.01"></td>${del}</tr>`,
-    "st-cats": `<tr><td><input data-k="name"></td><td><input data-k="group" list="group-list"></td><td><select data-k="kind">${opts(["Income", "Savings", "Expense", "Transfer"], "Expense")}</select></td><td><input data-k="budget" type="number" step="0.01"></td>${del}</tr>`,
+    "st-cats": `<tr>${moveBtns}<td><input data-k="name"></td><td><input data-k="group" list="group-list"></td><td><select data-k="kind">${opts(["Income", "Savings", "Expense", "Transfer"], "Expense")}</select></td><td><input data-k="budget" type="number" step="0.01"></td><td class="num muted">new</td>${del}</tr>`,
     "st-rules": `<tr><td><input data-k="match"></td><td><select data-k="category">${catOpts("")}</select></td>${del}</tr>`,
   };
   wireReorg();
@@ -268,7 +297,10 @@ function renderSettings() {
   tab.onclick = (e) => {
     if (e.target.dataset.add) $(`#${e.target.dataset.add} tbody`).insertAdjacentHTML("beforeend", templates[e.target.dataset.add]);
     if (e.target.hasAttribute("data-del")) e.target.closest("tr").remove();
+    const mv = e.target.closest(".mv-up, .mv-dn");
+    if (mv) moveRow(mv);
   };
+  $("#st-cat-year").onchange = (e) => { ui.catYear = e.target.value; const y = window.scrollY; renderSettings(); window.scrollTo(0, y); };
 
   $("#st-people").onclick = async () => { await Store.setCfg("people", { p1: $("#st-p1").value.trim() || "Person 1", p1Full: $("#st-p1f").value.trim(), p2: $("#st-p2").value.trim() || "Person 2", p2Full: $("#st-p2f").value.trim(), joint: $("#st-joint").value.trim() || "Joint" }); toast("Names saved."); };
 
@@ -276,8 +308,8 @@ function renderSettings() {
   async function saveRenamable(key, rows, clean, fields) {
     const list = rows.map(clean).filter((x) => x.name);
     const names = list.map((x) => x.name);
-    if (new Set(names).size !== names.length) { toast("Two rows have the same name."); return; }
-    const renames = new Map(rows.filter((r) => r._orig && r.name.trim() && r._orig !== r.name.trim()).map((r) => [r._orig, r.name.trim()]));
+    if (new Set(names).size !== names.length) { toast("Two rows have the same name (one may be in another year: pick All years to see it)."); return; }
+    const renames = new Map(rows.filter((r) => !r._keep && r._orig && r.name.trim() && r._orig !== r.name.trim()).map((r) => [r._orig, r.name.trim()]));
     if (renames.size) {
       const changed = Store.transactions().filter((t) => fields.some((f) => renames.has(t[f])))
         .map((t) => { const u = { ...t }; for (const f of fields) if (renames.has(u[f])) u[f] = renames.get(u[f]); return u; });
@@ -290,7 +322,20 @@ function renderSettings() {
   $("#st-accts-save").onclick = () => saveRenamable("accounts", rowsOf("st-accts"), (r) => ({ name: r.name.trim(), owner: r.owner, type: r.type, note: r.note.trim(),
     ...(r.type === Model.POT ? { in: r.in || Model.hubName(CFG) } : {}), ...(r.closed ? { closed: true } : {}),
     openingBalance: r.type === Model.POT || r.openingBalance === "" ? null : Model.r2(+r.openingBalance), openingDate: r.type === Model.POT ? "" : r.openingDate || "" }), ["account", "toAccount"]);
-  $("#st-cats-save").onclick = () => saveRenamable("categories", rowsOf("st-cats"), (r) => ({ name: r.name.trim(), group: r.group.trim() || "Other", kind: r.kind, budget: r.budget === "" ? null : +r.budget }), ["category"]);
+  $("#st-cats-save").onclick = () => {
+    // The table may show only one year's categories. Hidden ones keep their exact spots; the shown spots
+    // are refilled, in order, with the table's rows (so ▲ ▼ reorders among them). Extra rows go at the end.
+    const shown = new Set(shownCats.map((c) => c.name));
+    const rows = rowsOf("st-cats").filter((r) => r.name !== undefined);   // skips the "no categories" row
+    const queue = rows.slice(), merged = [];
+    for (const c of CFG.categories) {
+      if (!shown.has(c.name)) merged.push({ _keep: c });
+      else if (queue.length) merged.push(queue.shift());
+    }
+    merged.push(...queue);
+    return saveRenamable("categories", merged,
+      (r) => (r._keep ? r._keep : { name: r.name.trim(), group: r.group.trim() || "Other", kind: r.kind, budget: r.budget === "" ? null : +r.budget }), ["category"]);
+  };
   $("#st-split-save").onclick = async () => { await Store.setCfg("split", rowsOf("st-split").filter((s) => s.toAccount).map((s) => ({ toAccount: s.toAccount, mode: s.mode, value: s.value === "" ? 0 : +s.value }))); toast("Split saved."); };
   $("#st-rules-save").onclick = async () => { await Store.setCfg("rules", rowsOf("st-rules").filter((r) => r.match.trim() && r.category).map((r) => ({ match: r.match.trim(), category: r.category }))); toast("Rules saved."); };
   $("#st-rules-learn").onclick = () => {

@@ -17,7 +17,7 @@ function attentionSection() {
   // Nothing open: still offer a way back to anything that was marked "leave as is"
   if (!groups.length) return ackedCount() ? `<div class="at-quiet" id="attention-quiet">${ackedCount()} transaction(s) marked "leave as is". <a href="#" id="at-unack">Show again</a></div>` : "";
   const total = new Set(groups.flatMap((g) => g.txs.map((t) => t.id))).size;
-  const catOpts = opts(CFG.categories.filter((c) => c.kind !== "Transfer").map((c) => c.name), "", "Choose a category…");
+  const catOpts = catOptions("", "Choose a category…", (c) => c.kind !== "Transfer");
   const acctOpts = (not) => opts(Model.openAccounts(CFG).map((a) => a.name).filter((n) => n !== not), "", "Choose an account…");
 
   const fixer = (g, i) => {
@@ -72,6 +72,7 @@ function wireAttention() {
   };
   if (!root) return;
   const groups = Model.issueGroups(CFG, Store.transactions());
+  catPickerWire(root, "select.at-cat", (c) => c.kind !== "Transfer");
   root.onclick = async (e) => {
     const tr = e.target.closest("tr[data-id]");
     if (tr) { openTx(Store.transactions().find((t) => t.id === tr.dataset.id)); return; }

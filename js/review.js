@@ -17,7 +17,7 @@ function reviewSection() {
   const matches = Model.findMatches(Model.buildMatchIndex(Store.transactions()), rows);
   const shown = reviewUi.showDupOnly ? rows.filter((r) => matches.has(r.id)) : rows;
   const accts = [...new Set(all.map((t) => t.account))];
-  const catOpts = (sel) => opts(CFG.categories.map((c) => c.name), sel, "Choose category…");
+  const catOpts = (sel) => catOptions(sel, "Choose category…");
   const acctOpts = (sel, not) => opts(Model.openAccounts(CFG).map((a) => a.name).filter((n) => n !== not), sel, "Which account?");
   const isTransfer = (c) => (CFG.categoryByName.get(c) || {}).kind === "Transfer";
   const isSavings = (c) => (CFG.categoryByName.get(c) || {}).kind === "Savings";
@@ -101,6 +101,7 @@ function wireReview() {
     toast(`Removed ${ids.length}.`);
   }
 
+  catPickerWire(root, "select.rv-cat, #rv-bulk-cat");
   $("#rv-acct").onchange = (e) => { reviewUi.account = e.target.value; renderTransactions(); };
   $("#rv-dups").onchange = (e) => { reviewUi.showDupOnly = e.target.checked; renderTransactions(); };
 

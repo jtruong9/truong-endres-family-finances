@@ -338,6 +338,39 @@ const Model = (() => {
     return out;
   }
 
+  // ------------------------------------------------------------------ batch edit (Transactions)
+  // Apply one set of changes to a transaction. Only the fields given change:
+  //   { category, account, toAccount, date, addTags: "a, b", removeTags: "c", note, noteMode: "add"|"replace" }
+  // Returns the edited copy, or the same object when nothing changed (so the caller can skip it).
+  function batchEdit(cfg, t, ch) {
+    const out = { ...t };
+    if (ch.category) out.category = ch.category;
+    if (ch.account) out.account = ch.account;
+    if (ch.date) out.date = ch.date;
+    if (ch.toAccount !== undefined && ch.toAccount !== null) out.toAccount = ch.toAccount;
+    // A To account only means something on a transfer or savings; clear it otherwise
+    const k = kindOf(cfg, out);
+    if (k !== "Transfer" && k !== "Savings") out.toAccount = "";
+    if (out.toAccount && out.toAccount === out.account) out.toAccount = t.toAccount === out.account ? "" : t.toAccount;
+    if (ch.addTags || ch.removeTags) {
+      const split = (s) => String(s || "").split(",").map((x) => x.trim()).filter(Boolean);
+      const drop = new Set(split(ch.removeTags).map((x) => x.toLowerCase()));
+      const tags = split(out.tags).filter((x) => !drop.has(x.toLowerCase()));
+      for (const a of split(ch.addTags)) if (!tags.some((x) => x.toLowerCase() === a.toLowerCase())) tags.push(a);
+      out.tags = tags.join(", ");
+    }
+    if (ch.note) out.notes = ch.noteMode === "replace" || !t.notes ? ch.note : `${t.notes} · ${ch.note}`;
+    const same = ["category", "account", "toAccount", "date", "tags", "notes"].every((f) => (out[f] || "") === (t[f] || ""));
+    return same ? t : out;
+  }
+  // Why a batch can't be applied as asked (shown before anything is saved), or ""
+  function batchProblem(cfg, txs, ch) {
+    if (ch.category && kindOf(cfg, { category: ch.category }) === "Transfer" && !ch.toAccount && txs.some((t) => !t.toAccount))
+      return "Transfers need a To account: pick one in the To / Put into box.";
+    if (ch.date && !/^\d{4}-\d{2}-\d{2}$/.test(ch.date)) return "Pick a full date.";
+    return "";
+  }
+
   // ------------------------------------------------------------------ balances
   // Money in/out of one account from a transaction (credit cards go negative as you spend)
   function accountEffect(cfg, t, name) {
@@ -491,20 +524,23 @@ const Model = (() => {
   }
 
   // Plan: one paycheck each, split by Settings › Paycheck split. pays = [{ who: "p1", amount }]
+  // Both paychecks land in the Hub; the split is applied ONCE to the total in the Hub
+  // (a $2,500 fixed line takes $2,500 per pay period, not $2,500 per person).
   function planFlow(cfg, pays) {
     const hub = hubName(cfg), nodes = [], links = [], into = new Map();
-    let hubIn = 0, leftover = 0;
+    let hubIn = 0;
     for (const p of pays) {
       const amt = r2(+p.amount || 0);
       nodes.push({ id: `pay:${p.who}`, level: 0, label: `${cfg.people[p.who]}'s paycheck`, amount: amt, lines: [] });
       links.push({ from: `pay:${p.who}`, to: `acct:${hub}`, amount: amt, kind: "income" });
       hubIn += amt;
-      const d = distribute(cfg.split, amt);
-      leftover += d.leftover;
-      for (const t of d.transfers) {
-        if (t.toAccount === hub) leftover += t.amount;
-        else into.set(t.toAccount, (into.get(t.toAccount) || 0) + t.amount);
-      }
+    }
+    hubIn = r2(hubIn);
+    const d = distribute(cfg.split, hubIn);
+    let leftover = d.leftover;
+    for (const t of d.transfers) {
+      if (t.toAccount === hub) leftover += t.amount;
+      else into.set(t.toAccount, (into.get(t.toAccount) || 0) + t.amount);
     }
     nodes.push({ id: `acct:${hub}`, level: 1, label: hub, amount: r2(hubIn), lines: [], hub: true });
     const accts = flowAccounts(cfg, hub).filter((a) => acctRank(a) < 7 || into.has(a.name));
@@ -583,7 +619,7 @@ const Model = (() => {
   }
 
   return {
-    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2, POT, isPot, openAccounts, bankBalanceAt, potBalanceAt,
+    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2, POT, isPot, openAccounts, bankBalanceAt, potBalanceAt, batchEdit, batchProblem,
     hubName, incomeOwner, lastPaycheck, planFlow, actualFlow,
     config, ownerLabel, kindOf, ownerOf, matchesOwner, ownerParts, FROM_PREFIX, isPosted, tagList,
     yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, issueList, openIssues, issueGroups, autoCategory,

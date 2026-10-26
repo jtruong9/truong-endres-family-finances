@@ -281,6 +281,9 @@ function renderTransactions() {
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   f.page = Math.min(f.page, pages - 1);
   const shown = rows.slice(f.page * PAGE, (f.page + 1) * PAGE);
+  // Selected rows that are no longer in the list (filters changed, or deleted) drop out of the selection
+  const inList = new Set(rows.map((t) => t.id));
+  for (const id of batchUi.sel) if (!inList.has(id)) batchUi.sel.delete(id);
 
   $("#tab-transactions").dataset.owner = f.owner;
   $("#tab-transactions").innerHTML = `${pageHead("Transactions", `${Store.transactions().filter(Model.isPosted).length.toLocaleString()} saved`)}${reviewSection()}${attentionSection()}
@@ -295,16 +298,18 @@ function renderTransactions() {
         <span class="spacer"></span>
         <span class="muted">${rows.length.toLocaleString()} rows · total (excl. transfers) <b>${money(total, false)}</b></span>
       </div>
-      <div class="table-wrap"><table id="tx-table"><thead><tr><th>Date</th><th>Description</th><th class="num">Amount</th><th>Category</th><th>Account</th><th>Owner</th><th>Notes / Tags</th></tr></thead><tbody>
+      ${batchBar(rows, shown)}
+      <div class="table-wrap"><table id="tx-table"><thead><tr>${batchHead(shown)}<th>Date</th><th>Description</th><th class="num">Amount</th><th>Category</th><th>Account</th><th>Owner</th><th>Notes / Tags</th></tr></thead><tbody>
         ${shown.map((t) => {
           const iss = Model.openIssues(CFG, t).map((i) => i.label), k = Model.kindOf(CFG, t);
-          return `<tr class="clickable${iss.length ? " flag" : ""}" data-id="${esc(t.id)}" title="${esc(iss.join("; "))}">
-            <td class="nowrap"><span class="month-dot" style="background:${Model.MONTH_COLORS[+t.date.slice(5, 7) - 1][0]}"></span>${fmtDate(t.date)}</td><td>${esc(t.desc)}</td><td class="num ${t.amount < 0 ? "neg" : ""}">${money(t.amount, false)}</td>
+          const picked = batchUi.allMatching || batchUi.sel.has(t.id);
+          return `<tr class="clickable${iss.length ? " flag" : ""}${picked ? " picked" : ""}" data-id="${esc(t.id)}" title="${esc(iss.join("; "))}">
+            ${batchBox(t)}<td class="nowrap"><span class="month-dot" style="background:${Model.MONTH_COLORS[+t.date.slice(5, 7) - 1][0]}"></span>${fmtDate(t.date)}</td><td>${esc(t.desc)}</td><td class="num ${t.amount < 0 ? "neg" : ""}">${money(t.amount, false)}</td>
             <td>${k !== "Expense" ? `<span class="pill ${k}">${esc(t.category)}</span>` : esc(t.category)}</td>
             <td class="nowrap">${esc(t.account)}${t.toAccount ? ` &rarr; ${esc(t.toAccount)}` : ""}</td>
             <td class="muted">${esc(Model.ownerLabel(CFG, Model.ownerOf(CFG, t)))}</td>
             <td class="muted">${esc(t.notes)}${t.tags ? ` <span class="pill">${esc(t.tags)}</span>` : ""}</td></tr>`;
-        }).join("") || `<tr><td colspan="7" class="muted">No transactions match.</td></tr>`}
+        }).join("") || `<tr><td colspan="8" class="muted">No transactions match.</td></tr>`}
       </tbody></table></div>
       <div class="pager"><button id="tp-prev" ${f.page === 0 ? "disabled" : ""}>&lsaquo; Newer</button><span>Page ${f.page + 1} of ${pages}</span><button id="tp-next" ${f.page >= pages - 1 ? "disabled" : ""}>Older &rsaquo;</button></div>
     </div>`;
@@ -321,9 +326,11 @@ function renderTransactions() {
   $("#tp-prev").onclick = () => { f.page--; renderTransactions(); };
   $("#tp-next").onclick = () => { f.page++; renderTransactions(); };
   $("#tx-table tbody").onclick = (e) => {
+    if (e.target.closest(".bx")) return;
     const tr = e.target.closest("tr[data-id]");
     if (tr) openTx(Store.transactions().find((t) => t.id === tr.dataset.id));
   };
+  wireBatch(rows, shown);
 }
 
 // --------------------------------------------------------------------------------- add / edit dialog

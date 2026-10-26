@@ -163,6 +163,7 @@ const Store = (() => {
     saveTx: (tx) => append([{ type: "tx", data: { ...tx, id: tx.id || uid() } }]),
     saveTxs: (txs) => append(txs.map((t) => ({ type: "tx", data: { ...t, id: t.id || uid() } }))),
     deleteTx: (id) => append([{ type: "tx-del", data: { id } }]),
+    deleteTxs: (ids) => append(ids.map((id) => ({ type: "tx-del", data: { id } }))),
     setCfg: (key, value) => append([{ type: "cfg", data: { key, value } }]),
 
     // Full snapshot for backups / export

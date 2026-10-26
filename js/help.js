@@ -81,9 +81,9 @@ function renderHelp() {
 
     <div class="card" id="h-paycheck">
       <h2 class="cat-bar">Paychecks</h2>
-      ${step(1, "Log it with one button", `<p>Click <b>Paycheck</b> in the top bar. Enter the date, the <b>net pay</b> (what actually hit the bank) and whose paycheck it is.</p>`)}
-      ${step(2, "Check the split and save", `<p>The window shows how much goes to Joint Savings, Joint Bills and each spending pot. Click <b>Save</b>. The app logs the paycheck <i>and</i> every transfer for you.</p>`)}
-      <p class="hint">The split is set once under <b>Settings &rsaquo; Paycheck split</b>, in this order: <b>fixed $ amounts</b> come out first; then each <b>percent</b> is a percent <b>of what's left after the fixed amounts</b>; then <b>Rest</b> lines share whatever remains. Example: $4,000 paycheck, $600 fixed to Savings, 50% to Bills, Rest to the pots: Savings $600, Bills 50% of $3,400 = $1,700, and $1,700 left for the pots. Move money to Savings and Bills in your bank as usual; the pots' money just stays in the Hub. This only records it.</p>
+      ${step(1, "Log it with one button", `<p>Click <b>Paycheck</b> in the top bar. Enter the date and each person's <b>net pay</b> (what actually hit the bank). Leave a box empty if only one of you got paid.</p>`)}
+      ${step(2, "Check the split and save", `<p>The window adds both paychecks and shows how the total is split: Joint Savings, Joint Bills and each spending pot. Click <b>Save</b>. The app logs the paycheck <i>and</i> every transfer for you.</p>`)}
+      <p class="hint">The split is set once under <b>Settings &rsaquo; Paycheck split</b>, in this order: <b>fixed $ amounts</b> come out first; then each <b>percent</b> is a percent <b>of what's left after the fixed amounts</b>; then <b>Rest</b> lines share whatever remains. The split is taken <b>once from both paychecks together</b>. Example: $4,000 in the Hub, $600 fixed to Savings, 50% to Bills, Rest to the pots: Savings $600, Bills 50% of $3,400 = $1,700, and $1,700 left for the pots. Move money to Savings and Bills in your bank as usual; the pots' money just stays in the Hub. This only records it.</p>
     </div>
 
     <div class="card" id="h-read">
@@ -107,7 +107,7 @@ function renderHelp() {
       <h2 class="cat-bar">Money flow</h2>
       <p>The <b>Money flow</b> page draws our money as boxes from top to bottom: paychecks &rarr; the <b>Joint Hub</b> &rarr; Joint Savings, Joint Bills and the three spending pots (shown together in a dashed box, because their money stays in the Hub) &rarr; where it leaves them. A <b>thicker arrow means more money</b>, and the moving dots show which way it goes. Hover a box to light up its arrows; hover an arrow for the exact amount.</p>
       <ul>
-        <li><b>Plan</b>: type one paycheck each (it starts with your last logged paycheck) to see how it splits, using <b>Settings &rsaquo; Paycheck split</b>. Anything the split doesn't send out shows as "Stays in Joint Hub".</li>
+        <li><b>Plan</b>: type each person's paycheck (it starts with your last logged paycheck). Both are <b>added together in the Joint Hub</b>, and the split is taken <b>once</b> from that total, using <b>Settings &rsaquo; Paycheck split</b>. So $2,500 fixed to Joint Savings shows as $2,500, not $2,500 per person. Anything the split doesn't send out shows as "Stays in Joint Hub".</li>
         <li><b>Actual month</b>: what really moved that month, from saved transactions. Each account shows what came in and what's <b>left</b>, and the bottom row shows what was spent, saved or paid as bills. It fills in once paychecks are logged with the <b>Paycheck</b> button.</li>
       </ul>
     </div>

@@ -5,48 +5,55 @@ const ACCT_TYPES = ["Checking", "Savings", Model.POT, "Credit Card", "Investment
 
 // --------------------------------------------------------------------------------- paycheck
 const dlgPay = $("#dlg-pay"), formPay = $("#form-pay");
+// Both paychecks land in the Hub together; the split is taken once from the total
+const payAmounts = () => ({ p1: Model.r2(parseFloat(formPay.p1.value) || 0), p2: Model.r2(parseFloat(formPay.p2.value) || 0) });
 function payPreview() {
-  const amt = parseFloat(formPay.amount.value) || 0;
+  const a = payAmounts(), amt = Model.r2(a.p1 + a.p2);
+  $("#pay-total-h").textContent = `Split of ${money(amt, false)} in ${formPay.account.value || "the Hub"}`;
   const { transfers, leftover } = Model.distribute(CFG.split, amt);
   $("#pay-preview").innerHTML = CFG.split.length
     ? `<table><tbody>${transfers.map((t) => `<tr><td>${esc(formPay.account.value)} &rarr; ${esc(t.toAccount)}</td><td class="num">${money(t.amount, false)}</td></tr>`).join("")}
        <tr class="total"><td>Left in ${esc(formPay.account.value)}</td><td class="num ${leftover < 0 ? "neg" : ""}">${money(leftover, false)}</td></tr></tbody></table>`
     : `<p class="muted">No split set up yet: only the paycheck will be logged. Set one up under Settings &rsaquo; Paycheck split.</p>`;
-  $("#pay-error").textContent = leftover < 0 ? "The fixed amounts add up to more than the paycheck." : "";
+  $("#pay-error").textContent = leftover < 0 ? "The fixed amounts add up to more than the paychecks." : "";
   return { transfers, leftover };
 }
 $("#btn-paycheck").onclick = () => {
   formPay.date.value = todayIso();
-  formPay.amount.value = "";
-  formPay.who.innerHTML = opts([["p1", CFG.people.p1], ["p2", CFG.people.p2]], "p1");
+  formPay.p1.value = ""; formPay.p2.value = "";
+  $("#pay-p1-label").textContent = `${CFG.people.p1}'s net pay`;
+  $("#pay-p2-label").textContent = `${CFG.people.p2}'s net pay`;
   const hub = CFG.accounts.find((a) => /hub/i.test(a.name)) || CFG.accounts[0];
   formPay.account.innerHTML = opts(Model.openAccounts(CFG).map((a) => a.name), hub && hub.name);
   payPreview();
   dlgPay.showModal();
-  formPay.amount.focus();
+  formPay.p1.focus();
 };
-formPay.amount.oninput = payPreview;
+formPay.p1.oninput = payPreview;
+formPay.p2.oninput = payPreview;
 formPay.account.onchange = payPreview;
 $("#pay-cancel").onclick = () => dlgPay.close();
 formPay.onsubmit = async (e) => {
   e.preventDefault();
-  const amt = Model.r2(parseFloat(formPay.amount.value));
-  if (!(amt > 0)) { $("#pay-error").textContent = "Enter the net pay."; return; }
+  const a = payAmounts();
+  if (!(a.p1 > 0 || a.p2 > 0)) { $("#pay-error").textContent = "Enter at least one net pay."; return; }
   const { transfers, leftover } = payPreview();
   if (leftover < 0) return;
-  const who = CFG.people[formPay.who.value];
+  const paid = ["p1", "p2"].filter((p) => a[p] > 0);
+  const who = paid.map((p) => CFG.people[p]).join(" + ");
   const date = formPay.date.value, from = formPay.account.value;
   const transferCat = (CFG.categories.find((c) => c.kind === "Transfer") || { name: "Transfer" }).name;
   const payCat = (CFG.categories.find((c) => c.name === "Paychecks") || CFG.categories.find((c) => c.kind === "Income")).name;
   // The share that goes into a savings account is logged as savings (shared, from the Hub), so it counts in Saved
   const saveCat = (CFG.categories.find((c) => c.kind === "Savings") || { name: transferCat }).name;
   const isSavingsAcct = (name) => (CFG.accountByName.get(name) || {}).type === "Savings";
-  const batch = [{ date, desc: `Paycheck – ${who}`, amount: amt, category: payCat, account: from, toAccount: "", notes: "", tags: "" },
+  // One income row per person (so each paycheck still counts as that person's income), then one split
+  const batch = [...paid.map((p) => ({ date, desc: `Paycheck – ${CFG.people[p]}`, amount: a[p], category: payCat, account: from, toAccount: "", notes: "", tags: "" })),
     ...transfers.filter((t) => t.toAccount !== from).map((t) => ({ date, desc: `Paycheck split → ${t.toAccount}`, amount: t.amount,
-      category: isSavingsAcct(t.toAccount) ? saveCat : transferCat, account: from, toAccount: t.toAccount, notes: `from ${who}'s paycheck`, tags: "" }))];
+      category: isSavingsAcct(t.toAccount) ? saveCat : transferCat, account: from, toAccount: t.toAccount, notes: `from ${who} paycheck${paid.length > 1 ? "s" : ""}`, tags: "" }))];
   await Store.saveTxs(batch);
   dlgPay.close();
-  toast(`Logged paycheck + ${batch.length - 1} transfer(s).`);
+  toast(`Logged ${paid.length} paycheck${paid.length > 1 ? "s" : ""} + ${batch.length - paid.length} split line(s).`);
 };
 
 // Summary page lives in js/summary.js

@@ -238,9 +238,9 @@ t("money flow plan splits each paycheck through the hub", () => {
     { toAccount: "Justin's Spending", mode: "rest" }, { toAccount: "Kelly's Spending", mode: "rest" }] : d));
   const f = Model.planFlow(c, [{ who: "p1", amount: 4000 }, { who: "p2", amount: 3000 }]);
   const amt = (id) => f.nodes.find((x) => x.id === id).amount;
-  // per paycheck: 500 fixed, then 50% of the rest (1750 / 1250), then the remainder split in two
+  // both paychecks summed at the Hub (7000), split once: 500 fixed, 50% of the 6500 left = 3250, rest 3250 in two
   assert.strictEqual(J([amt("acct:Joint Hub"), amt("acct:Joint Savings"), amt("acct:Joint Bills"), amt("acct:Justin's Spending"), amt("acct:Kelly's Spending")]),
-    J([7000, 1000, 3000, 1500, 1500]));
+    J([7000, 500, 3250, 1625, 1625]));
   assert.strictEqual(f.leftover, 0);
   // savings, bills, then the three pots inside the Hub; the closed old personal accounts are left out
   assert.strictEqual(J(f.nodes.filter((x) => x.level === 2).map((x) => [x.label, !!x.pot])),
@@ -323,6 +323,25 @@ t("spending pots live inside the Joint Hub: bank balance = Hub + its pots", () =
   // Whose: Justin's pot counts as Justin's spending, Joint Spending as Joint
   assert.strictEqual(J([Model.monthlyTotals(c, s, 2026, "p1").spending[10], Model.monthlyTotals(c, s, 2026, "joint").spending[10]]), J([25, 140]));
   assert.strictEqual(J(Model.openAccounts(c).map((a) => a.name).filter((n) => /Personal/.test(n))), J([]));
+});
+
+t("batch edit: only the chosen fields change; tags add/remove; notes add or replace", () => {
+  const row = { id: "a", date: "2026-10-01", desc: "Amazon", amount: 15, category: "Personal", account: "Justin Personal", toAccount: "", notes: "filter", tags: "car, amazon" };
+  const e = Model.batchEdit(CFG, row, { category: "Gas", account: "Justin's Spending", addTags: "Honeymoon, car", removeTags: "AMAZON", note: "batch" });
+  assert.strictEqual(J([e.category, e.account, e.tags, e.notes, e.date, e.amount, e.desc]), J(["Gas", "Justin's Spending", "car, Honeymoon", "filter · batch", "2026-10-01", 15, "Amazon"]));
+  assert.strictEqual(Model.batchEdit(CFG, row, { note: "new", noteMode: "replace" }).notes, "new");
+  assert.strictEqual(Model.batchEdit(CFG, row, { date: "2026-10-05" }).date, "2026-10-05");
+  // nothing to change -> the same object comes back (so it isn't re-saved)
+  assert.strictEqual(Model.batchEdit(CFG, row, { category: "Personal", addTags: "car" }), row);
+});
+
+t("batch edit: To account only on transfers / savings, never the same as the account", () => {
+  const sav = { id: "s", date: "2026-10-01", amount: 600, category: "Monthly Saving", account: "Justin Personal", toAccount: "", tags: "", notes: "" };
+  assert.strictEqual(Model.batchEdit(CFG, sav, { toAccount: "Joint Savings" }).toAccount, "Joint Savings");
+  assert.strictEqual(Model.batchEdit(CFG, { ...sav, toAccount: "Joint Savings" }, { category: "Groceries" }).toAccount, "");   // no longer savings
+  assert.strictEqual(Model.batchEdit(CFG, { ...sav, toAccount: "Joint Savings" }, { account: "Joint Savings" }).toAccount, "");
+  assert.strictEqual(Model.batchProblem(CFG, [sav], { category: "Transfer" }), "Transfers need a To account: pick one in the To / Put into box.");
+  assert.strictEqual(Model.batchProblem(CFG, [sav], { category: "Transfer", toAccount: "Joint Hub" }), "");
 });
 
 console.log(`\n${n} tests passed`);

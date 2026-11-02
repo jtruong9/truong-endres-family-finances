@@ -416,4 +416,16 @@ t("paycheck split: 50% / 50% of an odd cent amount never adds up to more than th
   assert.strictEqual(Model.r2(p3.transfers.reduce((t, x) => t + x.amount, 0)), 100.01);
 });
 
+t("duplicate transactions: new copies, date moved, nothing tied to the original", () => {
+  assert.strictEqual(J([Model.addMonths("2026-10-23", 1), Model.addMonths("2026-01-31", 1), Model.addMonths("2026-12-15", 1), Model.addMonths("2024-01-31", 1), Model.addMonths("2026-03-31", -1)]),
+    J(["2026-11-23", "2026-02-28", "2027-01-15", "2024-02-29", "2026-02-28"]));
+  const orig = { id: "a1", date: "2026-10-23", desc: "Gym", amount: 40, category: "Gym", account: "Justin's Spending", toAccount: "", notes: "monthly", tags: "fitness",
+    bankDesc: "GYM #123", ackIssues: ["no-category:"], bill: "Gym", guess: true };
+  const [next] = Model.duplicateTxs([orig], { mode: "months", n: 1 });
+  assert.strictEqual(J(next), J({ date: "2026-11-23", desc: "Gym", amount: 40, category: "Gym", account: "Justin's Spending", toAccount: "", notes: "monthly", tags: "fitness" }));
+  assert.strictEqual(Model.duplicateTxs([orig], { mode: "date", date: "2026-12-01" })[0].date, "2026-12-01");
+  assert.strictEqual(Model.duplicateTxs([orig], { mode: "same" })[0].date, "2026-10-23");
+  assert.strictEqual(orig.id, "a1");   // the original isn't changed
+});
+
 console.log(`\n${n} tests passed`);

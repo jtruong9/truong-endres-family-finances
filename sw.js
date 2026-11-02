@@ -3,13 +3,13 @@
 //
 // When you change any app file, bump VERSION (and the ?v=N numbers in index.html). That makes
 // browsers download the new copy the next time they're online.
-const VERSION = "v55";
+const VERSION = "v57";
 const CACHE = `truong-finance-${VERSION}`;
 const FILES = [
   "./", "./index.html", "./manifest.webmanifest", "./icon.svg",
-  "./css/app.css?v=55", "./css/summary.css?v=55",
-  "./js/icons.js?v=55", "./js/store.js?v=55", "./js/model.js?v=55", "./js/importers.js?v=55", "./js/app.js?v=55", "./js/batch.js?v=55", "./js/help.js?v=55",
-  "./js/review.js?v=55", "./js/attention.js?v=55", "./js/reorg.js?v=55", "./js/reorg-ui.js?v=55", "./js/features.js?v=55", "./js/summary.js?v=55", "./js/flow.js?v=55", "./js/app2.js?v=55", "./js/offline.js?v=55",
+  "./css/app.css?v=57", "./css/summary.css?v=57",
+  "./js/icons.js?v=57", "./js/store.js?v=57", "./js/model.js?v=57", "./js/importers.js?v=57", "./js/app.js?v=57", "./js/batch.js?v=57", "./js/help.js?v=57",
+  "./js/review.js?v=57", "./js/attention.js?v=57", "./js/reorg.js?v=57", "./js/reorg-ui.js?v=57", "./js/features.js?v=57", "./js/summary.js?v=57", "./js/flow.js?v=57", "./js/app2.js?v=57", "./js/offline.js?v=57",
   "./vendor/chart.umd.min.js", "./vendor/xlsx.full.min.js",
   "./vendor/fonts/inter-400.woff2", "./vendor/fonts/inter-500.woff2", "./vendor/fonts/inter-600.woff2", "./vendor/fonts/inter-700.woff2",
 ];

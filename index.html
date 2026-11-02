@@ -7,8 +7,8 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#FFFFFF">
-  <link rel="stylesheet" href="css/app.css?v=55">
-  <link rel="stylesheet" href="css/summary.css?v=55">
+  <link rel="stylesheet" href="css/app.css?v=57">
+  <link rel="stylesheet" href="css/summary.css?v=57">
 </head>
 <body>
   <!-- Shown until a data folder is connected -->
@@ -105,6 +105,22 @@
   </dialog>
 
   <!-- Paycheck: log it and split it to the other accounts -->
+  <dialog id="dlg-dup">
+    <form method="dialog" id="form-dup">
+      <h2 id="dup-title">Duplicate transactions</h2>
+      <p class="muted" id="dup-from"></p>
+      <div class="dup-when">
+        <label><input type="radio" name="dup-when" value="months" checked> Same day, next month</label>
+        <label><input type="radio" name="dup-when" value="date" id="dup-pick"> All on one date <input type="date" id="dup-date"></label>
+        <label><input type="radio" name="dup-when" value="same"> Same dates as the originals</label>
+      </div>
+      <p class="hint" id="dup-sample"></p>
+      <p class="hint">Copies keep the description, amount, category, account, notes and tags. They're new transactions; the originals don't change.</p>
+      <p class="error" id="dup-error"></p>
+      <div class="actions"><span class="spacer"></span><button type="button" id="dup-cancel">Cancel</button><button type="submit" class="primary" id="dup-save">Duplicate</button></div>
+    </form>
+  </dialog>
+
   <dialog id="dlg-pay">
     <form method="dialog" id="form-pay">
       <h2>Log &amp; split paychecks</h2>
@@ -140,21 +156,21 @@
 
   <script src="vendor/chart.umd.min.js"></script>
   <script src="vendor/xlsx.full.min.js"></script>
-  <script src="js/icons.js?v=55"></script>
-  <script src="js/store.js?v=55"></script>
-  <script src="js/model.js?v=55"></script>
-  <script src="js/importers.js?v=55"></script>
-  <script src="js/app.js?v=55"></script>
-  <script src="js/batch.js?v=55"></script>
-  <script src="js/help.js?v=55"></script>
-  <script src="js/review.js?v=55"></script>
-  <script src="js/attention.js?v=55"></script>
-  <script src="js/reorg.js?v=55"></script>
-  <script src="js/reorg-ui.js?v=55"></script>
-  <script src="js/features.js?v=55"></script>
-  <script src="js/summary.js?v=55"></script>
-  <script src="js/flow.js?v=55"></script>
-  <script src="js/app2.js?v=55"></script>
-  <script src="js/offline.js?v=55"></script>
+  <script src="js/icons.js?v=57"></script>
+  <script src="js/store.js?v=57"></script>
+  <script src="js/model.js?v=57"></script>
+  <script src="js/importers.js?v=57"></script>
+  <script src="js/app.js?v=57"></script>
+  <script src="js/batch.js?v=57"></script>
+  <script src="js/help.js?v=57"></script>
+  <script src="js/review.js?v=57"></script>
+  <script src="js/attention.js?v=57"></script>
+  <script src="js/reorg.js?v=57"></script>
+  <script src="js/reorg-ui.js?v=57"></script>
+  <script src="js/features.js?v=57"></script>
+  <script src="js/summary.js?v=57"></script>
+  <script src="js/flow.js?v=57"></script>
+  <script src="js/app2.js?v=57"></script>
+  <script src="js/offline.js?v=57"></script>
 </body>
 </html>

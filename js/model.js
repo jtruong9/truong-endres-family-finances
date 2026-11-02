@@ -389,6 +389,23 @@ const Model = (() => {
     const same = ["category", "account", "toAccount", "date", "tags", "notes"].every((f) => (out[f] || "") === (t[f] || ""));
     return same ? t : out;
   }
+  // "2026-01-31" + 1 month -> "2026-02-28" (same day, or the month's last day when it's shorter)
+  function addMonths(iso, n) {
+    const y = +iso.slice(0, 4), m = +iso.slice(5, 7) - 1 + n, d = +iso.slice(8, 10);
+    const ty = y + Math.floor(m / 12), tm = ((m % 12) + 12) % 12;
+    const last = new Date(ty, tm + 1, 0).getDate();
+    return `${ty}-${String(tm + 1).padStart(2, "0")}-${String(Math.min(d, last)).padStart(2, "0")}`;
+  }
+  // Copies of transactions as new ones. when: { mode: "months", n } | { mode: "date", date } | { mode: "same" }.
+  // A copy has no id (Store gives it one), and drops what belongs only to the original: the bank-import
+  // link (bankDesc) and "leave as is" marks. It's never a review row.
+  function duplicateTxs(txs, when) {
+    return txs.map((t) => {
+      const { id, bankDesc, ackIssues, review, guess, dir, bill, ...copy } = t;
+      const date = when.mode === "date" ? when.date : when.mode === "months" ? addMonths(t.date, when.n || 1) : t.date;
+      return { ...copy, date };
+    });
+  }
   // Why a batch can't be applied as asked (shown before anything is saved), or ""
   function batchProblem(cfg, txs, ch) {
     if (ch.category && kindOf(cfg, { category: ch.category }) === "Transfer" && !ch.toAccount && txs.some((t) => !t.toAccount))
@@ -665,7 +682,7 @@ const Model = (() => {
   }
 
   return {
-    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2, POT, isPot, openAccounts, bankBalanceAt, potBalanceAt, batchEdit, batchProblem, categoriesByYear, currentCategories,
+    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2, POT, isPot, openAccounts, bankBalanceAt, potBalanceAt, batchEdit, batchProblem, addMonths, duplicateTxs, categoriesByYear, currentCategories,
     hubName, incomeOwner, lastPaycheck, lastRentalIncome, planFlow, actualFlow,
     config, ownerLabel, kindOf, ownerOf, matchesOwner, ownerParts, FROM_PREFIX, isPosted, tagList,
     yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, issueList, openIssues, issueGroups, autoCategory,

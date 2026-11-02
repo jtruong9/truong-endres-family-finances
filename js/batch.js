@@ -36,6 +36,7 @@ function batchBar(rows, shown) {
     </div>
     <div class="row">
       <button class="primary" id="bx-apply">Apply to ${ids.length.toLocaleString()}</button>
+      <button id="bx-dup" title="Make new transactions copied from these">${icon("plus")}Duplicate ${ids.length.toLocaleString()}</button>
       <button class="danger" id="bx-delete">Delete ${ids.length.toLocaleString()}</button>
       <span class="error" id="bx-error"></span>
     </div>
@@ -98,6 +99,7 @@ function wireBatch(rows, shown) {
     batchUi.sel.clear(); batchUi.allMatching = false;
     toast(`Changed ${edited.length} transaction(s).`, 3500);
   };
+  $("#bx-dup").onclick = () => openDuplicate(Store.transactions().filter((t) => new Set(batchIds(rows)).has(t.id)));
   $("#bx-delete").onclick = async () => {
     const ids = batchIds(rows);
     if (!confirm(`Delete ${ids.length} transaction(s)? This can't be undone (except by restoring a backup).`)) return;
@@ -107,4 +109,51 @@ function wireBatch(rows, shown) {
     batchUi.sel.clear(); batchUi.allMatching = false;
     toast(`Deleted ${ids.length} transaction(s).`, 3500);
   };
+}
+
+// ---- Duplicate: copy the selected transactions as new ones ----
+function openDuplicate(picked) {
+  if (!picked.length) return;
+  const dlg = $("#dlg-dup");
+  const dates = picked.map((t) => t.date).sort();
+  const span = dates[0] === dates[dates.length - 1] ? fmtDate(dates[0]) : `${fmtDate(dates[0])} – ${fmtDate(dates[dates.length - 1])}`;
+  $("#dup-title").textContent = `Duplicate ${picked.length} transaction${picked.length > 1 ? "s" : ""}`;
+  $("#dup-from").textContent = `${span} · ${money(picked.reduce((s, t) => s + (Model.kindOf(CFG, t) === "Transfer" ? 0 : t.amount), 0), false)}`;
+  $("#dup-date").value = todayIso();
+  $("#dup-error").textContent = "";
+  const sample = () => {
+    const when = dupWhen();
+    if (!when) return;
+    const first = Model.duplicateTxs([picked[0]], when)[0];
+    $("#dup-sample").textContent = `e.g. ${picked[0].desc || "the first one"}: ${fmtDate(picked[0].date)} → ${fmtDate(first.date)}`;
+  };
+  const dupWhen = () => {
+    const mode = $("#form-dup").querySelector('input[name="dup-when"]:checked').value;
+    if (mode === "date") return /^\d{4}-\d{2}-\d{2}$/.test($("#dup-date").value) ? { mode, date: $("#dup-date").value } : null;
+    return mode === "months" ? { mode, n: 1 } : { mode };
+  };
+  $("#form-dup").querySelectorAll('input[name="dup-when"]').forEach((r) => (r.onchange = () => { $("#dup-date").disabled = !$("#dup-pick").checked; sample(); }));
+  $("#form-dup").querySelector('input[value="months"]').checked = true;
+  $("#dup-date").disabled = true;
+  $("#dup-date").oninput = sample;
+  sample();
+  $("#dup-cancel").onclick = () => dlg.close();
+  $("#form-dup").onsubmit = async (e) => {
+    e.preventDefault();
+    const when = dupWhen();
+    if (!when) { $("#dup-error").textContent = "Pick a date."; return; }
+    const copies = Model.duplicateTxs(picked, when).map((t) => ({ ...t, id: Store.newId() }));
+    $("#dup-save").disabled = true;
+    for (let i = 0; i < copies.length; i += 300) await Store.saveTxs(copies.slice(i, i + 300));
+    $("#dup-save").disabled = false;
+    dlg.close();
+    // Select just the new copies, and widen the filters enough to show them
+    batchUi.sel = new Set(copies.map((t) => t.id)); batchUi.allMatching = false;
+    const years = new Set(copies.map((t) => t.date.slice(0, 4)));
+    if (ui.tx.year && !years.has(ui.tx.year)) ui.tx.year = years.size === 1 ? [...years][0] : "";
+    ui.tx.page = 0;
+    renderTransactions();
+    toast(`Added ${copies.length} cop${copies.length > 1 ? "ies" : "y"}. They're selected, so you can change them with the bar above.`, 5000);
+  };
+  dlg.showModal();
 }

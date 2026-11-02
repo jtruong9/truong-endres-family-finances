@@ -37,6 +37,7 @@ function batchBar(rows, shown) {
     <div class="row">
       <button class="primary" id="bx-apply">Apply to ${ids.length.toLocaleString()}</button>
       <button id="bx-dup" title="Make new transactions copied from these">${icon("plus")}Duplicate ${ids.length.toLocaleString()}</button>
+      ${(() => { const open = Model.todoList(Store.allCfg()).filter((t) => !t.done); return `<select id="bx-todo" title="Attach these transactions to a to-do item">${opts([...open.map((t) => [t.id, t.text.length > 40 ? `${t.text.slice(0, 39)}…` : t.text]), ["__new__", "+ New to-do with these…"]], "", "Link to to-do…")}</select>`; })()}
       <button class="danger" id="bx-delete">Delete ${ids.length.toLocaleString()}</button>
       <span class="error" id="bx-error"></span>
     </div>
@@ -98,6 +99,19 @@ function wireBatch(rows, shown) {
     for (let i = 0; i < edited.length; i += 300) await Store.saveTxs(edited.slice(i, i + 300));
     batchUi.sel.clear(); batchUi.allMatching = false;
     toast(`Changed ${edited.length} transaction(s).`, 3500);
+  };
+  $("#bx-todo").onchange = async (e) => {
+    const ids = batchIds(rows), pick = e.target.value;
+    if (!pick) return;
+    let item;
+    if (pick === "__new__") {
+      const text = prompt(`New to-do for these ${ids.length} transaction(s):`, "");
+      if (!text || !text.trim()) { e.target.value = ""; return; }
+      item = { id: Store.newId(), text: text.trim(), who: "joint", group: "", priority: "", note: "", txIds: [], done: false, created: new Date().toISOString(),
+        order: Math.min(0, ...Model.todoList(Store.allCfg()).map((t) => +t.order || 0)) - 1 };
+    } else item = Model.todoList(Store.allCfg()).find((t) => t.id === pick);
+    await Store.setCfg(`todo:${item.id}`, { ...item, txIds: [...new Set([...(item.txIds || []), ...ids])] });
+    toast(`Linked ${ids.length} transaction(s) to "${item.text}".`, 3500);
   };
   $("#bx-dup").onclick = () => openDuplicate(Store.transactions().filter((t) => new Set(batchIds(rows)).has(t.id)));
   $("#bx-delete").onclick = async () => {

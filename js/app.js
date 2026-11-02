@@ -130,7 +130,8 @@ async function start() {
     $("#setup").hidden = false; $("#unsupported").hidden = false; $("#btn-pick").hidden = true;
     return;
   }
-  Store.onChange(() => { CFG = Model.config(Store.cfg); render(); setStatus(); });
+  // While someone is typing in the To-do notes box, don't redraw the page under them
+  Store.onChange(() => { CFG = Model.config(Store.cfg); if (!(ui.tab === "todo" && document.activeElement && document.activeElement.id === "td-notes")) render(); setStatus(); });
   const status = await Store.init();
   if (status === "ready") { await openApp(() => Store.open()); return; }
   $("#setup").hidden = false;
@@ -182,7 +183,7 @@ $("#btn-refresh").onclick = async () => { const info = await Store.reload(); set
 // tabs: closing a file dialog fires this too, and redrawing those forms mid-use clears what was chosen.
 window.addEventListener("focus", async () => {
   // Also skip tabs with forms that are typed into (check-in balances, goals, rental, bills)
-  if ($("#app").hidden || ["import", "settings", "checkin", "goals", "rental", "bills"].includes(ui.tab) || document.querySelector("dialog[open]")) return;
+  if ($("#app").hidden || ["import", "settings", "checkin", "goals", "rental", "bills", "todo"].includes(ui.tab) || document.querySelector("dialog[open]")) return;
   setStatus(await Store.reload());
 });
 
@@ -211,6 +212,8 @@ window.matchMedia("(max-width: 900px)").addEventListener("change", () => { $("#a
 $("#tabs").onclick = (e) => {
   const b = e.target.closest("button[data-tab]");
   if (!b) return;
+  // A real click on Transactions in the menu shows everything again (not just a to-do's linked rows)
+  if (e.isTrusted && b.dataset.tab === "transactions") ui.tx.ids = null;
   ui.tab = b.dataset.tab;
   $$("#tabs button").forEach((x) => x.classList.toggle("active", x === b));
   $$(".tab").forEach((s) => (s.hidden = s.id !== "tab-" + ui.tab));
@@ -231,13 +234,18 @@ function updateMenuBadge() {
   el.textContent = n > 99 ? "99+" : String(n);
   el.classList.toggle("warn", flagged > 0);
   el.title = [review && `${review} imported to review`, flagged && `${flagged} need attention`].filter(Boolean).join(" · ");
+  // Open to-do items
+  const todo = Model.todoList(Store.allCfg()).filter((t) => !t.done).length, tb = $("#sb-todo-count");
+  tb.hidden = !todo;
+  tb.textContent = todo > 99 ? "99+" : String(todo);
+  tb.title = `${todo} open to-do item(s)`;
 }
 
 function render() {
   if (!CFG || $("#app").hidden) return;
   updateMenuBadge();
   ({ dashboard: renderDashboard, transactions: renderTransactions, summary: renderSummary, flow: renderFlow, checkin: renderCheckin,
-     goals: renderGoals, bills: renderBills, rental: renderRental, import: renderImport, settings: renderSettings, help: renderHelp })[ui.tab]();
+     goals: renderGoals, bills: renderBills, rental: renderRental, todo: renderTodo, import: renderImport, settings: renderSettings, help: renderHelp })[ui.tab]();
 }
 function renderGoals() {
   $("#tab-goals").innerHTML = goalsTab();
@@ -348,7 +356,8 @@ function renderTransactions() {
     (!f.year || t.date.startsWith(f.year)) &&
     (Model.matchesOwner(CFG, t, f.owner) || (f.owner === "joint" && Model.ownerParts(CFG, t, "joint").length > 0)) &&
     (!q || `${t.desc} ${t.notes} ${t.tags} ${t.category} ${t.amount}`.toLowerCase().includes(q)) &&
-    (!f.flagged || Model.openIssues(CFG, t).length));
+    (!f.flagged || Model.openIssues(CFG, t).length) &&
+    (!f.ids || f.ids.includes(t.id)));
   rows.sort((a, b) => (a.date === b.date ? 0 : a.date < b.date ? 1 : -1));
   // Totals for the rows shown: income in, spending and savings out (transfers are just money moving)
   const sums = { Income: 0, Expense: 0, Savings: 0 };
@@ -371,6 +380,7 @@ function renderTransactions() {
         <select id="tf-account">${opts(CFG.accounts.map((a) => a.name), f.account, "All accounts")}</select>
         <select id="tf-category">${opts(filterCategories(f.year, f.category), f.category, f.year ? `All ${f.year} categories` : "All categories")}</select>
         <label class="muted"><input type="checkbox" id="tf-flagged" ${f.flagged ? "checked" : ""}> Needs attention</label>
+        ${f.ids ? `<span class="pill">Linked to a to-do (${f.ids.length})</span><button class="small ghost" id="tf-ids-clear">Show all</button>` : ""}
         <span class="spacer"></span>
         <span class="tx-sums muted">${rows.length.toLocaleString()} rows · Income <b class="pos">${money(sums.Income, false)}</b> − Spent <b>${money(sums.Expense, false)}</b> − Saved <b>${money(sums.Savings, false)}</b> = <b class="${net < -0.005 ? "neg" : "pos"}" title="Income minus spending and savings. Transfers aren't counted.">${money(net, false)}</b></span>
       </div>
@@ -399,6 +409,7 @@ function renderTransactions() {
   $("#tf-account").onchange = (e) => set("account", e.target.value);
   $("#tf-category").onchange = (e) => set("category", e.target.value);
   $("#tf-flagged").onchange = (e) => set("flagged", e.target.checked);
+  const ic = $("#tf-ids-clear"); if (ic) ic.onclick = () => set("ids", null);
   $("#tp-prev").onclick = () => { f.page--; renderTransactions(); };
   $("#tp-next").onclick = () => { f.page++; renderTransactions(); };
   $("#tx-table tbody").onclick = (e) => {

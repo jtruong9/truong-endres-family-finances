@@ -428,4 +428,17 @@ t("duplicate transactions: new copies, date moved, nothing tied to the original"
   assert.strictEqual(orig.id, "a1");   // the original isn't changed
 });
 
+t("to-do list: items from their own settings, deleted left out, grouped with high priority first", () => {
+  const cfg = {
+    "todo:a": { id: "a", text: "Call bank", group: "", order: 2, created: "2026-11-01" },
+    "todo:b": { id: "b", text: "Pay taxes", group: "Taxes", order: 1, created: "2026-11-01", priority: "high" },
+    "todo:c": { id: "c", text: "Old", deleted: true },
+    "todo:d": { id: "d", text: "File W-2", group: "Taxes", order: 0, created: "2026-11-01" },
+    "todo:e": { id: "e", text: "Done one", group: "", order: 3, created: "2026-11-01", done: true },
+    categories: [] };
+  const list = Model.todoList(cfg);
+  assert.strictEqual(J(list.map((t) => t.id)), J(["d", "b", "a", "e"]));
+  assert.strictEqual(J(Model.todoGroups(list).map((g) => [g.group, g.items.map((t) => t.id)])), J([["", ["a"]], ["Taxes", ["b", "d"]]]));
+});
+
 console.log(`\n${n} tests passed`);

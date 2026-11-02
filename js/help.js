@@ -20,7 +20,7 @@ function renderHelp() {
       <div class="help-toc">
         <a href="#h-flow">How our money flows</a><a href="#h-first">First-time setup</a><a href="#h-daily">Everyday logging</a>
         <a href="#h-paycheck">Paychecks</a><a href="#h-import">Bank statements &amp; review</a><a href="#h-checkin">Monthly check-in</a>
-        <a href="#h-read">Reading the numbers</a><a href="#h-moneyflow">Money flow</a><a href="#h-goals">Goals</a><a href="#h-bills">Bills</a><a href="#h-rental">Rental</a>
+        <a href="#h-read">Reading the numbers</a><a href="#h-moneyflow">Money flow</a><a href="#h-goals">Goals</a><a href="#h-bills">Bills</a><a href="#h-todo">To-do</a><a href="#h-rental">Rental</a>
         <a href="#h-rules">Good habits</a><a href="#h-trouble">If something looks wrong</a>
       </div>
     </div>
@@ -159,6 +159,18 @@ function renderHelp() {
       <p>Each month, click <b>Log … bills</b> to enter all of that month's bills in one step. Fixed amounts are filled in; type the amount for ones that vary.</p>
       <p>A bill shows <span class="pill Paid">Paid</span> once it's logged, <span class="pill Due">Due soon</span> in the 5 days before it's due, or <span class="pill Overdue">Overdue</span> after the due day. Unpaid bills also show on the Dashboard and in the Check-in.</p>
       <p class="hint">If you import the bank statement too, the bill will show as a <i>possible duplicate</i> in the review list. Remove it there.</p>
+    </div>
+
+    <div class="card" id="h-todo">
+      <h2 class="cat-bar">To-do &amp; notes</h2>
+      <p>The <b>To-do</b> page is our shared checklist. Type a task at the top and press Enter. Pick who it's for (${p1}, ${p2} or Both), a <b>group</b> (e.g. Taxes, Wedding, House) and tick <b>High</b> for anything urgent: high-priority items sit at the top of their group.</p>
+      <ul>
+        <li>Tick the box when it's done. It moves to <b>Done</b> at the bottom (untick it there to bring it back). <b>Clear done</b> removes them.</li>
+        <li><b>Edit</b> an item to change it, add a <b>note</b>, or see its <b>linked transactions</b>. To link some: on Transactions, tick the rows and pick the to-do under <b>Link to to-do…</b> in the bar (or make a new one there). The list icon on the item opens them.</li>
+        <li>Drag an item by its dots to change the order.</li>
+        <li>The <b>Notes</b> box is for anything that isn't a task. It saves by itself as you type.</li>
+        <li>The number next to To-do in the menu is how many are still open.</li>
+      </ul>
     </div>
 
     <div class="card" id="h-rental">

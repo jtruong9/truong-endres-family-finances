@@ -364,6 +364,23 @@ const Model = (() => {
     return cfg.categories.filter((c) => thisYear.has(c.name) || !ever.has(c.name) || keepSet.has(c.name));
   }
 
+  // ------------------------------------------------------------------ to-do list
+  // Each item is its own setting "todo:<id>" so two people can check off different items at once
+  // without one overwriting the other. A deleted item is saved as { deleted: true }.
+  //   { id, text, who: "joint"|"p1"|"p2", group, note, priority: "high"|"", txIds: [], done: false,
+  //     doneAt, created, order }
+  function todoList(allCfg) {
+    return Object.entries(allCfg).filter(([k, v]) => k.startsWith("todo:") && v && !v.deleted).map(([, v]) => v)
+      .sort((a, b) => (+a.order || 0) - (+b.order || 0) || String(a.created).localeCompare(String(b.created)));
+  }
+  // Open items grouped for display: groups in first-seen order, "" (no group) first; high priority on top
+  function todoGroups(items) {
+    const open = items.filter((t) => !t.done);
+    const names = [...new Set(open.map((t) => (t.group || "").trim()))].sort((a, b) => (a === "" ? -1 : b === "" ? 1 : 0));
+    return names.map((g) => ({ group: g, items: open.filter((t) => (t.group || "").trim() === g)
+      .sort((a, b) => (b.priority === "high") - (a.priority === "high") || (+a.order || 0) - (+b.order || 0)) }));
+  }
+
   // ------------------------------------------------------------------ batch edit (Transactions)
   // Apply one set of changes to a transaction. Only the fields given change:
   //   { category, account, toAccount, date, addTags: "a, b", removeTags: "c", note, noteMode: "add"|"replace" }
@@ -682,7 +699,7 @@ const Model = (() => {
   }
 
   return {
-    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2, POT, isPot, openAccounts, bankBalanceAt, potBalanceAt, batchEdit, batchProblem, addMonths, duplicateTxs, categoriesByYear, currentCategories,
+    DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, MONTHS, MONTH_COLORS, r2, POT, isPot, openAccounts, bankBalanceAt, potBalanceAt, batchEdit, batchProblem, addMonths, duplicateTxs, todoList, todoGroups, categoriesByYear, currentCategories,
     hubName, incomeOwner, lastPaycheck, lastRentalIncome, planFlow, actualFlow,
     config, ownerLabel, kindOf, ownerOf, matchesOwner, ownerParts, FROM_PREFIX, isPosted, tagList,
     yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, issueList, openIssues, issueGroups, autoCategory,

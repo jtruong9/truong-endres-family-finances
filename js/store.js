@@ -157,6 +157,7 @@ const Store = (() => {
     // ---- reads ----
     transactions: () => [...state.tx.values()],
     cfg: (key, fallback) => (key in state.cfg ? state.cfg[key] : fallback),
+    allCfg: () => state.cfg,
     eventCount: () => allEvents.length,
 
     // ---- writes ----

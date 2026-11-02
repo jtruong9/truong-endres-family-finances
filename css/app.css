@@ -312,3 +312,31 @@ tr.moved td { background: var(--accent-bg); }
 .dup-when { display: grid; gap: 8px; margin: 10px 0; }
 .dup-when label { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
 .dup-when input[type=date] { height: 30px; }
+
+/* ---- To-do ---- */
+.td-add { gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.td-add #td-new { flex: 1 1 320px; }
+.td-add #td-new-group { width: 170px; }
+.td-gname { margin: 14px 0 4px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: none; }
+.td-gname .muted { font-weight: 500; margin-left: 4px; }
+.td-list { display: grid; }
+.td-item { border-bottom: 1px solid var(--line-2); }
+.td-item:last-child { border-bottom: none; }
+.td-row { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.td-check input { width: 18px; height: 18px; cursor: pointer; }
+.td-text { font-size: 14px; color: var(--ink); }
+.td-item.high .td-text { font-weight: 600; }
+.td-high { background: var(--warn-bg); color: var(--warn); }
+.td-item.done .td-text { color: var(--faint); text-decoration: line-through; }
+.td-who { font-size: 11.5px; font-weight: 600; padding: 1px 8px; border-radius: 999px; color: var(--owner); background: var(--owner-bg); }
+.td-who[data-owner="joint"] { --owner: var(--muted); --owner-bg: var(--hover); }
+.td-hasnote .ico { width: 14px; height: 14px; color: var(--faint); vertical-align: -2px; }
+.td-when { font-size: 12px; }
+.td-editor { display: grid; gap: 10px; padding: 6px 0 14px 54px; }
+.td-editor label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--muted); font-weight: 500; }
+.td-editor .td-f-prio-l { justify-content: flex-end; }
+.td-editor .td-f-prio-l span { display: flex; align-items: center; gap: 6px; height: 32px; color: var(--ink-2); }
+.td-editor textarea, #td-notes { width: 100%; border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px; font: inherit; font-size: 13.5px; resize: vertical; background: var(--bg); }
+.td-links ul { margin: 4px 0; padding-left: 18px; font-size: 13px; }
+.td-done-wrap { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
+.td-empty { margin: 6px 0; }

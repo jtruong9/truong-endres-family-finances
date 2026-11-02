@@ -344,6 +344,37 @@ const Model = (() => {
     return out;
   }
 
+  // Bank statement import, before anything is saved. rows = statement rows already marked _dup (exact
+  // repeats, Importers.markDuplicates). Returns:
+  //   possible: Map(rowIndex -> saved tx) for the other rows that look like something already saved
+  //             (same account, same amount, within `days`; each saved tx explains one row)
+  //   overlap:  { from, to, count } saved rows in this account inside the statement's dates, or null
+  function statementCheck(txs, rows, days = 4) {
+    const account = rows[0] && rows[0].account;
+    // Everything already in the app, confirmed or still waiting in To review
+    const saved = txs.filter((t) => isPosted(t) || t.review);
+    // An exact repeat (same date, amount, account, bank wording) is already explained by its saved row:
+    // take that row out, so it can't also be "the match" for a different statement row
+    const key = (t) => `${t.date}|${Math.abs(+t.amount).toFixed(2)}|${t.account}|${String(t.bankDesc || t.desc || "").toLowerCase().replace(/\s+/g, " ")}`;
+    const exact = new Map();
+    for (const r of rows) if (r._dup) exact.set(key(r), (exact.get(key(r)) || 0) + 1);
+    const pool = saved.filter((t) => { const k = key(t), n = exact.get(k); if (n) { exact.set(k, n - 1); return false; } return true; });
+    const fresh = rows.map((r, i) => ({ ...r, id: `row${i}`, amount: Math.abs(+r.amount) })).filter((r) => !r._dup);
+    const hits = findMatches(buildMatchIndex(pool.map((t) => (t.review ? { ...t, review: false } : t))), fresh, days);
+    const possible = new Map([...hits].map(([id, t]) => [+id.slice(3), t]));
+    const dates = rows.map((r) => r.date).filter(Boolean).sort();
+    let overlap = null;
+    if (dates.length) {
+      const from = dates[0], to = dates[dates.length - 1];
+      const inRange = saved.filter((t) => (t.account === account || t.toAccount === account) && t.date >= from && t.date <= to);
+      if (inRange.length) {
+        const d = inRange.map((t) => t.date).sort();
+        overlap = { from: d[0], to: d[d.length - 1], count: inRange.length, statementFrom: from, statementTo: to };
+      }
+    }
+    return { possible, overlap };
+  }
+
   // ------------------------------------------------------------------ categories by year
   // Which categories each year's saved transactions use: Map(year -> Set(name))
   function categoriesByYear(txs) {
@@ -703,7 +734,7 @@ const Model = (() => {
     hubName, incomeOwner, lastPaycheck, lastRentalIncome, planFlow, actualFlow,
     config, ownerLabel, kindOf, ownerOf, matchesOwner, ownerParts, FROM_PREFIX, isPosted, tagList,
     yearGrid, monthsElapsed, monthlyTotals, accountFlows, distribute, recurringStatus, issues, issueList, openIssues, issueGroups, autoCategory,
-    resolveReview, merchantKey, buildGuessIndex, guessCategory, buildMatchIndex, findMatches,
+    resolveReview, merchantKey, buildGuessIndex, guessCategory, buildMatchIndex, findMatches, statementCheck,
     accountEffect, hasOpening, balanceAt, goalProgress, yearCompare, isRental, rentalSummary, budgetStatus,
   };
 })();

@@ -441,4 +441,24 @@ t("to-do list: items from their own settings, deleted left out, grouped with hig
   assert.strictEqual(J(Model.todoGroups(list).map((g) => [g.group, g.items.map((t) => t.id)])), J([["", ["a"]], ["Taxes", ["b", "d"]]]));
 });
 
+t("statement import: possible duplicates and an overlap with what's already imported", () => {
+  const saved = [
+    { id: "s1", date: "2026-10-17", desc: "SAFEWAY", bankDesc: "SAFEWAY #22", amount: 84.1, category: "Groceries", account: "Joint Hub" },
+    { id: "s2", date: "2026-10-05", desc: "Coffee", bankDesc: "CAFE 9", amount: 5, category: "Food & Drinks", account: "Joint Hub" },
+    { id: "s3", date: "2026-10-20", desc: "Gas", amount: 40, category: "Gas", account: "Joint Hub", review: true },   // still in To review
+    { id: "s4", date: "2026-10-10", desc: "Other acct", amount: 99, category: "Gas", account: "Joint Bills" }];
+  // The statement: one exact repeat, one re-dated + reworded copy, one in-review copy, two new
+  const rows = [
+    { date: "2026-10-05", desc: "CAFE 9", amount: 5, dir: "out", account: "Joint Hub", _dup: true },
+    { date: "2026-10-19", desc: "SAFEWAY STORE 22", amount: 84.1, dir: "out", account: "Joint Hub", _dup: false },
+    { date: "2026-10-21", desc: "SHELL", amount: 40, dir: "out", account: "Joint Hub", _dup: false },
+    { date: "2026-10-28", desc: "NEW PLACE", amount: 12, dir: "out", account: "Joint Hub", _dup: false },
+    { date: "2026-10-30", desc: "CAFE 9", amount: 5, dir: "out", account: "Joint Hub", _dup: false }];   // 25 days from the saved $5: not a match
+  const c = Model.statementCheck(saved, rows);
+  assert.strictEqual(J([...c.possible].map(([i, t]) => [i, t.id])), J([[1, "s1"], [2, "s3"]]));
+  assert.strictEqual(J(c.overlap), J({ from: "2026-10-05", to: "2026-10-20", count: 3, statementFrom: "2026-10-05", statementTo: "2026-10-30" }));
+  // Another account's rows don't count; nothing saved in range -> no overlap
+  assert.strictEqual(Model.statementCheck(saved, [{ date: "2026-12-01", desc: "X", amount: 99, dir: "out", account: "Joint Bills", _dup: false }]).overlap, null);
+});
+
 console.log(`\n${n} tests passed`);

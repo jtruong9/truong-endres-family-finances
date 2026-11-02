@@ -149,17 +149,32 @@ function renderImport() {
       const rows = Importers.fromCsv(parsed, m, acct);
       if (!rows.length) { toast("No rows with a date and amount were found. Check the column choices.", 6000); return; }
       const fresh = Importers.markDuplicates(rows, Store.transactions());
-      const newCount = fresh.filter((r) => !r._dup).length;
+      // Rows that look like something already in the app (re-dated or reworded by the bank), and whether
+      // this statement covers days already imported for this account
+      const { possible, overlap } = Model.statementCheck(Store.transactions(), fresh);
+      const exactCount = fresh.filter((r) => r._dup).length;
       const ins = rows.filter((r) => r.dir === "in").length;
+      const sendable = () => fresh.filter((r, i) => !r._dup && (!possible.has(i) || $(`#mp-pd-${i}`)?.checked));
+      const pdList = [...possible].sort((a, b) => (fresh[a[0]].date < fresh[b[0]].date ? -1 : 1));
       $("#im-map").insertAdjacentHTML("beforeend", `<div class="card" style="margin-top:10px" id="mp-sum">
-        <p><b>${rows.length}</b> rows read: ${rows.length - ins} money out, ${ins} money in. <b>${newCount} new</b>, ${rows.length - newCount} already imported before (skipped).</p>
+        ${overlap ? `<div class="banner warn">${icon("alert")}<span><b>This statement overlaps what's already here.</b> ${overlap.count} transaction(s) for ${esc(acct)} are already saved between ${fmtDate(overlap.from)} and ${fmtDate(overlap.to)} (this statement: ${fmtDate(overlap.statementFrom)} – ${fmtDate(overlap.statementTo)}). Check the possible duplicates below.</span></div>` : ""}
+        <p><b>${rows.length}</b> rows read: ${rows.length - ins} money out, ${ins} money in. <b>${fresh.length - exactCount - possible.size} new</b> · ${exactCount} already imported before (skipped)${possible.size ? ` · <b class="warn-text">${possible.size} possible duplicate(s)</b> (left out unless you tick them)` : ""}.</p>
+        ${possible.size ? `<div class="table-wrap pd-list"><table><thead><tr><th>Send anyway</th><th>On this statement</th><th class="num">Amount</th><th>Already in the app</th></tr></thead><tbody>
+          ${pdList.map(([i, t]) => { const r = fresh[i]; return `<tr><td><input type="checkbox" class="mp-pd" id="mp-pd-${i}" title="Tick if this is a different transaction and should be imported"></td>
+            <td><span class="nowrap">${fmtDate(r.date)}</span> · ${esc(r.desc)}</td><td class="num">${money(r.amount, false)}</td>
+            <td class="muted"><span class="nowrap">${fmtDate(t.date)}</span> · ${esc(t.desc)}${t.review ? " (in To review)" : ""}${t.category ? ` · ${esc(t.category)}` : ""}</td></tr>`; }).join("")}
+          </tbody></table></div>
+          <p class="hint">Same account and amount within 4 days of something already saved. Tick a row only if it's really a separate transaction (e.g. two $5 coffees).</p>` : ""}
         <p class="hint">Sanity check: purchases should be "money out". If it's backwards, flip the checkbox above and click Preview again.</p>
-        <button id="mp-send" class="primary" ${newCount ? "" : "disabled"}>Send ${newCount} rows to review</button></div>`);
+        <button id="mp-send" class="primary">Send ${sendable().length} rows to review</button></div>`);
       $("#mp-go").disabled = true;
+      const sendBtn = () => { const n = sendable().length; $("#mp-send").textContent = `Send ${n} row${n === 1 ? "" : "s"} to review`; $("#mp-send").disabled = !n; };
+      sendBtn();
+      $$("#mp-sum .mp-pd").forEach((cb) => (cb.onchange = sendBtn));
       $("#mp-send").onclick = async () => {
         $("#mp-send").disabled = true;
         const idx = Model.buildGuessIndex(CFG, Store.transactions());
-        const save = fresh.filter((r) => !r._dup).map(({ _dup, ...r }) => {
+        const save = sendable().map(({ _dup, ...r }) => {
           const g = Model.guessCategory(CFG, idx, r);
           return { ...r, bankDesc: r.desc, category: g, guess: !!g };
         });

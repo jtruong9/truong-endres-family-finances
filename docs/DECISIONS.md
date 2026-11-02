@@ -161,10 +161,13 @@ Public file: no amounts, account details or other personal financial data.
 ## 2026-11 — To-do list and notes
 - **Decided (owners' choices):** a **To-do** page in the menu's Plan section: a shared checklist where each item has text, who it's for (Both / each person, colored like the owner buttons), a **group** heading, **High** priority (sorted to the top of its group), a **note**, and **linked transactions**. Checked items move to a collapsed **Done (N)** list with the date; "Clear done" removes them. Items reorder by drag. A free-form **Notes** box below autosaves. A menu badge shows the open count.
 - **Storage:** each item is its own setting `todo:<id>` (latest event wins per key, like everything else), so two people checking off different items at the same time never overwrite each other. Deleting saves `{ deleted: true }`. Notes are one setting `notes` (last save wins; noted in the UI). `Model.todoList` / `Model.todoGroups`.
-- **Linking:** from the Transactions batch bar, "Link to to-do…" adds the selected rows to an item (or makes a new one). The item's list icon opens Transactions filtered to those rows (`ui.tx.ids`), cleared by "Show all" or clicking Transactions in the menu.
+- **Linking:** from the Transactions batch bar, "Link to to-do…" adds the selected rows to an item (or makes a new one). The item's list icon opens Transactions filtered to those rows (`ui.tx.ids`), cleared by "Reset filters" or clicking Transactions in the menu.
 - **Rejected:** due dates; crossed-out items staying in place; checklist only (no notes).
 
 ## 2026-11 — Bank statement import flags possible duplicates before sending
 - **Decided (owners' choices):** the CSV preview (before anything is saved) now shows (1) a yellow **overlap warning** when transactions for that account are already saved inside the statement's date range, and (2) a **possible duplicates** list: statement rows with the same account and amount within **4 days** of something already in the app (confirmed or still in To review), each next to its match. Possible duplicates are **left out by default**; "Send anyway" ticks bring one in. Exact repeats are still skipped as before. `Model.statementCheck` (reuses `findMatches`; each saved row explains one statement row; rows explained by an exact repeat aren't reused).
 - **Why:** importing a full month after a partial one, or a statement whose dates/merchant wording changed, slipped past the exact-match check.
 - **Rejected:** sending everything and only tagging in review; a warning only; also requiring a similar description (misses reworded merchants).
+
+## 2026-11 — Transactions: one "Reset filters" button
+- **Decided:** whenever any Transactions filter is set (search, year, owner, account, category, Needs attention, or a to-do's linked rows), a **Reset filters** button appears and puts them all back: all years, Household, all accounts, all categories, no search. It replaces the to-do "Show all" button.

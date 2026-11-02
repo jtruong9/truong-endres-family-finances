@@ -166,7 +166,7 @@ function renderHelp() {
       <p>The <b>To-do</b> page is our shared checklist. Type a task at the top and press Enter. Pick who it's for (${p1}, ${p2} or Both), a <b>group</b> (e.g. Taxes, Wedding, House) and tick <b>High</b> for anything urgent: high-priority items sit at the top of their group.</p>
       <ul>
         <li>Tick the box when it's done. It moves to <b>Done</b> at the bottom (untick it there to bring it back). <b>Clear done</b> removes them.</li>
-        <li><b>Edit</b> an item to change it, add a <b>note</b>, or see its <b>linked transactions</b>. To link some: on Transactions, tick the rows and pick the to-do under <b>Link to to-do…</b> in the bar (or make a new one there). The list icon on the item opens them.</li>
+        <li><b>Edit</b> an item to change it, add a <b>note</b>, or see its <b>linked transactions</b>. To link some: on Transactions, tick the rows and pick the to-do under <b>Link to to-do…</b> in the bar (or make a new one there). The list icon on the item opens them; <b>Reset filters</b> goes back to everything.</li>
         <li>Drag an item by its dots to change the order.</li>
         <li>The <b>Notes</b> box is for anything that isn't a task. It saves by itself as you type.</li>
         <li>The number next to To-do in the menu is how many are still open.</li>

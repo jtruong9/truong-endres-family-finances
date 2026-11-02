@@ -380,7 +380,8 @@ function renderTransactions() {
         <select id="tf-account">${opts(CFG.accounts.map((a) => a.name), f.account, "All accounts")}</select>
         <select id="tf-category">${opts(filterCategories(f.year, f.category), f.category, f.year ? `All ${f.year} categories` : "All categories")}</select>
         <label class="muted"><input type="checkbox" id="tf-flagged" ${f.flagged ? "checked" : ""}> Needs attention</label>
-        ${f.ids ? `<span class="pill">Linked to a to-do (${f.ids.length})</span><button class="small ghost" id="tf-ids-clear">Show all</button>` : ""}
+        ${f.ids ? `<span class="pill">Linked to a to-do (${f.ids.length})</span>` : ""}
+        ${f.q || f.year || f.owner !== "all" || f.account || f.category || f.flagged || f.ids ? `<button class="small" id="tf-reset" title="Clear every filter: all years, Household, all accounts, all categories">${icon("x")}Reset filters</button>` : ""}
         <span class="spacer"></span>
         <span class="tx-sums muted">${rows.length.toLocaleString()} rows · Income <b class="pos">${money(sums.Income, false)}</b> − Spent <b>${money(sums.Expense, false)}</b> − Saved <b>${money(sums.Savings, false)}</b> = <b class="${net < -0.005 ? "neg" : "pos"}" title="Income minus spending and savings. Transfers aren't counted.">${money(net, false)}</b></span>
       </div>
@@ -409,7 +410,8 @@ function renderTransactions() {
   $("#tf-account").onchange = (e) => set("account", e.target.value);
   $("#tf-category").onchange = (e) => set("category", e.target.value);
   $("#tf-flagged").onchange = (e) => set("flagged", e.target.checked);
-  const ic = $("#tf-ids-clear"); if (ic) ic.onclick = () => set("ids", null);
+  // Back to everything: all years, Household, all accounts, all categories, no search
+  const rs = $("#tf-reset"); if (rs) rs.onclick = () => { ui.tx = { q: "", account: "", category: "", owner: "all", year: "", flagged: false, page: 0, ids: null }; renderTransactions(); };
   $("#tp-prev").onclick = () => { f.page--; renderTransactions(); };
   $("#tp-next").onclick = () => { f.page++; renderTransactions(); };
   $("#tx-table tbody").onclick = (e) => {
